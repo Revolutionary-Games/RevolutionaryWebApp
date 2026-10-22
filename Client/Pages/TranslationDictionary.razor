@@ -3,10 +3,17 @@
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using System.Threading
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject ComponentUrlHelper URLHelper
 @inject CurrentUserInfo UserInfo
+@inject NotificationHandler NotificationHandler
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<TranslationDictionaryUpdated>
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<TranslationDictionaryTermsUpdated>
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<TranslationDictionaryTermUpdated>
+@implements RevolutionaryWebApp.Client.Services.INotificationHandler<TranslationDictionaryLanguagesUpdated>
 @inherits PaginatedPage<DictionaryTermDTO>
 
 <h3>Dictionary @DictionaryId</h3>
@@ -36,11 +43,27 @@ else
             @foreach (var term in Data.Results)
             {
                 <tr @key="term.Id">
-                    <td><DictionaryTermEditor Term="@term" LanguageCode="@Language" OnSaved="@RefreshTerms" /></td>
+                    <td>
+                        <DictionaryTermEditor Term="@term" LanguageCode="@Language"
+                                              OnDirtyChanged="@EditorDirtyChanged"
+                                              OnSavingChanged="@EditorSavingChanged"
+                                              ResetVersion="@editorResetVersion"/>
+                    </td>
                 </tr>
             }
         }
     </PaginatedTable>
+}
+
+@if (updateWarning)
+{
+    <div class="alert alert-warning" role="alert">
+        Dictionary data changed while you had unsaved edits. Save or copy your edits, then
+        <button type="button" class="btn btn-link p-0 align-baseline" @onclick="DiscardEditsAndReload">
+            discard edits and reload
+        </button>
+        .
+    </div>
 }
 
 @if (Language != "en")
@@ -49,42 +72,46 @@ else
     <p>Use this for a term that is useful in this language and has no English dictionary entry.</p>
     <div class="mb-2">
         <label for="local-term-word" class="form-label">Term</label>
-        <input id="local-term-word" class="form-control" @bind="newLanguageWord" />
+        <input id="local-term-word" class="form-control" @bind="newLanguageWord"/>
     </div>
     <div class="mb-2">
         <label for="local-term-context" class="form-label">Context</label>
-        <input id="local-term-context" class="form-control" @bind="newLanguageContext" />
+        <input id="local-term-context" class="form-control" @bind="newLanguageContext"/>
     </div>
     <div class="mb-2">
         <label for="local-term-explanation" class="form-label">Explanation in @Language</label>
         <textarea id="local-term-explanation" class="form-control" @bind="newLanguageExplanation"></textarea>
     </div>
-    <button type="button" class="btn btn-outline-primary" @onclick="SubmitLanguageTerm">Add @Language term</button>
-    <StatusMessageShower Message="@languageMessage" Type="@languageMessageType" />
+    <Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingLanguageTerm)"
+            Spinner="@isSubmittingLanguageTerm" OnPressed="@SubmitLanguageTerm">Add @Language term
+    </Button>
+    <StatusMessageShower Message="@languageMessage" Type="@languageMessageType"/>
 }
 
 <h4 class="mt-4">Add an English term</h4>
 <p>Anyone can request a word. Dictionary managers can add it directly.</p>
 <div class="mb-2">
     <label for="new-term-word" class="form-label">Word</label>
-    <input id="new-term-word" class="form-control" @bind="newWord" />
+    <input id="new-term-word" class="form-control" @bind="newWord"/>
 </div>
 <div class="mb-2">
     <label for="new-term-context" class="form-label">Context</label>
-    <input id="new-term-context" class="form-control" @bind="newContext" />
+    <input id="new-term-context" class="form-control" @bind="newContext"/>
 </div>
 <div class="mb-2">
     <label for="new-term-explanation" class="form-label">English explanation</label>
     <textarea id="new-term-explanation" class="form-control" @bind="newExplanation"></textarea>
 </div>
-<button type="button" class="btn btn-outline-primary" @onclick="SubmitTerm">
+<Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingTerm)" Spinner="@isSubmittingTerm"
+        OnPressed="@SubmitTerm">
     @(CanManage ? "Add term" : "Request term")
-</button>
-<StatusMessageShower Message="@message" Type="@messageType" />
+</Button>
+<StatusMessageShower Message="@message" Type="@messageType"/>
 
 <DevCenterTitle>Dictionary</DevCenterTitle>
 
 @code {
+
     private readonly List<TableColumn> columns =
     [
         new TableColumn("Term", true, nameof(DictionaryTermDTO.Word)),
@@ -103,6 +130,16 @@ else
     private string? newLanguageExplanation;
     private string? languageMessage;
     private SiteNoticeType languageMessageType = SiteNoticeType.Danger;
+    private readonly HashSet<(string Word, string Context)> dirtyEditors = [];
+    private readonly HashSet<(string Word, string Context)> savingEditors = [];
+    private readonly HashSet<(string Word, string Context)> pendingItemUpdates = [];
+    private long? registeredDictionaryId;
+    private bool updateWarning;
+    private bool isSubmittingTerm;
+    private bool isSubmittingLanguageTerm;
+    private bool updateReceivedDuringSubmission;
+    private bool dataUpdateReceivedDuringSubmission;
+    private int editorResetVersion;
 
     [Parameter]
     public long DictionaryId { get; set; }
@@ -116,6 +153,15 @@ else
     {
         DefaultPageSize = 100;
     }
+
+    private bool HasUnsavedChanges => dirtyEditors.Count > 0 || !string.IsNullOrEmpty(newWord) ||
+        !string.IsNullOrEmpty(newContext) || !string.IsNullOrEmpty(newExplanation) ||
+        !string.IsNullOrEmpty(newLanguageWord) || !string.IsNullOrEmpty(newLanguageContext) ||
+        !string.IsNullOrEmpty(newLanguageExplanation);
+
+    private bool HasNewTermInput => !string.IsNullOrEmpty(newWord) || !string.IsNullOrEmpty(newContext) ||
+        !string.IsNullOrEmpty(newExplanation) || !string.IsNullOrEmpty(newLanguageWord) ||
+        !string.IsNullOrEmpty(newLanguageContext) || !string.IsNullOrEmpty(newLanguageExplanation);
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
@@ -131,8 +177,7 @@ else
         if (dictionaryChanged)
         {
             loadedDictionaryId = DictionaryId;
-            languages = await Http.GetFromJsonAsync<string[]>(
-                $"api/v1/translationDictionaries/{DictionaryId}/languages") ?? [];
+            languages = await Http.GetFromJsonAsync<string[]>($"api/v1/translationDictionaries/{DictionaryId}/languages") ?? [];
         }
 
         if (languageChanged)
@@ -144,12 +189,13 @@ else
 
         if (Data != null && (dictionaryChanged || languageChanged))
             await FetchData();
+
+        await UpdateNotificationRegistration();
     }
 
     protected override Task<PagedResult<DictionaryTermDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<DictionaryTermDTO>>(
-            QueryHelpers.AddQueryString($"api/v1/translationDictionaries/{DictionaryId}/terms", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<DictionaryTermDTO>>(QueryHelpers.AddQueryString($"api/v1/translationDictionaries/{DictionaryId}/terms", requestParams));
     }
 
     protected override Dictionary<string, string?> CreatePageRequestParams()
@@ -178,9 +224,172 @@ else
         await FetchData();
     }
 
-    private async Task RefreshTerms()
+    private Task EditorDirtyChanged((string Word, string Context, bool IsDirty) change)
     {
+        if (change.IsDirty)
+            dirtyEditors.Add((change.Word, change.Context));
+        else
+            dirtyEditors.Remove((change.Word, change.Context));
+
+        return Task.CompletedTask;
+    }
+
+    private async Task EditorSavingChanged((string Word, string Context, bool IsSaving) change)
+    {
+        var key = (change.Word, change.Context);
+        if (change.IsSaving)
+        {
+            savingEditors.Add(key);
+            return;
+        }
+
+        savingEditors.Remove(key);
+        if (pendingItemUpdates.Remove(key))
+        {
+            if (dirtyEditors.Contains(key))
+            {
+                ShowUpdateWarning();
+            }
+            else
+            {
+                await RefreshFromNotification();
+            }
+        }
+    }
+
+    private async Task UpdateNotificationRegistration()
+    {
+        if (registeredDictionaryId == DictionaryId)
+            return;
+
+        if (registeredDictionaryId.HasValue)
+            await NotificationHandler.Unregister<TranslationDictionaryUpdated>(this);
+
+        registeredDictionaryId = DictionaryId;
+        await NotificationHandler.Register<TranslationDictionaryUpdated>(this);
+    }
+
+    public Task Handle(TranslationDictionaryUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.DictionaryId != DictionaryId)
+            return Task.CompletedTask;
+
+        return HandleDataUpdate();
+    }
+
+    public Task Handle(TranslationDictionaryTermsUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.DictionaryId != DictionaryId)
+            return Task.CompletedTask;
+
+        if (isSubmittingTerm || isSubmittingLanguageTerm)
+        {
+            updateReceivedDuringSubmission = true;
+            return Task.CompletedTask;
+        }
+
+        if (HasNewTermInput)
+        {
+            ShowUpdateWarning();
+            return Task.CompletedTask;
+        }
+
+        return RefreshFromNotification();
+    }
+
+    public Task Handle(TranslationDictionaryTermUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.DictionaryId != DictionaryId ||
+            (notification.LanguageCode != "en" && notification.LanguageCode != Language) ||
+            Data?.Results.Any(term => term.Word == notification.Word && term.Context == notification.Context) != true)
+        {
+            return Task.CompletedTask;
+        }
+
+        var key = (notification.Word, notification.Context);
+        if (savingEditors.Contains(key))
+        {
+            pendingItemUpdates.Add(key);
+            return Task.CompletedTask;
+        }
+
+        if (dirtyEditors.Contains(key))
+        {
+            ShowUpdateWarning();
+            return Task.CompletedTask;
+        }
+
+        return RefreshFromNotification();
+    }
+
+    public Task Handle(TranslationDictionaryLanguagesUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.DictionaryId != DictionaryId)
+            return Task.CompletedTask;
+
+        if (isSubmittingTerm || isSubmittingLanguageTerm)
+        {
+            updateReceivedDuringSubmission = true;
+            return Task.CompletedTask;
+        }
+
+        return RefreshLanguagesFromNotification();
+    }
+
+    private Task HandleDataUpdate()
+    {
+        if (isSubmittingTerm || isSubmittingLanguageTerm)
+        {
+            updateReceivedDuringSubmission = true;
+            dataUpdateReceivedDuringSubmission = true;
+            return Task.CompletedTask;
+        }
+
+        if (HasUnsavedChanges)
+        {
+            ShowUpdateWarning();
+            return Task.CompletedTask;
+        }
+
+        return RefreshFromNotification();
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.TranslationDictionaryUpdatedPrefix + DictionaryId);
+    }
+
+    private void ShowUpdateWarning()
+    {
+        updateWarning = true;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshLanguagesFromNotification()
+    {
+        languages = await Http.GetFromJsonAsync<string[]>($"api/v1/translationDictionaries/{DictionaryId}/languages") ?? [];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshFromNotification()
+    {
+        updateWarning = false;
+        languages = await Http.GetFromJsonAsync<string[]>($"api/v1/translationDictionaries/{DictionaryId}/languages") ?? [];
         await FetchData();
+    }
+
+    private async Task DiscardEditsAndReload()
+    {
+        newWord = string.Empty;
+        newContext = string.Empty;
+        newExplanation = null;
+        newLanguageWord = string.Empty;
+        newLanguageContext = string.Empty;
+        newLanguageExplanation = null;
+        dirtyEditors.Clear();
+        ++editorResetVersion;
+        updateWarning = false;
+        await RefreshFromNotification();
     }
 
     private async Task SubmitTerm()
@@ -193,20 +402,40 @@ else
             DictionaryId = DictionaryId, Word = newWord, Context = newContext,
             Explanation = newExplanation,
         };
-        var endpoint = CanManage ? "api/v1/translationDictionaries/terms" :
+        var endpoint = CanManage ?
+            "api/v1/translationDictionaries/terms" :
             "api/v1/translationDictionaries/requests";
-        using var response = await Http.PostAsJsonAsync(endpoint, request);
-        message = response.IsSuccessStatusCode ? (CanManage ? "Term added." : "Request sent.") :
-            $"Could not submit term: {await response.Content.ReadAsStringAsync()}";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        if (response.IsSuccessStatusCode)
+        isSubmittingTerm = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
         {
-            newWord = string.Empty;
-            newContext = string.Empty;
-            newExplanation = null;
-            Page = 1;
-            await FetchData();
+            using var response = await Http.PostAsJsonAsync(endpoint, request);
+            message = response.IsSuccessStatusCode ?
+                (CanManage ? "Term added." : "Request sent.") :
+                $"Could not submit term: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                newWord = string.Empty;
+                newContext = string.Empty;
+                newExplanation = null;
+                Page = 1;
+            }
         }
+        catch (Exception e)
+        {
+            message = "Failed: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            isSubmittingTerm = false;
+            await ProcessPendingUpdate();
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SubmitLanguageTerm()
@@ -214,25 +443,67 @@ else
         if (string.IsNullOrWhiteSpace(newLanguageWord))
             return;
 
-        using var response = await Http.PostAsJsonAsync("api/v1/translationDictionaries/terms/language",
-            new CreateDictionaryLanguageTermRequest
-            {
-                DictionaryId = DictionaryId,
-                LanguageCode = Language,
-                Word = newLanguageWord,
-                Context = newLanguageContext,
-                Explanation = newLanguageExplanation,
-            });
-        languageMessage = response.IsSuccessStatusCode ? "Language-specific term added." :
-            $"Could not add term: {await response.Content.ReadAsStringAsync()}";
-        languageMessageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        if (response.IsSuccessStatusCode)
+        isSubmittingLanguageTerm = true;
+        languageMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
         {
-            newLanguageWord = string.Empty;
-            newLanguageContext = string.Empty;
-            newLanguageExplanation = null;
-            Page = 1;
-            await FetchData();
+            using var response = await Http.PostAsJsonAsync("api/v1/translationDictionaries/terms/language",
+                new CreateDictionaryLanguageTermRequest
+                {
+                    DictionaryId = DictionaryId,
+                    LanguageCode = Language,
+                    Word = newLanguageWord,
+                    Context = newLanguageContext,
+                    Explanation = newLanguageExplanation,
+                });
+            languageMessage = response.IsSuccessStatusCode ?
+                "Language-specific term added." :
+                $"Could not add term: {await response.Content.ReadAsStringAsync()}";
+            languageMessageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                newLanguageWord = string.Empty;
+                newLanguageContext = string.Empty;
+                newLanguageExplanation = null;
+                Page = 1;
+            }
         }
+        catch (Exception e)
+        {
+            languageMessage = "Failed: " + e.Message;
+            languageMessageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            isSubmittingLanguageTerm = false;
+            await ProcessPendingUpdate();
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
+
+    private async Task ProcessPendingUpdate()
+    {
+        if (isSubmittingTerm || isSubmittingLanguageTerm || !updateReceivedDuringSubmission)
+            return;
+
+        updateReceivedDuringSubmission = false;
+        if (HasNewTermInput || (dataUpdateReceivedDuringSubmission && dirtyEditors.Count > 0))
+            ShowUpdateWarning();
+        else
+            await RefreshFromNotification();
+
+        dataUpdateReceivedDuringSubmission = false;
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        if (registeredDictionaryId.HasValue)
+            await NotificationHandler.Unregister<TranslationDictionaryUpdated>(this);
+
+        await base.DisposeAsync();
+    }
+
 }
