@@ -154,53 +154,87 @@ And then the code implementation (note how we make sure the state change applies
 and then afterwards we also make sure the state is cleared):
 
 ```csharp
-    private bool processing;
-    private string? statusMessage;
-    private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
-    
-    private CanPerformAction => !processing;
+private bool processing;
+private string? statusMessage;
+private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-    private async void RerunBuild(bool all)
+private CanPerformAction => !processing;
+
+private async void RerunBuild(bool all)
+{
+    processing = true;
+    statusMessage = null;
+    statusMessageType = SiteNoticeType.Danger;
+    await InvokeAsync(StateHasChanged);
+
+    HttpResponseMessage result;
+
+    try
     {
-        processing = true;
-        statusMessage = null;
-        statusMessageType = SiteNoticeType.Danger;
+        result = await Http.PostAsJsonAsync("api/v1/someApiPath", new SomeObjectDTO(...));
+    }
+    catch (HttpRequestException e)
+    {
+        statusMessage = $"Network request failed: {e.Message}";
+        processing = false;
         await InvokeAsync(StateHasChanged);
+        return;
+    }
 
-        HttpResponseMessage result;
+    processing = false;
 
-        try
+    if (!result.IsSuccessStatusCode)
+    {
+        var content = await result.Content.ReadAsStringAsync();
+
+        statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+    }
+    else
+    {
+        statusMessage = "Write here what succeeded";
+        statusMessageType = SiteNoticeType.Info;
+    }
+
+    await InvokeAsync(StateHasChanged);
+}
+
+private void DismissActionMessage()
+{
+    createMessage = null;
+    StateHasChanged();
+}
+```
+
+If using this alternative format, make sure to also mark state as changed at the end:
+```csharp
+private async Task CreateToken()
+{
+    creating = true;
+    message = null;
+    await InvokeAsync(StateHasChanged);
+
+    try
+    {
+        using var response = await Http.PostAsJsonAsync("api/v1/GithubConfiguration/tokens", newToken);
+        if (!response.IsSuccessStatusCode)
         {
-            result = await Http.PostAsJsonAsync("api/v1/someApiPath", new SomeObjectDTO(...));
-        }
-        catch (HttpRequestException e)
-        {
-            statusMessage = $"Network request failed: {e.Message}";
-            processing = false;
-            await InvokeAsync(StateHasChanged);
+            message = "Could not create the GitHub token. The selected purpose may already have a token.";
+            messageType = SiteNoticeType.Danger;
             return;
         }
 
-        processing = false;
-
-        if (!result.IsSuccessStatusCode)
-        {
-            var content = await result.Content.ReadAsStringAsync();
-
-            statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
-        }
-        else
-        {
-            statusMessage = "Write here what succeeded";
-            statusMessageType = SiteNoticeType.Info;
-        }
-
+        message = $"{newToken.Purpose} token created.";
+        messageType = SiteNoticeType.Success;
+    }
+    catch (Exception e)
+    {
+        message = $"Error while creating the GitHub token: {e.Message}";
+        messageType = SiteNoticeType.Danger;
+    }
+    finally
+    {
+        creating = false;
         await InvokeAsync(StateHasChanged);
     }
-    
-    private void DismissActionMessage()
-    {
-        createMessage = null;
-        StateHasChanged();
-    }
+}
 ```
