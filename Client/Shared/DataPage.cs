@@ -387,6 +387,10 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     }
 }
 
+/// <summary>
+///   A data helper page for pages that list all of their items at once
+/// </summary>
+/// <typeparam name="T">Type of item</typeparam>
 public abstract class ListDataPage<T> : DataPage<T, List<T>>
     where T : class, IIdentifiable, new()
 {
