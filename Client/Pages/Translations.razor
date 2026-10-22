@@ -1,31 +1,44 @@
 @page "/translations"
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
 @inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationProjectListUpdated>
+@implements INotificationHandler<TranslationDictionaryListUpdated>
+@inherits ListDataPage<TranslationProjectDTO>
 
 <h3>Translation Projects</h3>
 
-@if (projects == null)
+@if (!string.IsNullOrEmpty(Error))
 {
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+    <div class="alert alert-danger" role="alert">
+        @Error
     </div>
-}
-else if (projects.Length == 0)
-{
-    <p>No translation projects have been created yet.</p>
 }
 else
 {
-    <ul class="list-group">
-        @foreach (var project in projects)
+    <SortableTable ShowLoading="@(Data == null)"
+                   OnSortChanged="@(async column => await ChangeSort(column))"
+                   GetSortClass="@SortClass"
+                   ShowContentSpinner="@VisibleFetchInProgress"
+                   Columns="@projectColumns"
+                   ShowNoContent="@NoItemsFound">
+        @if (Data != null)
         {
-            <li class="list-group-item">
-                <NavLink href="@($"translations/{project.Slug}")">@project.Name</NavLink>
-                <small class="text-muted ms-2">@project.Format</small>
-            </li>
+            @foreach (var project in Data)
+            {
+                <tr @key="project.Id">
+                    <th scope="row">
+                        <NavLink href="@($"translations/{project.Slug}")">@project.Name</NavLink>
+                    </th>
+                    <td>@project.Format</td>
+                </tr>
+            }
         }
-    </ul>
+    </SortableTable>
 }
 
 <h4 class="mt-4">Dictionaries</h4>
@@ -55,13 +68,60 @@ else
 <DevCenterTitle>Translations</DevCenterTitle>
 
 @code {
-    private TranslationProjectDTO[]? projects;
+    private readonly List<TableColumn> projectColumns =
+    [
+        new TableColumn("Name", true, "Name"),
+        new TableColumn("Format", false),
+    ];
+
     private TranslationDictionaryDTO[] dictionaries = [];
+
+    public Translations() : base(new SortHelper("Name", RevolutionaryWebApp.Shared.SortDirection.Ascending))
+    {
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        projects = await Http.GetFromJsonAsync<TranslationProjectDTO[]>("api/v1/translations/projects") ?? [];
+        await NotificationHandler.Register<TranslationProjectListUpdated>(this);
+        await base.OnInitializedAsync();
+        await ReloadDictionaries();
+    }
+
+    protected override async Task<List<TranslationProjectDTO>?> StartQuery(
+        Dictionary<string, string?> requestParams)
+    {
+        return await Http.GetFromJsonAsync<List<TranslationProjectDTO>>(
+            QueryHelpers.AddQueryString("api/v1/translations/projects", requestParams)) ?? [];
+    }
+
+    private async Task ReloadDictionaries()
+    {
         dictionaries = await Http.GetFromJsonAsync<TranslationDictionaryDTO[]>("api/v1/translationDictionaries") ?? [];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task Handle(TranslationProjectListUpdated notification, CancellationToken cancellationToken)
+    {
+        await FetchData();
+        await ReloadDictionaries();
+    }
+
+    public async Task Handle(TranslationDictionaryListUpdated notification, CancellationToken cancellationToken)
+    {
+        await FetchData();
+        await ReloadDictionaries();
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.TranslationProjectListUpdated);
+        groups.Add(NotificationGroups.TranslationDictionaryListUpdated);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister<TranslationProjectListUpdated>(this);
     }
 
 }
