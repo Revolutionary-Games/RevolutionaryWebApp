@@ -1,0 +1,111 @@
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared
+
+<h4>Translation Credits</h4>
+<p>
+    Choose whether Git commits crediting your translations may show your account email address. If not allowed,
+    a synthetic email will be generated for you. You might want to have your email in the commits as this will
+    attribute them to your GitHub profile (if it uses the same email) so that your translation contributions show up
+    on your GitHub profile.
+</p>
+<StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (loadFailed)
+{
+    <Button ButtonStyle="outline-primary" Enabled="@(!loading)" OnPressed="LoadSettings">Retry</Button>
+}
+else if (settings != null)
+{
+    <label class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" @bind="settings.UseEmailInTranslationCredits"/>
+        <span class="form-check-label">Use my email address in translation commits</span>
+    </label>
+    <Button ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving" OnPressed="Save">Save</Button>
+}
+
+@code {
+    private TranslationCreditSettingsDTO? settings;
+    private bool loading = true;
+    private bool loadFailed;
+    private bool saving;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        loading = true;
+        loadFailed = false;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<TranslationCreditSettingsDTO>("api/v1/translationCreditSettings");
+            settings = result ?? new TranslationCreditSettingsDTO();
+        }
+        catch (Exception e)
+        {
+            loadFailed = true;
+            message = $"Could not load translation credit settings: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (settings == null)
+            return;
+
+        saving = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync("api/v1/translationCreditSettings", settings);
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Translation credit settings saved.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not save translation credit settings: {content}, {response.StatusCode}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Failed to save settings: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+}
