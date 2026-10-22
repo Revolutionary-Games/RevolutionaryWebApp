@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Models;
@@ -55,6 +56,42 @@ public class TranslationProject : IUpdateNotifications
     public ICollection<TranslationUnit> Units { get; set; } = new HashSet<TranslationUnit>();
     public ICollection<TranslationSyncRun> SyncRuns { get; set; } = new HashSet<TranslationSyncRun>();
     public TranslationPullRequest? PullRequest { get; set; }
+
+    public TranslationProjectConfigurationDTO GetConfigurationDTO()
+    {
+        return new TranslationProjectConfigurationDTO
+        {
+            Id = Id,
+            Slug = Slug,
+            Name = Name,
+            SourceLanguage = SourceLanguage,
+            Format = Format,
+            RepositoryFullName = RepositoryFullName ?? string.Empty,
+            SourceBranch = SourceBranch ?? string.Empty,
+            SourceFilePath = SourceFilePattern ?? string.Empty,
+            TranslationFilePattern = TranslationFilePattern ?? string.Empty,
+            Enabled = Enabled,
+            DictionaryId = DictionaryId,
+            LastImportedAt = LastImportedAt == null ?
+                null :
+                new DateTimeOffset(LastImportedAt.Value, TimeSpan.Zero),
+            LastImportedSha = LastImportedSha,
+        };
+    }
+
+    public TranslationProjectDTO GetDTO(bool canAddSourceKeys)
+    {
+        return new TranslationProjectDTO
+        {
+            Id = Id,
+            Slug = Slug,
+            Name = Name,
+            SourceLanguage = SourceLanguage,
+            Format = Format,
+            DictionaryId = DictionaryId,
+            CanAddSourceKeys = canAddSourceKeys && Format == TranslationFormat.Manual,
+        };
+    }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
@@ -300,6 +337,21 @@ public class TranslationChange : IUpdateNotifications
     public User? ActorUser { get; set; }
     public User? ContributorUser { get; set; }
 
+    public TranslationHistoryDTO GetHistoryDTO()
+    {
+        return new TranslationHistoryDTO
+        {
+            Id = Id,
+            ActorUserId = ActorUserId,
+            Kind = Kind,
+            OldText = OldText,
+            NewText = NewText,
+            OldState = OldState,
+            NewState = NewState,
+            CreatedAt = new DateTimeOffset(CreatedAt, TimeSpan.Zero),
+        };
+    }
+
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return TranslationNotificationHelper.HistoryUpdated(ProjectId, Key, LanguageCode);
@@ -307,7 +359,7 @@ public class TranslationChange : IUpdateNotifications
 }
 
 [Index(nameof(ProjectId), nameof(Key), nameof(LanguageCode), nameof(CreatedAt))]
-public class TranslationComment : IUpdateNotifications
+public class TranslationComment : IUpdateNotifications, IDTOCreator<TranslationCommentDTO>
 {
     public long Id { get; set; }
     public long ProjectId { get; set; }
@@ -329,6 +381,17 @@ public class TranslationComment : IUpdateNotifications
 
     public TranslationValue Value { get; set; } = null!;
     public User AuthorUser { get; set; } = null!;
+
+    public TranslationCommentDTO GetDTO()
+    {
+        return new TranslationCommentDTO
+        {
+            Id = Id,
+            AuthorUserId = AuthorUserId,
+            RawMarkdown = RawMarkdown,
+            CreatedAt = new DateTimeOffset(CreatedAt, TimeSpan.Zero),
+        };
+    }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
@@ -363,6 +426,19 @@ public class TranslationSuggestion : IUpdateNotifications
     public User AuthorUser { get; set; } = null!;
     public User? ResolvedByUser { get; set; }
     public ICollection<TranslationSuggestionVote> Votes { get; set; } = new HashSet<TranslationSuggestionVote>();
+
+    public TranslationSuggestionDTO GetDTO(int score)
+    {
+        return new TranslationSuggestionDTO
+        {
+            Id = Id,
+            AuthorUserId = AuthorUserId,
+            Text = Text,
+            Score = score,
+            Status = Status,
+            CreatedAt = new DateTimeOffset(CreatedAt, TimeSpan.Zero),
+        };
+    }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {

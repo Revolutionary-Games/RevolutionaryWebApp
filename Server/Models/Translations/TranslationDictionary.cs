@@ -27,6 +27,11 @@ public class TranslationDictionary : IUpdateNotifications
 
     public ICollection<DictionaryTermRequest> Requests { get; set; } = new HashSet<DictionaryTermRequest>();
 
+    public TranslationDictionaryDTO GetDTO()
+    {
+        return new TranslationDictionaryDTO { Id = Id, Name = Name };
+    }
+
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {
         yield return TranslationNotificationHelper.DictionaryUpdated(Id);
@@ -53,6 +58,21 @@ public class DictionaryTerm : IUpdateNotifications
     public TranslationDictionary Dictionary { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
     public ICollection<DictionaryTermTranslation> Translations { get; set; } = new HashSet<DictionaryTermTranslation>();
+
+    public DictionaryTermDTO GetDTO(DictionaryTermTranslation? translation = null)
+    {
+        return new DictionaryTermDTO
+        {
+            DictionaryId = DictionaryId,
+            Word = Word,
+            Context = Context,
+            SourceExplanation = Explanation,
+            TargetExplanation = translation?.Explanation,
+            TargetText = translation?.Text ?? string.Empty,
+            State = translation?.State ?? TranslationState.NeedsTranslation,
+            LastEditedByUserId = translation?.LastEditedByUserId,
+        };
+    }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {

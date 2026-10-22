@@ -2,12 +2,13 @@ namespace RevolutionaryWebApp.Server.Models;
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using Interfaces;
 using Shared.Models;
 
 /// <summary>
 ///   A durable notification shown in a user's mailbox.
 /// </summary>
-public class UserNotification
+public class UserNotification : IDTOCreator<UserNotificationDTO>
 {
     public long Id { get; set; }
     public long UserId { get; set; }
@@ -27,4 +28,17 @@ public class UserNotification
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
     public DateTime? EmailSentAt { get; set; }
+
+    public UserNotificationDTO GetDTO()
+    {
+        return new UserNotificationDTO
+        {
+            Id = Id,
+            Type = Type,
+            Message = Message,
+            TargetPath = TargetPath,
+            CreatedAt = CreatedAt,
+            ReadAt = ReadAt,
+        };
+    }
 }
