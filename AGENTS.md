@@ -155,6 +155,9 @@ development configuration, logs, or credentials.
 
 ## Change guidelines
 
+- Read [PROJECT_CONVENTIONS.md](PROJECT_CONVENTIONS.md) whenever changing the
+  frontend or creating frontend pages or components. It documents the established
+  Blazor, table, button, and realtime notification patterns.
 - Keep API contracts in `Shared/` synchronized with their server controllers
   and client consumers.
 - Put persistence model changes in `Server/Models/` and configure them in
@@ -166,4 +169,3 @@ development configuration, logs, or credentials.
   reversible migration for schema changes.
 - Run focused tests first, then the relevant build or full checks before
   handing off the change.
-
