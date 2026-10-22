@@ -409,6 +409,9 @@ public class NotificationsHub : Hub<INotifications>
         // First, check explicitly named groups
         switch (groupName)
         {
+            case NotificationGroups.TranslationDictionaryRequestsUpdated:
+                return RequireAccessLevel(GroupType.Admin, user) || RequireGroup(GroupType.DictionaryManager, user);
+
             case NotificationGroups.UserListUpdated:
             case NotificationGroups.PatronListUpdated:
             case NotificationGroups.AccessKeyListUpdated:
@@ -452,7 +455,11 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.CIProjectListUpdated:
             case NotificationGroups.CrashReportListUpdatedPublic:
             case NotificationGroups.PrecompiledObjectListUpdated:
+            case NotificationGroups.TranslationProjectListUpdated:
+            case NotificationGroups.TranslationDictionaryListUpdated:
+            {
                 return RequireAccessLevel(GroupType.NotLoggedIn, user);
+            }
 
             case NotificationGroups.LayoutPartUpdated:
                 if (RequireAccessLevel(GroupType.Admin, user))
@@ -489,6 +496,25 @@ public class NotificationsHub : Hub<INotifications>
 
             // People can see their own info
             return item!.Id == user?.Id;
+        }
+
+        if (groupName.StartsWith(NotificationGroups.TranslationScopeUpdatedPrefix) ||
+            groupName.StartsWith(NotificationGroups.TranslationKeyScopeUpdatedPrefix))
+        {
+            var parts = groupName.Split('_');
+            return parts.Length == 3 && long.TryParse(parts[1], out var projectId) &&
+                parts[2].Length == 64 && parts[2].All(Uri.IsHexDigit) &&
+                await database.TranslationProjects.AnyAsync(project => project.Id == projectId && project.Enabled);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.TranslationDictionaryUpdatedPrefix))
+        {
+            return GetTargetModelFromGroup(groupName, database.TranslationDictionaries, out _);
+        }
+
+        if (groupName.StartsWith(NotificationGroups.TranslationProjectUpdatedPrefix))
+        {
+            return GetTargetModelFromGroup(groupName, database.TranslationProjects, out _);
         }
 
         // TODO: refactor this with the same code that's after this

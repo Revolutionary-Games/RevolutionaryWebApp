@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Models;
 using Shared.Models;
+using Shared.Notifications;
 
 [Index(nameof(Name), IsUnique = true)]
-public class TranslationDictionary
+public class TranslationDictionary : IUpdateNotifications
 {
     [Key]
     public long Id { get; set; }
@@ -24,9 +26,15 @@ public class TranslationDictionary
     public ICollection<DictionaryLanguageTerm> LanguageTerms { get; set; } = new HashSet<DictionaryLanguageTerm>();
 
     public ICollection<DictionaryTermRequest> Requests { get; set; } = new HashSet<DictionaryTermRequest>();
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.DictionaryUpdated(Id);
+        yield return TranslationNotificationHelper.DictionaryListUpdated();
+    }
 }
 
-public class DictionaryTerm
+public class DictionaryTerm : IUpdateNotifications
 {
     public long DictionaryId { get; set; }
 
@@ -45,9 +53,21 @@ public class DictionaryTerm
     public TranslationDictionary Dictionary { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
     public ICollection<DictionaryTermTranslation> Translations { get; set; } = new HashSet<DictionaryTermTranslation>();
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        if (entityState is EntityState.Added or EntityState.Deleted)
+        {
+            yield return TranslationNotificationHelper.DictionaryTermsUpdated(DictionaryId);
+        }
+        else
+        {
+            yield return TranslationNotificationHelper.DictionaryTermUpdated(DictionaryId, Word, Context, "en");
+        }
+    }
 }
 
-public class DictionaryTermTranslation
+public class DictionaryTermTranslation : IUpdateNotifications
 {
     public long DictionaryId { get; set; }
 
@@ -76,12 +96,19 @@ public class DictionaryTermTranslation
 
     public DictionaryTerm Term { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        // New target rows are created together with their source term, which already sends the list event.
+        if (entityState != EntityState.Added)
+            yield return TranslationNotificationHelper.DictionaryTermUpdated(DictionaryId, Word, Context, LanguageCode);
+    }
 }
 
 /// <summary>
 ///   A term that belongs to a specific language and has no English source term.
 /// </summary>
-public class DictionaryLanguageTerm
+public class DictionaryLanguageTerm : IUpdateNotifications
 {
     public long DictionaryId { get; set; }
 
@@ -102,10 +129,22 @@ public class DictionaryLanguageTerm
 
     public TranslationDictionary Dictionary { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        if (entityState is EntityState.Added or EntityState.Deleted)
+        {
+            yield return TranslationNotificationHelper.DictionaryTermsUpdated(DictionaryId);
+        }
+        else
+        {
+            yield return TranslationNotificationHelper.DictionaryTermUpdated(DictionaryId, Word, Context, LanguageCode);
+        }
+    }
 }
 
 [Index(nameof(DictionaryId), nameof(Approved), nameof(CreatedAt))]
-public class DictionaryTermRequest
+public class DictionaryTermRequest : IUpdateNotifications
 {
     public long Id { get; set; }
     public long DictionaryId { get; set; }
@@ -128,4 +167,9 @@ public class DictionaryTermRequest
     public TranslationDictionary Dictionary { get; set; } = null!;
     public User RequesterUser { get; set; } = null!;
     public User? DecidedByUser { get; set; }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.DictionaryRequestsUpdated();
+    }
 }

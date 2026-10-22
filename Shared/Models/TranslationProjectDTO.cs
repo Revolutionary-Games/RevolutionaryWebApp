@@ -20,6 +20,8 @@ public sealed class TranslationProjectDTO
 
     public TranslationFormat Format { get; set; }
 
+    public long? DictionaryId { get; set; }
+
     /// <summary>
     ///   This is actually the current user permission status.
     /// </summary>

@@ -130,3 +130,148 @@ public class MediaFileUpdated : ModelUpdated<MediaFileDTO>
 public class SiteLayoutPartUpdated : ModelUpdated<SiteLayoutPartDTO>
 {
 }
+
+/// <summary>
+///   Signals that dictionary properties have changed.
+/// </summary>
+public sealed class TranslationDictionaryUpdated : SerializedNotification
+{
+    public long DictionaryId { get; init; }
+}
+
+/// <summary>
+///   Signals that the terms list in a dictionary has changed.
+/// </summary>
+public sealed class TranslationDictionaryTermsUpdated : SerializedNotification
+{
+    public long DictionaryId { get; init; }
+}
+
+/// <summary>
+///   Signals that one dictionary row has changed.
+/// </summary>
+public sealed class TranslationDictionaryTermUpdated : SerializedNotification
+{
+    public long DictionaryId { get; init; }
+    public string Word { get; init; } = string.Empty;
+    public string Context { get; init; } = string.Empty;
+    public string LanguageCode { get; init; } = string.Empty;
+}
+
+/// <summary>
+///   Signals that the available dictionary language list has changed.
+/// </summary>
+public sealed class TranslationDictionaryLanguagesUpdated : SerializedNotification
+{
+    public long DictionaryId { get; init; }
+}
+
+/// <summary>
+///   Signals that a project's properties have changed.
+/// </summary>
+public sealed class TranslationProjectUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+}
+
+/// <summary>
+///   Signals that a project's configured languages have changed.
+/// </summary>
+public sealed class TranslationProjectLanguagesUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+}
+
+/// <summary>
+///   Signals that a project's translation key list or aggregate counts changed.
+/// </summary>
+public sealed class TranslationProjectTranslationsUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+}
+
+/// <summary>
+///   Signals that one translation key's source data changed.
+/// </summary>
+public sealed class TranslationUnitUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+    public string Key { get; init; } = string.Empty;
+}
+
+/// <summary>
+///   Signals that one translation value changed.
+/// </summary>
+public sealed class TranslationValueUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+    public string Key { get; init; } = string.Empty;
+    public string LanguageCode { get; init; } = string.Empty;
+}
+
+/// <summary>
+///   Signals that translation history for one key and language changed.
+/// </summary>
+public sealed class TranslationHistoryUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+    public string Key { get; init; } = string.Empty;
+    public string LanguageCode { get; init; } = string.Empty;
+}
+
+/// <summary>
+///   Signals that comments for one key and language changed.
+/// </summary>
+public sealed class TranslationCommentsUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+    public string Key { get; init; } = string.Empty;
+    public string LanguageCode { get; init; } = string.Empty;
+}
+
+/// <summary>
+///   Signals that suggestions or their votes for one key and language changed.
+/// </summary>
+public sealed class TranslationSuggestionsUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+    public string Key { get; init; } = string.Empty;
+    public string LanguageCode { get; init; } = string.Empty;
+}
+
+/// <summary>
+///   Signals that incoming translation conflicts changed for a project.
+/// </summary>
+public sealed class TranslationProjectConflictsUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+}
+
+/// <summary>
+///   Signals that synchronization status changed for a project.
+/// </summary>
+public sealed class TranslationProjectSyncStatusUpdated : SerializedNotification
+{
+    public long ProjectId { get; init; }
+}
+
+/// <summary>
+///   Signals that the configured project list changed.
+/// </summary>
+public sealed class TranslationProjectListUpdated : SerializedNotification
+{
+}
+
+/// <summary>
+///   Signals that the configured dictionary list changed.
+/// </summary>
+public sealed class TranslationDictionaryListUpdated : SerializedNotification
+{
+}
+
+/// <summary>
+///   Signals that the pending dictionary request list changed.
+/// </summary>
+public sealed class TranslationDictionaryRequestsUpdated : SerializedNotification
+{
+}

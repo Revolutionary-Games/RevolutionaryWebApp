@@ -1,5 +1,9 @@
 namespace RevolutionaryWebApp.Shared.Notifications;
 
+using System;
+using System.Security.Cryptography;
+using System.Text;
+
 /// <summary>
 ///   Lists the names of notification groups (or in case of dynamically generated ones, the name prefix).
 ///   TODO: maybe there is a better place to put the authorization checks than in the hub directly
@@ -142,6 +146,14 @@ public static class NotificationGroups
 
     public const string PageEditNotice = "PEditNotice";
 
+    public const string TranslationDictionaryUpdatedPrefix = "TranslationDictionary_";
+    public const string TranslationProjectUpdatedPrefix = "TranslationProject_";
+    public const string TranslationScopeUpdatedPrefix = "TranslationScope_";
+    public const string TranslationKeyScopeUpdatedPrefix = "TranslationKeyScope_";
+    public const string TranslationProjectListUpdated = "TranslationProjects";
+    public const string TranslationDictionaryListUpdated = "TranslationDictionaries";
+    public const string TranslationDictionaryRequestsUpdated = "TranslationDictionaryRequests";
+
     /// <summary>
     ///   This is always listened for a valid connected session, this is used to send very important messages
     ///   like logout requests.
@@ -154,4 +166,25 @@ public static class NotificationGroups
     public const string RealtimeNewConnectionOpened = "RNewConnection";
 
     public const string RemoteRunnersUpdated = "RRunners";
+
+    /// <summary>
+    ///   Gets a stable group for the translation editor's single key/language scope.
+    ///   Hashing keeps arbitrary translation keys out of group names and avoids length limits.
+    /// </summary>
+    public static string TranslationScopeUpdated(long projectId, string key, string languageCode)
+    {
+        var scope = $"{projectId}\n{key}\n{languageCode}";
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(scope)));
+        return TranslationScopeUpdatedPrefix + projectId + "_" + hash;
+    }
+
+    /// <summary>
+    ///   Gets a stable group for changes to one translation key across its configured languages.
+    /// </summary>
+    public static string TranslationKeyScopeUpdated(long projectId, string key)
+    {
+        var scope = $"{projectId}\n{key}";
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(scope)));
+        return TranslationKeyScopeUpdatedPrefix + projectId + "_" + hash;
+    }
 }
