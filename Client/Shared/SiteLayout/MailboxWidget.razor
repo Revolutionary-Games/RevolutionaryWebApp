@@ -1,0 +1,86 @@
+@using System.Threading
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+@inject CurrentUserInfo UserInfo
+@implements IDisposable
+
+@if (UserInfo.LoggedIn)
+{
+    <NavLink class="nav-link d-inline-flex align-items-center" href="notifications" title="Notifications">
+        <i class="fa-solid fa-envelope"></i>
+        @if (unread > 0)
+        {
+            <span class="badge bg-danger ms-1" aria-label="@($"{unread} unread notifications")">@unread</span>
+        }
+    </NavLink>
+}
+
+@code {
+    private readonly CancellationTokenSource shutdown = new();
+    private int unread;
+
+    public void Dispose()
+    {
+        UserInfo.OnUserInfoChanged -= UserChanged;
+
+        try
+        {
+            shutdown.Cancel();
+            shutdown.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        UserInfo.OnUserInfoChanged += UserChanged;
+        await Refresh();
+        _ = Poll();
+    }
+
+    private async Task Poll()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+            while (await timer.WaitForNextTickAsync(shutdown.Token))
+                await Refresh();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task Refresh()
+    {
+        if (!UserInfo.LoggedIn)
+            return;
+
+        try
+        {
+            unread = (await Http.GetFromJsonAsync<UnreadNotificationCountDTO>("api/v1/userNotifications/unreadCount", shutdown.Token))?.Count ?? 0;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (HttpRequestException)
+        {
+            // Keep the current badge during a temporary connection failure.
+        }
+        catch (Exception e)
+        {
+            // Notification polling is non-critical, so we don't want to crash the app if it fails
+            Console.WriteLine(e);
+        }
+    }
+
+    private async void UserChanged(object? sender, UserDTO? newInfo)
+    {
+        await Refresh();
+    }
+
+}
