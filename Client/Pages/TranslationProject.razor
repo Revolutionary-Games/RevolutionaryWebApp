@@ -1,21 +1,48 @@
 @page "/translations/{Slug}"
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
 @inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationProjectUpdated>
+@implements INotificationHandler<TranslationProjectLanguagesUpdated>
+@implements INotificationHandler<TranslationProjectTranslationsUpdated>
+@implements INotificationHandler<TranslationUnitUpdated>
+@implements IAsyncDisposable
 
 <h3>@Slug translations</h3>
 
-@if (languages == null)
+@if (!string.IsNullOrEmpty(loadError))
+{
+    <div class="alert alert-danger" role="alert">
+        @loadError
+    </div>
+}
+
+@if (updateWarning)
+{
+    <div class="alert alert-warning" role="alert">
+        Project data changed while you had unsaved edits. Save or copy your edits, then
+        <button type="button" class="btn btn-link p-0 align-baseline" @onclick="DiscardEditsAndReload">
+            discard edits and reload
+        </button>
+        .
+    </div>
+}
+
+@if (languages == null && string.IsNullOrEmpty(loadError))
 {
     <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
     </div>
 }
-else if (languages.Length == 0)
+else if (string.IsNullOrEmpty(loadError) && languages?.Length == 0)
 {
     <p>No languages have been configured yet.</p>
 }
-else
+else if (string.IsNullOrEmpty(loadError) && languages != null)
 {
     <ul class="list-group">
         @foreach (var language in languages)
@@ -35,34 +62,179 @@ else
 {
     <div class="mt-3">
         <h4>Add source key</h4>
-        <div class="input-group">
-            <input class="form-control" placeholder="Translation key" @bind="newKey" />
-            <input class="form-control" placeholder="English source text" @bind="newSourceText" />
-            <button type="button" class="btn btn-outline-primary" @onclick="AddKey">Add key</button>
-        </div>
-        <StatusMessageShower Message="@message" Type="@messageType" />
+        <EditForm Model="@newKeyRequest">
+            <DataAnnotationsValidator/>
+            <div class="row">
+                <div class="mb-3 col-md-4">
+                    <label class="form-label" for="translationKey">Translation key</label>
+                    <CustomInputText id="translationKey" class="form-control" @bind-Value="newKeyRequest.Key"/>
+                </div>
+                <div class="mb-3 col-md-8">
+                    <label class="form-label" for="translationSourceText">English source text</label>
+                    <CustomInputText id="translationSourceText" class="form-control"
+                                     @bind-Value="newKeyRequest.SourceText"/>
+                </div>
+            </div>
+            <ValidationSummary/>
+            <Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingKey)" Spinner="@isSubmittingKey"
+                    type="submit" OnPressed="@AddKey">Add key
+            </Button>
+        </EditForm>
+        <StatusMessageShower Message="@message" Type="@messageType" OnClosed="@DismissActionMessage"/>
     </div>
 }
 
 <DevCenterTitle>@Slug translations</DevCenterTitle>
 
 @code {
+
     [Parameter]
     public string Slug { get; set; } = string.Empty;
 
     private TranslationLanguageDTO[]? languages;
     private TranslationProjectDTO? project;
-    private string newKey = string.Empty;
-    private string newSourceText = string.Empty;
+    private CreateManualTranslationKeyRequest newKeyRequest = new();
     private string? message;
+    private string? loadError;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private long? registeredProjectId;
+    private bool updateWarning;
+    private bool isSubmittingKey;
+    private bool updateReceivedDuringSubmission;
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        if (project != null)
+            groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + project.Id);
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        var projects = await Http.GetFromJsonAsync<TranslationProjectDTO[]>("api/v1/translations/projects") ?? [];
-        project = projects.FirstOrDefault(item => item.Slug == Slug);
-        languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>(
-            $"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+        project = null;
+        languages = null;
+        loadError = null;
+        await LoadProjectData();
+        await UpdateNotificationRegistration();
+    }
+
+    private async Task LoadProjectData()
+    {
+        try
+        {
+            var projects = await Http.GetFromJsonAsync<TranslationProjectDTO[]>("api/v1/translations/projects") ?? [];
+            project = projects.FirstOrDefault(item => item.Slug == Slug);
+            if (project == null)
+            {
+                languages = [];
+                loadError = "Translation project could not be found.";
+                return;
+            }
+
+            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+            loadError = null;
+        }
+        catch (Exception e)
+        {
+            loadError = $"Could not load translation project data: {e.Message}";
+        }
+    }
+
+    private async Task UpdateNotificationRegistration()
+    {
+        var projectId = project?.Id;
+        if (registeredProjectId == projectId)
+            return;
+
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Unregister<TranslationProjectUpdated>(this);
+
+        registeredProjectId = projectId;
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Register<TranslationProjectUpdated>(this);
+    }
+
+    public Task Handle(TranslationProjectUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId != project?.Id)
+            return Task.CompletedTask;
+
+        if (isSubmittingKey)
+        {
+            updateReceivedDuringSubmission = true;
+            return Task.CompletedTask;
+        }
+
+        if (!string.IsNullOrEmpty(newKeyRequest.Key) || !string.IsNullOrEmpty(newKeyRequest.SourceText))
+        {
+            updateWarning = true;
+            return InvokeAsync(StateHasChanged);
+        }
+
+        return RefreshFromNotification();
+    }
+
+    public Task Handle(TranslationProjectLanguagesUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId != project?.Id)
+            return Task.CompletedTask;
+
+        return RefreshLanguagesFromNotification();
+    }
+
+    public Task Handle(TranslationProjectTranslationsUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId != project?.Id)
+            return Task.CompletedTask;
+
+        if (isSubmittingKey)
+        {
+            updateReceivedDuringSubmission = true;
+            return Task.CompletedTask;
+        }
+
+        return RefreshLanguagesFromNotification();
+    }
+
+    public Task Handle(TranslationUnitUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId != project?.Id || notification.Key != newKeyRequest.Key ||
+            (string.IsNullOrEmpty(newKeyRequest.Key) && string.IsNullOrEmpty(newKeyRequest.SourceText)))
+        {
+            return Task.CompletedTask;
+        }
+
+        updateWarning = true;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshFromNotification()
+    {
+        await LoadProjectData();
+        updateWarning = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshLanguagesFromNotification()
+    {
+        try
+        {
+            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+            loadError = null;
+        }
+        catch (Exception e)
+        {
+            loadError = $"Could not refresh translation languages: {e.Message}";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DiscardEditsAndReload()
+    {
+        newKeyRequest.Key = string.Empty;
+        newKeyRequest.SourceText = string.Empty;
+        updateWarning = false;
+        await RefreshFromNotification();
     }
 
     private async Task AddKey()
@@ -71,21 +243,54 @@ else
             return;
 
         message = null;
+        isSubmittingKey = true;
         await InvokeAsync(StateHasChanged);
 
-        using var response = await Http.PostAsJsonAsync($"api/v1/manualTranslationKeys/{project.Id}",
-            new CreateManualTranslationKeyRequest { Key = newKey, SourceText = newSourceText });
-        message = response.IsSuccessStatusCode ? "Source key added." :
-            $"Could not add source key: {await response.Content.ReadAsStringAsync()}";
-        messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-        if (response.IsSuccessStatusCode)
+        try
         {
-            newKey = string.Empty;
-            newSourceText = string.Empty;
-            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>(
-                $"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+            using var response = await Http.PostAsJsonAsync($"api/v1/manualTranslationKeys/{project.Id}",
+                newKeyRequest);
+            message = response.IsSuccessStatusCode ?
+                "Source key added." :
+                $"Could not add source key: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                newKeyRequest.Key = string.Empty;
+                newKeyRequest.SourceText = string.Empty;
+            }
         }
+        catch (Exception e)
+        {
+            message = $"Could not add source key: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            isSubmittingKey = false;
+            if (updateReceivedDuringSubmission)
+            {
+                updateReceivedDuringSubmission = false;
+                if (!string.IsNullOrEmpty(newKeyRequest.Key) || !string.IsNullOrEmpty(newKeyRequest.SourceText))
+                    updateWarning = true;
+                else
+                    await RefreshFromNotification();
+            }
 
-        await InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
+        }
     }
+
+    private void DismissActionMessage()
+    {
+        message = null;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Unregister<TranslationProjectUpdated>(this);
+    }
+
 }
