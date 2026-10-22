@@ -108,6 +108,60 @@ public sealed class CreateDictionaryTermRequest
 }
 
 /// <summary>
+///   Edits an English dictionary term.
+/// </summary>
+public sealed class SaveDictionaryTermRequest
+{
+    public long DictionaryId { get; set; }
+
+    [Required]
+    [MaxLength(250)]
+    public string Word { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Context { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(250)]
+    public string NewWord { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string NewContext { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Explanation { get; set; }
+}
+
+/// <summary>
+///   Edits a term that belongs to one non-English dictionary language.
+/// </summary>
+public sealed class SaveDictionaryLanguageTermRequest
+{
+    public long DictionaryId { get; set; }
+
+    [Required]
+    [MaxLength(35)]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(250)]
+    public string Word { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Context { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(250)]
+    public string NewWord { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string NewContext { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Explanation { get; set; }
+}
+
+/// <summary>
 ///   Edits a target-language dictionary term.
 /// </summary>
 public sealed class SaveDictionaryTranslationRequest

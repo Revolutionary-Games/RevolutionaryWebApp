@@ -1,0 +1,250 @@
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared
+@inject HttpClient Http
+@inject Services.CurrentUserInfo UserInfo
+
+<div class="border-bottom py-3">
+    <strong>@Term.Word</strong>
+    @if (!string.IsNullOrWhiteSpace(Term.Context))
+    {
+        <small class="text-muted">(@Term.Context)</small>
+    }
+    @if (!string.IsNullOrWhiteSpace(Term.SourceExplanation))
+    {
+        <p class="small">@Term.SourceExplanation</p>
+    }
+
+    @if (Term.IsLanguageSpecific)
+    {
+        <span class="badge text-bg-secondary">
+            @Term.SourceLanguageCode-specific term (doesn't exist in other languages)
+        </span>
+        @if (LanguageCode != "en")
+        {
+            <label class="form-label mt-2" for="@($"term-{controlId}")">Term in @LanguageCode</label>
+            <input id="@($"term-{controlId}")" class="form-control" @bind="text"
+                   @bind:after="NotifyDirtyState"/>
+            <label class="form-label mt-2" for="@($"explanation-{controlId}")">Explanation in @LanguageCode</label>
+            <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
+                      @bind:after="NotifyDirtyState"></textarea>
+            <label class="form-label mt-2" for="@($"context-{controlId}")">Context</label>
+            <input id="@($"context-{controlId}")" class="form-control" @bind="context"
+                   @bind:after="NotifyDirtyState"/>
+            <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
+                    OnPressed="@Save">Save Term
+            </Button>
+            <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-2" OnClosed="ClearMessage"/>
+        }
+        else
+        {
+            <p>English-specific single language only terms shouldn't exist...</p>
+        }
+    }
+    else if (LanguageCode == "en" && CanManage)
+    {
+        <label class="form-label mt-2" for="@($"term-{controlId}")">English term</label>
+        <input id="@($"term-{controlId}")" class="form-control" @bind="text"
+               @bind:after="NotifyDirtyState"/>
+        <label class="form-label mt-2" for="@($"context-{controlId}")">Context</label>
+        <input id="@($"context-{controlId}")" class="form-control" @bind="context"
+               @bind:after="NotifyDirtyState"/>
+        <label class="form-label mt-2" for="@($"explanation-{controlId}")">English explanation</label>
+        <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
+                  @bind:after="NotifyDirtyState"></textarea>
+        <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
+                OnPressed="@Save">Save Term
+        </Button>
+        <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-2" OnClosed="ClearMessage"/>
+    }
+    else if (LanguageCode != "en")
+    {
+        /* TODO: show the English text here if it isn't easily available */
+
+        <label class="form-label" for="@($"term-{controlId}")">@LanguageCode translation</label>
+        <input id="@($"term-{controlId}")" class="form-control" @bind="text"
+               @bind:after="NotifyDirtyState"/>
+        <label class="form-label mt-2" for="@($"explanation-{controlId}")">Explanation in @LanguageCode</label>
+        <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
+                  @bind:after="NotifyDirtyState"></textarea>
+        <select class="form-select mt-2" @bind="state" @bind:after="NotifyDirtyState">
+            <option value="@TranslationState.NeedsTranslation">Needs changes</option>
+            <option value="@TranslationState.Translated">Translated</option>
+        </select>
+        <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
+                OnPressed="@Save">Save Term
+        </Button>
+        <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-2" OnClosed="ClearMessage"/>
+    }
+</div>
+
+@code {
+    private readonly string controlId = Guid.NewGuid().ToString("N");
+
+    private string text = string.Empty;
+    private string context = string.Empty;
+    private string? explanation;
+    private TranslationState state = TranslationState.NeedsTranslation;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private bool saving;
+    private string loadedWord = string.Empty;
+    private string loadedContext = string.Empty;
+    private string loadedLanguage = string.Empty;
+    private string loadedTargetText = string.Empty;
+    private string? loadedTargetExplanation;
+    private string loadedEntryContext = string.Empty;
+    private TranslationState loadedState;
+    private int loadedResetVersion;
+
+    [Parameter]
+    [EditorRequired]
+    public DictionaryTermDTO Term { get; set; } = null!;
+
+    [Parameter]
+    public string LanguageCode { get; set; } = "en";
+
+    [Parameter]
+    public EventCallback<(string Word, string Context, bool IsDirty)> OnDirtyChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<(string Word, string Context, bool IsSaving)> OnSavingChanged { get; set; }
+
+    [Parameter]
+    public int ResetVersion { get; set; }
+
+    private bool CanManage => UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin;
+
+    private bool IsDirty => text != loadedTargetText || explanation != loadedTargetExplanation || state != loadedState ||
+        ((Term.IsLanguageSpecific || LanguageCode == "en") && context != loadedEntryContext);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedWord != Term.Word || loadedContext != Term.Context || loadedLanguage != LanguageCode ||
+            loadedResetVersion != ResetVersion || !IsDirty)
+        {
+            loadedWord = Term.Word;
+            loadedContext = Term.Context;
+            loadedLanguage = LanguageCode;
+            loadedResetVersion = ResetVersion;
+            LoadTermValues();
+        }
+
+        await NotifyDirtyState();
+    }
+
+    private void LoadTermValues()
+    {
+        if (Term.IsLanguageSpecific || LanguageCode == "en")
+        {
+            text = Term.Word;
+            context = Term.Context;
+            explanation = Term.SourceExplanation;
+        }
+        else
+        {
+            text = Term.TargetText;
+            context = Term.Context;
+            explanation = Term.TargetExplanation;
+        }
+
+        state = Term.State;
+        loadedTargetText = text;
+        loadedTargetExplanation = explanation;
+        loadedEntryContext = context;
+        loadedState = state;
+    }
+
+    private Task NotifyDirtyState()
+    {
+        return OnDirtyChanged.InvokeAsync((Term.Word, Term.Context, IsDirty));
+    }
+
+    private async Task Save()
+    {
+        saving = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await OnSavingChanged.InvokeAsync((Term.Word, Term.Context, true));
+            using var response = await SendSaveRequest();
+
+            message = response.IsSuccessStatusCode ? "Saved." : "Could not save.";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                loadedTargetText = text;
+                loadedTargetExplanation = explanation;
+                loadedEntryContext = context;
+                loadedState = state;
+                await OnDirtyChanged.InvokeAsync((Term.Word, Term.Context, false));
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not save: {content}, {response.StatusCode}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Saving failed: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            saving = false;
+            await OnSavingChanged.InvokeAsync((Term.Word, Term.Context, false));
+        }
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+
+    private Task<HttpResponseMessage> SendSaveRequest()
+    {
+        if (LanguageCode == "en")
+        {
+            return Http.PutAsJsonAsync("api/v1/translationDictionaries/terms/source", new SaveDictionaryTermRequest
+            {
+                DictionaryId = Term.DictionaryId,
+                Word = Term.Word,
+                Context = Term.Context,
+                NewWord = text,
+                NewContext = context,
+                Explanation = explanation,
+            });
+        }
+
+        if (Term.IsLanguageSpecific)
+        {
+            return Http.PutAsJsonAsync("api/v1/translationDictionaries/terms/language",
+                new SaveDictionaryLanguageTermRequest
+                {
+                    DictionaryId = Term.DictionaryId,
+                    LanguageCode = LanguageCode,
+                    Word = Term.Word,
+                    Context = Term.Context,
+                    NewWord = text,
+                    NewContext = context,
+                    Explanation = explanation,
+                });
+        }
+
+        return Http.PutAsJsonAsync("api/v1/translationDictionaries/terms/translation",
+            new SaveDictionaryTranslationRequest
+            {
+                DictionaryId = Term.DictionaryId,
+                Word = Term.Word,
+                Context = Term.Context,
+                LanguageCode = LanguageCode,
+                Text = text,
+                Explanation = explanation,
+                State = state,
+            });
+    }
+
+}
