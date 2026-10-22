@@ -1,0 +1,960 @@
+@page "/translations/{Slug}/{LanguageCode}/edit"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using System.Net
+@using System.Threading
+@using SharedBase.Utilities
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationValueUpdated>
+@implements INotificationHandler<TranslationUnitUpdated>
+@implements INotificationHandler<TranslationHistoryUpdated>
+@implements INotificationHandler<TranslationCommentsUpdated>
+@implements INotificationHandler<TranslationSuggestionsUpdated>
+@implements INotificationHandler<TranslationDictionaryTermsUpdated>
+@implements INotificationHandler<TranslationDictionaryTermUpdated>
+@implements INotificationHandler<TranslationDictionaryLanguagesUpdated>
+@implements IAsyncDisposable
+
+<StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
+@if (data == null && message == null)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (data == null)
+{
+    <p>Could not load this translation.</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between mb-2">
+                <NavLink href="@($"translations/{Slug}/{LanguageCode}")">← Language overview</NavLink>
+                <div>
+                    <Button Small="true" ButtonStyle="outline-secondary" class="me-1"
+                            Enabled="@(!saving && processingAction == null)" Spinner="@(processingAction == "move")"
+                            OnPressed="Previous">
+                        ← Previous
+                    </Button>
+                    <Button Small="true" ButtonStyle="outline-secondary"
+                            Enabled="@(!saving && processingAction == null)" Spinner="@(processingAction == "move")"
+                            OnPressed="Next">
+                        Next →
+                    </Button>
+
+                    @* TODO: would be nice to show current text index and total texts as a progress indicator *@
+                </div>
+            </div>
+
+            <small class="text-muted">Translation key: @data.Key</small>
+            @if (updateWarning)
+            {
+                <div class="alert alert-warning mt-2" role="alert">
+                    This translation changed while you had unsaved edits. Copy your work or
+                    <Button ButtonStyle="link" class="p-0 align-baseline" OnPressed="DiscardEditsAndReload">
+                        discard edits and reload
+                    </Button>
+                    .
+                </div>
+            }
+            <label for="source-text" class="form-label d-block mt-2">English source</label>
+            <textarea id="source-text" class="form-control" rows="4" readonly>@data.SourceText</textarea>
+
+            @if (data.SourceTextTranslatedFrom != data.SourceText &&
+                     !string.IsNullOrEmpty(data.SourceTextTranslatedFrom))
+            {
+                <h5 class="mt-3">Source changed since this translation was made</h5>
+                @* TODO: we need a word-by-word diff viewer for this as most translations are a single line *@
+                <TextDiffView OldText="@data.SourceTextTranslatedFrom" NewText="@data.SourceText"
+                              OldLabel="When translated" NewLabel="Current source"/>
+            }
+
+            <label for="translation-text" class="form-label d-block mt-3">@LanguageCode translation</label>
+            <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
+                      @bind:event="oninput" @bind:after="OnTextChanged"></textarea>
+
+            <fieldset class="my-3">
+                <legend class="fs-6">State</legend>
+                <InputRadioGroup @bind-Value="editState">
+                    <label class="me-3">
+                        <InputRadio Value="@TranslationState.NeedsTranslation"/>
+                        Needs changes</label>
+                    <label class="me-3">
+                        <InputRadio Value="@TranslationState.Translated"/>
+                        Translated</label>
+                    @if (data.CanVerify)
+                    {
+                        <label>
+                            <InputRadio Value="@TranslationState.Verified"/>
+                            Verified</label>
+                    }
+                    else if (!data.CanVerify && editState == TranslationState.Verified)
+                    {
+                        <strong>Verified</strong>
+                    }
+                </InputRadioGroup>
+            </fieldset>
+
+            <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!saving)" Spinner="@saving"
+                    OnPressed="@Save">
+                Save
+            </Button>
+            <Button ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving" OnPressed="@SaveAndContinue">
+                Save &amp; Continue
+            </Button>
+
+            <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
+            @if (offerSubscriptions)
+            {
+                <div class="alert alert-info mt-3">
+                    You can get notices when translations change.
+                    <NavLink href="@($"translations/{Slug}/{LanguageCode}")">
+                        Choose notifications (goes to a different page)
+                    </NavLink>
+                    <Button Small="true" ButtonStyle="outline-secondary" class="ms-2"
+                            Enabled="@(processingAction == null && !saving)"
+                            Spinner="@(processingAction == "dismiss-prompt")"
+                            OnPressed="DismissSubscriptionPrompt">Dismiss
+                    </Button>
+                </div>
+            }
+
+            <ul class="nav nav-tabs mt-4">
+                <li class="nav-item">
+                    <Button ButtonStyle="link" class="@(tab == "history" ? "nav-link active" : "nav-link")"
+                            OnPressed="ShowHistory">History
+                    </Button>
+                </li>
+                <li class="nav-item">
+                    <Button ButtonStyle="link" class="@(tab == "comments" ? "nav-link active" : "nav-link")"
+                            OnPressed="ShowComments">
+                        Comments (@data.CommentCount)
+                    </Button>
+                </li>
+                <li class="nav-item">
+                    <Button ButtonStyle="link" class="@(tab == "suggestions" ? "nav-link active" : "nav-link")"
+                            OnPressed="ShowSuggestions">
+                        Suggestions (@data.SuggestionCount)
+                    </Button>
+                </li>
+                <li class="nav-item">
+                    <Button ButtonStyle="link" class="@(tab == "nearby" ? "nav-link active" : "nav-link")"
+                            OnPressed="ShowNearby">Nearby languages
+                    </Button>
+                </li>
+            </ul>
+
+            <div class="border border-top-0 p-3">
+                @if (tab == "history")
+                {
+                    @* TODO: pagination so that only 50 items are shown at once, and a button to view older history *@
+                    @foreach (var change in history)
+                    {
+                        <div class="border-bottom pb-2 mb-2">
+                            <strong>@change.Kind</strong> by
+                            @if (change.ActorUserId is { } actorId)
+                            {
+                                <UsernameDisplayer UserId="@actorId"/>
+                            }
+                            else
+                            {
+                                <span>system</span>
+                            }
+                            <small class="text-muted">@change.CreatedAt.ToLocalTime().ToString("g")</small>
+                            <div>@change.OldState → @change.NewState</div>
+                            @if (change.OldText != change.NewText)
+                            {
+                                @* TODO: word-by-word diff viewer here as well *@
+                                <TextDiffView OldText="@change.OldText" NewText="@change.NewText"/>
+                            }
+                        </div>
+                    }
+                }
+                else if (tab == "comments")
+                {
+                    @foreach (var comment in comments)
+                    {
+                        <div class="border-bottom pb-2 mb-2">
+                            <UsernameDisplayer UserId="@comment.AuthorUserId"/>
+                            <small class="text-muted ms-2">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
+                            <MarkdownRenderer MarkdownText="@comment.RawMarkdown"/>
+                        </div>
+                    }
+
+                    <label for="new-comment" class="form-label">
+                        Add a comment (Markdown; mention users with @@name)
+                    </label>
+                    <textarea id="new-comment" class="form-control" rows="3" @bind="newComment"></textarea>
+                    <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
+                            Spinner="@(processingAction == "comment")" OnPressed="@PostComment">
+                        Post comment
+                    </Button>
+                }
+                else if (tab == "suggestions")
+                {
+                    @foreach (var suggestion in suggestions)
+                    {
+                        <div class="border-bottom pb-2 mb-2">
+                            <UsernameDisplayer UserId="@suggestion.AuthorUserId"/>
+                            <small class="text-muted ms-2">Score: @suggestion.Score</small>
+                            @*TODO: show word diff against the current translation if the current translation is not empty *@
+                            <pre class="text-wrap">@suggestion.Text</pre>
+                            <Button Small="true" class="me-1" ButtonStyle="outline-primary"
+                                    Enabled="@(processingAction == null)"
+                                    Spinner="@(processingAction == $"vote-{suggestion.Id}")"
+                                    OnPressed="@(() => Vote(suggestion.Id, 1))">▲
+                            </Button>
+                            <Button Small="true" class="me-1" ButtonStyle="outline-dangerous"
+                                    Enabled="@(processingAction == null)"
+                                    Spinner="@(processingAction == $"vote-{suggestion.Id}")"
+                                    OnPressed="@(() => Vote(suggestion.Id, -1))">▼
+                            </Button>
+                            @* TODO: for English / main language suggestions this needs to check if current user has write access and disable the button if missing write access *@
+                            <Button Small="true" ButtonStyle="outline-success" Enabled="@(processingAction == null)"
+                                    Spinner="@(processingAction == $"accept-{suggestion.Id}")"
+                                    OnPressed="@(() => Accept(suggestion.Id))">Accept
+                            </Button>
+                        </div>
+                    }
+
+                    <p>
+                        You can suggest a new translation if you aren't fully sure some change would be good to get
+                        other people to look at the suggestion and vote. For the main language only certain people
+                        can edit it directly, for that language you may only be able to create suggestions rather
+                        than editing directly.
+                    </p>
+                    <label for="new-suggestion" class="form-label">Suggest a translation</label>
+                    <textarea id="new-suggestion" class="form-control" rows="3" @bind="newSuggestion"></textarea>
+                    <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
+                            Spinner="@(processingAction == "suggestion")" OnPressed="@PostSuggestion">
+                        Add suggestion
+                    </Button>
+                }
+                else if (tab == "nearby")
+                {
+                    @foreach (var nearbyItem in nearby)
+                    {
+                        @* TODO: add a navlink to go to this translation *@
+                        <p><strong>@nearbyItem.LanguageCode</strong> (@nearbyItem.State): @nearbyItem.Text</p>
+                    }
+                }
+
+                <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+            </div>
+        </div>
+
+        <aside class="col-lg-3">
+            <h5>About This Text</h5>
+            @if (!string.IsNullOrWhiteSpace(data.Description))
+            {
+                <p>@data.Description</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(data.SourceLocations))
+            {
+                <h6>Source locations</h6>
+                @* TODO: add a navigation link to GitHub source if this project uses it / probably should have a
+                URL template setting in the project model which could be used here to substitute the location.
+                Or maybe upon reading translations data the reader code could build the full links and this should
+                make a clickable link if it starts with https (open in new tab, though? *@
+                <pre class="small text-wrap">@data.SourceLocations</pre>
+            }
+            @if (dictionaryMatches.Length > 0)
+            {
+                <h6>Dictionary Words</h6>
+                @foreach (var term in dictionaryMatches)
+                {
+                    @* TODO: additionally showing these as overlays with tooltips on the English text would be very nice QOL*@
+                    <div class="border-bottom mb-2">
+                        <strong>@term.Word</strong>
+                        @if (!string.IsNullOrWhiteSpace(term.Context))
+                        {
+                            <small>(@term.Context)</small>
+                        }
+                        <div>@(string.IsNullOrEmpty(term.TargetText) ? "Not translated" : term.TargetText)</div>
+                        @if (!string.IsNullOrWhiteSpace(term.SourceExplanation))
+                        {
+                            <small>@term.SourceExplanation</small>
+                        }
+                    </div>
+                }
+            }
+        </aside>
+    </div>
+}
+
+<DevCenterTitle>Translate @Key</DevCenterTitle>
+
+@code {
+    private readonly Dictionary<string, (string Text, TranslationState State)> drafts = new();
+
+    private TranslationProjectDTO? project;
+    private TranslationEditorDTO? data;
+    private TranslationHistoryDTO[] history = [];
+    private TranslationCommentDTO[] comments = [];
+    private NearbyTranslationDTO[] nearby = [];
+    private TranslationSuggestionDTO[] suggestions = [];
+    private DictionaryTermDTO[] dictionaryMatches = [];
+    private string editText = string.Empty;
+    private TranslationState editState = TranslationState.NeedsTranslation;
+    private string newComment = string.Empty;
+    private string newSuggestion = string.Empty;
+    private string? tab;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private bool saving;
+    private bool lastSaveSucceeded;
+    private string? processingAction;
+    private bool updateWarning;
+    private bool updateReceivedDuringSave;
+    private bool offerSubscriptions;
+    private long? registeredProjectId;
+    private string? registeredKey;
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    [Parameter]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "key")]
+    public string Key { get; set; } = string.Empty;
+
+    private bool HasLocalChanges => data != null &&
+        (editText != data.Text || editState != data.State);
+
+    public Task Handle(TranslationValueUpdated notification, CancellationToken cancellationToken)
+    {
+        if (!IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode))
+            return Task.CompletedTask;
+
+        return RefreshAfterItemChange();
+    }
+
+    public Task Handle(TranslationUnitUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId != project?.Id || notification.Key != Key)
+            return Task.CompletedTask;
+
+        return RefreshAfterItemChange();
+    }
+
+    public Task Handle(TranslationHistoryUpdated notification, CancellationToken cancellationToken)
+    {
+        return IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode) ?
+            RefreshHistory() :
+            Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationCommentsUpdated notification, CancellationToken cancellationToken)
+    {
+        return IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode) ?
+            RefreshComments() :
+            Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationSuggestionsUpdated notification, CancellationToken cancellationToken)
+    {
+        return IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode) ?
+            RefreshSuggestions() :
+            Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationDictionaryTermsUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.DictionaryId == project?.DictionaryId ? RefreshDictionaryMatches() : Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationDictionaryTermUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.DictionaryId == project?.DictionaryId ? RefreshDictionaryMatches() : Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationDictionaryLanguagesUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.DictionaryId == project?.DictionaryId ? RefreshDictionaryMatches() : Task.CompletedTask;
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        if (project != null)
+        {
+            groups.Add(NotificationGroups.TranslationKeyScopeUpdated(project.Id, Key));
+            groups.Add(NotificationGroups.TranslationScopeUpdated(project.Id, Key, LanguageCode));
+            if (project.DictionaryId is { } dictionaryId)
+                groups.Add(NotificationGroups.TranslationDictionaryUpdatedPrefix + dictionaryId);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Unregister<TranslationValueUpdated>(this);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        message = null;
+        data = null;
+        try
+        {
+            project = await Http.GetFromJsonAsync<TranslationProjectDTO>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}");
+        }
+        catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+        {
+            message = "Translation project not found.";
+            messageType = SiteNoticeType.Danger;
+            return;
+        }
+        catch (Exception e)
+        {
+            message = $"Error loading translation project: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+            return;
+        }
+
+        if (project == null)
+        {
+            message ??= "Translation project not found.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(Key))
+        {
+            message = "No translation key was specified.";
+            messageType = SiteNoticeType.Warning;
+            return;
+        }
+
+        await UpdateNotificationRegistration();
+        await Load();
+    }
+
+    private async Task UpdateNotificationRegistration()
+    {
+        if (registeredProjectId == project?.Id && registeredKey == Key)
+            return;
+
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Unregister<TranslationValueUpdated>(this);
+
+        registeredProjectId = project?.Id;
+        registeredKey = Key;
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Register<TranslationValueUpdated>(this);
+    }
+
+    private bool IsCurrent(long projectId, string key, string languageCode)
+    {
+        return projectId == project?.Id && key == Key && languageCode == LanguageCode;
+    }
+
+    private async Task RefreshAfterItemChange()
+    {
+        if (saving)
+        {
+            updateReceivedDuringSave = true;
+            return;
+        }
+
+        if (HasLocalChanges)
+        {
+            updateWarning = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        updateWarning = false;
+        await Load();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshHistory()
+    {
+        if (project == null)
+            return;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>($"api/v1/translationDiscussion/history?{QuerySuffix()}");
+            if (result != null)
+                history = result;
+        }
+        catch (Exception e)
+        {
+            message = $"Failed to load translation history: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshComments()
+    {
+        if (project == null)
+            return;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<TranslationCommentDTO[]>($"api/v1/translationDiscussion/comments?{QuerySuffix()}");
+            if (result != null)
+            {
+                comments = result;
+                data?.CommentCount = comments.Length;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Failed to load translation comments: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshSuggestions()
+    {
+        if (project == null)
+            return;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{QuerySuffix()}");
+            if (result != null)
+            {
+                suggestions = result;
+                data?.SuggestionCount = suggestions.Length;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Failed to load suggestions: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshDictionaryMatches()
+    {
+        if (project == null)
+            return;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<DictionaryTermDTO[]>($"api/v1/translationDictionaries/matching?{QuerySuffix()}");
+            if (result != null)
+                dictionaryMatches = result;
+        }
+        catch (Exception e)
+        {
+            message = $"Failed to load dictionary matches: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string QuerySuffix()
+    {
+        return $"projectId={project!.Id}&key={Uri.EscapeDataString(Key)}" +
+            $"&language={Uri.EscapeDataString(LanguageCode)}";
+    }
+
+    private async Task DiscardEditsAndReload()
+    {
+        drafts.Remove(Key);
+        updateWarning = false;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        if (project == null)
+            return;
+
+        try
+        {
+            var suffix = QuerySuffix();
+            data = await Http.GetFromJsonAsync<TranslationEditorDTO>($"api/v1/translationEditor?{suffix}");
+            if (data == null)
+            {
+                message ??= "Could not load this translation.";
+                messageType = SiteNoticeType.Danger;
+                return;
+            }
+
+            editText = data.Text;
+            editState = data.State;
+            updateWarning = false;
+            if (drafts.TryGetValue(Key, out var draft))
+            {
+                editText = draft.Text;
+                editState = draft.State;
+            }
+
+            var loadedHistory = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>($"api/v1/translationDiscussion/history?{suffix}");
+            if (loadedHistory != null)
+                history = loadedHistory;
+            var loadedComments = await Http.GetFromJsonAsync<TranslationCommentDTO[]>($"api/v1/translationDiscussion/comments?{suffix}");
+            if (loadedComments != null)
+                comments = loadedComments;
+            var loadedNearby = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>($"api/v1/translationDiscussion/nearby?{suffix}");
+            if (loadedNearby != null)
+                nearby = loadedNearby;
+            var loadedSuggestions = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{suffix}");
+            if (loadedSuggestions != null)
+                suggestions = loadedSuggestions;
+            var loadedDictionaryMatches = await Http.GetFromJsonAsync<DictionaryTermDTO[]>($"api/v1/translationDictionaries/matching?{suffix}");
+            if (loadedDictionaryMatches != null)
+                dictionaryMatches = loadedDictionaryMatches;
+            tab ??= comments.Length > 0 ? "comments" : "history";
+        }
+        catch (Exception e)
+        {
+            message = $"Error loading translation: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnTextChanged()
+    {
+        editState = string.IsNullOrWhiteSpace(editText) ?
+            TranslationState.NeedsTranslation :
+            TranslationState.Translated;
+    }
+
+    private void SelectTab(string selected)
+    {
+        tab = selected;
+    }
+
+    private void ShowHistory()
+    {
+        SelectTab("history");
+    }
+
+    private void ShowComments()
+    {
+        SelectTab("comments");
+    }
+
+    private void ShowSuggestions()
+    {
+        SelectTab("suggestions");
+    }
+
+    private void ShowNearby()
+    {
+        SelectTab("nearby");
+    }
+
+    private async Task Save()
+    {
+        if (data == null || saving)
+            return;
+
+        lastSaveSucceeded = false;
+        saving = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync("api/v1/translationEditor",
+                new TranslationSaveRequest
+                {
+                    ProjectId = data.ProjectId, Key = data.Key, LanguageCode = data.LanguageCode,
+                    Text = editText, State = editState, Version = data.Version,
+                });
+
+            message = response.IsSuccessStatusCode ?
+                "Translation saved." :
+                $"Save failed: {await response.Content.ReadAsStringAsync()}";
+            messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
+            if (response.IsSuccessStatusCode)
+            {
+                lastSaveSucceeded = true;
+                drafts.Remove(Key);
+                data = await response.Content.ReadFromJsonAsync<TranslationEditorDTO>() ?? throw new NullDecodedJsonException();
+                editText = data.Text;
+                editState = data.State;
+
+                // TODO: we might want to reduce server load by only requesting this occasionally...
+                offerSubscriptions = (await Http.GetFromJsonAsync<TranslationSubscriptionPromptDTO>("api/v1/translationSubscriptions/prompt"))?.ShowPrompt ?? false;
+            }
+        }
+        catch (Exception e)
+        {
+            message = "Error saving changes! " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            saving = false;
+            if (updateReceivedDuringSave)
+            {
+                updateReceivedDuringSave = false;
+                if (lastSaveSucceeded)
+                    await Load();
+            }
+        }
+    }
+
+    private async Task SaveAndContinue()
+    {
+        await Save();
+        if (lastSaveSucceeded)
+            await Next();
+    }
+
+    private Task Previous()
+    {
+        return Move(-1);
+    }
+
+    private Task Next()
+    {
+        return Move(1);
+    }
+
+    private async Task Move(int direction)
+    {
+        if (project == null || data == null)
+            return;
+
+        if (editText != data.Text || editState != data.State)
+            drafts[Key] = (editText, editState);
+
+        var url = $"api/v1/translationEditor/neighbor?projectId={project.Id}" +
+            $"&language={Uri.EscapeDataString(LanguageCode)}&key={Uri.EscapeDataString(Key)}" +
+            $"&direction={direction}";
+        processingAction = "move";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not find the next translation: {response.StatusCode}";
+                messageType = SiteNoticeType.Danger;
+                return;
+            }
+
+            var next = await response.Content.ReadFromJsonAsync<string>();
+            if (next != null)
+                Navigation.NavigateTo($"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(next)}");
+        }
+        catch (Exception e)
+        {
+            message = $"Could not move to the next translation: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task PostComment()
+    {
+        if (data == null || string.IsNullOrWhiteSpace(newComment) || processingAction == "comment")
+            return;
+
+        processingAction = "comment";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/translationDiscussion/comments",
+                new CreateTranslationCommentRequest
+                {
+                    ProjectId = data.ProjectId, Key = data.Key, LanguageCode = data.LanguageCode,
+                    RawMarkdown = newComment,
+                });
+
+            if (response.IsSuccessStatusCode)
+            {
+                newComment = string.Empty;
+                message = "Comment posted.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not post the comment: {content}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not post the comment: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task PostSuggestion()
+    {
+        if (data == null || string.IsNullOrWhiteSpace(newSuggestion) || processingAction == "suggestion")
+            return;
+
+        processingAction = "suggestion";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/translationSuggestions",
+                new CreateTranslationSuggestionRequest
+                {
+                    ProjectId = data.ProjectId, Key = data.Key, LanguageCode = data.LanguageCode,
+                    Text = newSuggestion,
+                });
+
+            if (response.IsSuccessStatusCode)
+            {
+                newSuggestion = string.Empty;
+                message = "Suggestion added.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not add the suggestion: {content}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not add the suggestion: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Vote(long id, int value)
+    {
+        processingAction = $"vote-{id}";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PutAsJsonAsync($"api/v1/translationSuggestions/{id}/vote", new VoteOnTranslationSuggestionRequest { Value = value });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not vote on the suggestion: {content}";
+                messageType = SiteNoticeType.Danger;
+            }
+            else
+            {
+                message = "Vote saved.";
+                messageType = SiteNoticeType.Primary;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not vote on the suggestion: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Accept(long id)
+    {
+        processingAction = $"accept-{id}";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/translationSuggestions/{id}/accept", null);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not accept the suggestion: {content}";
+                messageType = SiteNoticeType.Danger;
+            }
+            else
+            {
+                message = "Suggestion accepted.";
+                messageType = SiteNoticeType.Success;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not accept the suggestion: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DismissSubscriptionPrompt()
+    {
+        processingAction = "dismiss-prompt";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/translationSubscriptions/prompt/dismiss", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                offerSubscriptions = false;
+                message = "Notification prompt dismissed.";
+                messageType = SiteNoticeType.Primary;
+            }
+            else
+            {
+                message = $"Could not dismiss the notification prompt: {response.StatusCode}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not dismiss the notification prompt: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+        }
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+
+}
