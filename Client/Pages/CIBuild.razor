@@ -36,7 +36,9 @@
             <li><strong>Commit</strong>: @Data.CommitHash</li>
             <li><strong>Ref</strong>: @Data.RemoteRef</li>
             <li><strong>Status</strong>: @Data.Status</li>
-            <li><strong>Started At</strong>: <RecentTimeShortener Time="@Data.CreatedAt" /></li>
+            <li><strong>Started At</strong>:
+                <RecentTimeShortener Time="@Data.CreatedAt"/>
+            </li>
         </ul>
 
         <NavLink href="@($"/ci/{Data.CiProjectId}")" Match="NavLinkMatch.All">
@@ -44,8 +46,8 @@
         </NavLink>
 
         <AccessLimited RequiredAccess="GroupType.Developer" AutoRedirectIfNotLoggedIn="@false">
-            <br />
-            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+            <br/>
+            <StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
 
             <Button Enabled="@CanRetry" ButtonStyle="secondary" Spinner="@processing"
                     OnPressed="@(() => RerunBuild(false))">
@@ -55,14 +57,14 @@
                     OnPressed="@(() => RerunBuild(true))">
                 Rerun All
             </Button>
-            <br />
+            <br/>
         </AccessLimited>
 
-        <br />
+        <br/>
 
         <h4>Jobs</h4>
 
-        <CIJobsList ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId" />
+        <CIJobsList ProjectId="@Data.CiProjectId" BuildId="@Data.CiBuildId"/>
 
         @if (Data.Status == BuildStatus.Succeeded)
         {
@@ -98,7 +100,8 @@
     private bool CanRetryAll => !retriedBefore && Data != null && Data.Status != BuildStatus.Running &&
         Data.Status != BuildStatus.GoingToFail;
 
-    private string NameSuffix => Data != null ? $"Build {Data.CiBuildId} for {Data.ProjectName}" :
+    private string NameSuffix => Data != null ?
+        $"Build {Data.CiBuildId} for {Data.ProjectName}" :
         "Loading Build Info";
 
     protected override Task<CIBuildDTO?> StartQuery()
@@ -161,4 +164,5 @@
 
         await InvokeAsync(StateHasChanged);
     }
+
 }

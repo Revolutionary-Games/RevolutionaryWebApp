@@ -142,7 +142,7 @@ First status display and button:
 ```razorhtmldialect
 @inject HttpClient Http
 
-<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@DismissActionMessage" />
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@DismissActionMessage"/>
 
 <Button Enabled="@CanPerformAction" ButtonStyle="primary" Spinner="@processing"
         OnPressed="@(() => RerunBuild(true))">
