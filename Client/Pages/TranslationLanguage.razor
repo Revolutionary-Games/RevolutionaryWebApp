@@ -1,0 +1,366 @@
+@page "/translations/{Slug}/{LanguageCode}"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Notifications
+@using System.Threading
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject CurrentUserInfo UserInfo
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationProjectTranslationsUpdated>
+@implements INotificationHandler<TranslationUnitUpdated>
+@implements IAsyncDisposable
+
+<h3>@LanguageCode translations for @Slug</h3>
+<StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
+@if (project == null && message == null)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (project == null)
+{
+    <p>Could not load this translation project.</p>
+}
+else
+{
+    @if (UserInfo.HasAccessLevel(GroupType.User) && subscription != null)
+    {
+        <div class="border rounded p-3 mb-3">
+            <strong>Language notifications</strong>
+            <label class="form-check">
+                <input type="checkbox" class="form-check-input" @bind="subscribeNewKeys"/>
+                <span class="form-check-label">New translation keys</span>
+            </label>
+            <label class="form-check">
+                <input type="checkbox" class="form-check-input" @bind="subscribeUpdates"/>
+                <span class="form-check-label">Translations updated in @LanguageCode</span>
+            </label>
+            <Button Small="true" class="mt-2" ButtonStyle="outline-primary"
+                    Enabled="@(!savingSubscription)" Spinner="@savingSubscription"
+                    OnPressed="@SaveSubscription">Save notification choices
+            </Button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <Button ButtonStyle="primary" class="me-2" Enabled="@(!jumping)" Spinner="@jumping"
+                OnPressed="@(() => Jump(null))">First string
+        </Button>
+        <Button ButtonStyle="outline-primary" class="me-2"
+                Enabled="@(!jumping)" Spinner="@jumping" OnPressed="JumpNeedsTranslation">
+            First needing translation
+        </Button>
+        <Button ButtonStyle="outline-primary" Enabled="@(!jumping)" Spinner="@jumping"
+                OnPressed="JumpUnverified">
+            First unverified
+        </Button>
+    </div>
+
+    <div class="input-group mb-3">
+        <label class="visually-hidden" for="translation-search">Search source, key, or translated text</label>
+        <input id="translation-search" class="form-control" placeholder="Search source, key, or translated text"
+               @bind="query" @bind:event="oninput"/>
+        <Button ButtonStyle="outline-secondary" Enabled="@(!searching)" Spinner="@searching"
+                OnPressed="Search">Search
+        </Button>
+    </div>
+
+    @if (items == null && message == null)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else if (items == null)
+    {
+        <p>Could not load matching strings.</p>
+    }
+    else if (items.Length == 0)
+    {
+        <p>No strings match.</p>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var item in items)
+            {
+                <li class="list-group-item">
+                    <NavLink href="@(EditorUrl(item.Key))">@item.Key</NavLink>
+                    <span class="badge bg-secondary ms-2">@item.State</span>
+                    <div class="small text-muted">@item.SourceText</div>
+                </li>
+            }
+        </ul>
+        @if (items.Length >= 50)
+        {
+            <Button ButtonStyle="outline-secondary" class="mt-3" Enabled="@(!loadingMore)"
+                    Spinner="@loadingMore" OnPressed="LoadMore">Load more
+            </Button>
+        }
+    }
+}
+
+<DevCenterTitle>@LanguageCode translations</DevCenterTitle>
+
+@code {
+    private TranslationProjectDTO? project;
+    private TranslationSubscriptionDTO? subscription;
+    private bool subscribeNewKeys;
+    private bool subscribeUpdates;
+    private TranslationListItemDTO[]? items;
+    private string query = string.Empty;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private long? registeredProjectId;
+    private bool savingSubscription;
+    private bool searching;
+    private bool loadingMore;
+    private bool jumping;
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    [Parameter]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    public Task Handle(TranslationProjectTranslationsUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.ProjectId == project?.Id ? Search() : Task.CompletedTask;
+    }
+
+    public Task Handle(TranslationUnitUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.ProjectId == project?.Id ? Search() : Task.CompletedTask;
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        if (project != null)
+            groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + project.Id);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Unregister<TranslationProjectTranslationsUpdated>(this);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        message = null;
+
+        try
+        {
+            project = (await Http.GetFromJsonAsync<TranslationProjectDTO[]>("api/v1/translations/projects"))?
+                .FirstOrDefault(p => p.Slug == Slug);
+        }
+        catch (Exception e)
+        {
+            message = "Error loading translation project: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+            return;
+        }
+
+        if (project == null && message == null)
+            message = "Translation project not found.";
+
+        if (project != null && UserInfo.HasAccessLevel(GroupType.User))
+        {
+            try
+            {
+                subscription = await Http.GetFromJsonAsync<TranslationSubscriptionDTO>($"api/v1/translationSubscriptions?projectId={project.Id}" +
+                    $"&language={Uri.EscapeDataString(LanguageCode)}");
+                subscribeNewKeys = subscription?.NewKeys ?? false;
+                subscribeUpdates = subscription?.TranslationUpdates ?? false;
+            }
+            catch (Exception e)
+            {
+                message = "Error getting subscription status: " + e.Message;
+                messageType = SiteNoticeType.Danger;
+                return;
+            }
+        }
+
+        await Search();
+        await UpdateNotificationRegistration();
+    }
+
+    private async Task UpdateNotificationRegistration()
+    {
+        if (registeredProjectId == project?.Id)
+            return;
+
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Unregister<TranslationProjectTranslationsUpdated>(this);
+
+        registeredProjectId = project?.Id;
+        if (registeredProjectId.HasValue)
+            await NotificationHandler.Register<TranslationProjectTranslationsUpdated>(this);
+    }
+
+    private async Task Search()
+    {
+        if (project == null || searching)
+            return;
+
+        searching = true;
+        message = null;
+        items = null;
+        await InvokeAsync(StateHasChanged);
+
+        // Wait until conflicting operation is done
+        while (loadingMore)
+        {
+            await Task.Delay(100);
+        }
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>("api/v1/translationEditor/list?" +
+                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&query={Uri.EscapeDataString(query)}&offset=0");
+            if (result != null)
+                items = result;
+        }
+        catch (Exception e)
+        {
+            message = $"Could not search translation strings: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            searching = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        if (project == null || items == null || loadingMore)
+            return;
+
+        loadingMore = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        // Wait until conflicting operation is done
+        while (searching)
+        {
+            await Task.Delay(100);
+        }
+
+        try
+        {
+            var next = await Http.GetFromJsonAsync<TranslationListItemDTO[]>("api/v1/translationEditor/list?" +
+                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&query={Uri.EscapeDataString(query)}&offset={items.Length}");
+            if (next != null)
+                items = [.. items, .. next];
+        }
+        catch (Exception e)
+        {
+            message = $"Could not load more translation strings: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            loadingMore = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Jump(string? state)
+    {
+        if (project == null || jumping)
+            return;
+
+        jumping = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var stateParam = state == null ? string.Empty : $"&state={state}";
+            var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"api/v1/translationEditor/list?" +
+                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&offset=0{stateParam}");
+            if (result is { Length: > 0 })
+                Navigation.NavigateTo(EditorUrl(result[0].Key));
+        }
+        catch (Exception e)
+        {
+            message = $"Could not find a translation string: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            jumping = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task JumpNeedsTranslation()
+    {
+        return Jump("NeedsTranslation");
+    }
+
+    private Task JumpUnverified()
+    {
+        return Jump("Translated");
+    }
+
+    private string EditorUrl(string key)
+    {
+        return $"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(key)}";
+    }
+
+    private async Task SaveSubscription()
+    {
+        if (project == null)
+            return;
+
+        savingSubscription = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PutAsJsonAsync("api/v1/translationSubscriptions",
+                new TranslationSubscriptionDTO
+                {
+                    ProjectId = project.Id,
+                    LanguageCode = LanguageCode,
+                    NewKeys = subscribeNewKeys,
+                    TranslationUpdates = subscribeUpdates,
+                });
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Notification choices saved.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not save notification choices: {content}, {response.StatusCode}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Error saving subscriptions: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            savingSubscription = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+
+}
