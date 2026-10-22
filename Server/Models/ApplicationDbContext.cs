@@ -191,8 +191,17 @@ public class ApplicationDbContext : DbContext
                 if (notifiable.UsesSoftDelete)
                     previousSoftDeleted = (bool)entry.OriginalValues[AppInfo.SoftDeleteAttribute]!;
 
-                notificationsToSend.AddRange(notifications.OnChangesDetected(entry.State, notifiable,
-                    previousSoftDeleted));
+                // This is a bit unclean, but the translation project needs access to the full entity state here to
+                // generate notifications
+                if (entry.Entity is TranslationProject translationProject)
+                {
+                    notificationsToSend.AddRange(translationProject.GetNotificationsForEntry(entry));
+                }
+                else
+                {
+                    notificationsToSend.AddRange(notifications.OnChangesDetected(entry.State, notifiable,
+                        previousSoftDeleted));
+                }
             }
         }
 

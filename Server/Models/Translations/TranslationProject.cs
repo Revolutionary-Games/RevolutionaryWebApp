@@ -3,12 +3,16 @@ namespace RevolutionaryWebApp.Server.Models.Translations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Models;
 using Shared.Models;
+using Shared.Notifications;
 
 [Index(nameof(Slug), IsUnique = true)]
 [Index(nameof(RepositoryFullName), nameof(SourceBranch))]
-public class TranslationProject
+public class TranslationProject : IUpdateNotifications
 {
     public long Id { get; set; }
 
@@ -51,9 +55,58 @@ public class TranslationProject
     public ICollection<TranslationUnit> Units { get; set; } = new HashSet<TranslationUnit>();
     public ICollection<TranslationSyncRun> SyncRuns { get; set; } = new HashSet<TranslationSyncRun>();
     public TranslationPullRequest? PullRequest { get; set; }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.ProjectUpdated(Id);
+
+        if (entityState is EntityState.Added or EntityState.Deleted)
+            yield return TranslationNotificationHelper.ProjectListUpdated();
+    }
+
+    internal IEnumerable<Tuple<SerializedNotification, string>> GetNotificationsForEntry(EntityEntry entry)
+    {
+        if (entry.State is EntityState.Added or EntityState.Deleted)
+        {
+            return GetNotifications(entry.State);
+        }
+
+        string[] configurationProperties =
+        [
+            nameof(Slug), nameof(Name), nameof(Enabled), nameof(SourceLanguage), nameof(Format), nameof(DictionaryId),
+            nameof(RepositoryFullName), nameof(SourceBranch), nameof(SourceFilePattern),
+            nameof(TranslationFilePattern),
+        ];
+
+        if (!entry.Properties.Any(property => property.IsModified &&
+                configurationProperties.Contains(property.Metadata.Name)))
+        {
+            return [];
+        }
+
+        var notifications = new List<Tuple<SerializedNotification, string>>
+        {
+            TranslationNotificationHelper.ProjectUpdated(Id),
+            TranslationNotificationHelper.ProjectListUpdated(),
+        };
+
+        var dictionaryId = entry.Property(nameof(DictionaryId));
+        if (dictionaryId.IsModified)
+        {
+            if (dictionaryId.OriginalValue is long previousDictionaryId)
+            {
+                notifications.Add(TranslationNotificationHelper.DictionaryLanguagesUpdated(previousDictionaryId));
+            }
+
+            if (dictionaryId.CurrentValue is long currentDictionaryId)
+                notifications.Add(TranslationNotificationHelper.DictionaryLanguagesUpdated(currentDictionaryId));
+        }
+
+        return notifications;
+    }
 }
 
-public class TranslationProjectLanguage
+public class TranslationProjectLanguage : IUpdateNotifications
 {
     public long ProjectId { get; set; }
 
@@ -72,10 +125,19 @@ public class TranslationProjectLanguage
     public TranslationProject Project { get; set; } = null!;
     public ICollection<TranslationValue> Values { get; set; } = new HashSet<TranslationValue>();
     public ICollection<TranslationSubscription> Subscriptions { get; set; } = new HashSet<TranslationSubscription>();
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        if (entityState is EntityState.Added or EntityState.Deleted)
+            yield return TranslationNotificationHelper.ProjectLanguagesUpdated(ProjectId);
+
+        if (entityState is EntityState.Added or EntityState.Deleted && Project?.DictionaryId is long dictionaryId)
+            yield return TranslationNotificationHelper.DictionaryLanguagesUpdated(dictionaryId);
+    }
 }
 
 [Index(nameof(ProjectId), nameof(Active))]
-public class TranslationUnit
+public class TranslationUnit : IUpdateNotifications
 {
     public long ProjectId { get; set; }
 
@@ -106,11 +168,24 @@ public class TranslationUnit
 
     public TranslationProject Project { get; set; } = null!;
     public ICollection<TranslationValue> Values { get; set; } = new HashSet<TranslationValue>();
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        if (entityState is EntityState.Added or EntityState.Deleted)
+        {
+            yield return TranslationNotificationHelper.ProjectTranslationsUpdated(ProjectId);
+        }
+        else
+        {
+            yield return TranslationNotificationHelper.UnitUpdated(ProjectId, Key);
+            yield return TranslationNotificationHelper.ProjectTranslationsUpdated(ProjectId);
+        }
+    }
 }
 
 [Index(nameof(ProjectId), nameof(LanguageCode), nameof(State))]
 [Index(nameof(ProjectId), nameof(PendingSince))]
-public class TranslationValue
+public class TranslationValue : IUpdateNotifications
 {
     public long ProjectId { get; set; }
 
@@ -155,10 +230,16 @@ public class TranslationValue
     public ICollection<TranslationChange> Changes { get; set; } = new HashSet<TranslationChange>();
     public ICollection<TranslationComment> Comments { get; set; } = new HashSet<TranslationComment>();
     public ICollection<TranslationSuggestion> Suggestions { get; set; } = new HashSet<TranslationSuggestion>();
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.ValueUpdated(ProjectId, Key, LanguageCode);
+        yield return TranslationNotificationHelper.ProjectTranslationsUpdated(ProjectId);
+    }
 }
 
 [Index(nameof(ProjectId), nameof(Key), nameof(LanguageCode), nameof(ResolvedAt))]
-public class TranslationImportConflict
+public class TranslationImportConflict : IUpdateNotifications
 {
     public long Id { get; set; }
     public long ProjectId { get; set; }
@@ -179,10 +260,15 @@ public class TranslationImportConflict
     public DateTime? ResolvedAt { get; set; }
 
     public TranslationValue Value { get; set; } = null!;
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.ProjectConflictsUpdated(ProjectId);
+    }
 }
 
 [Index(nameof(ProjectId), nameof(Key), nameof(LanguageCode), nameof(CreatedAt))]
-public class TranslationChange
+public class TranslationChange : IUpdateNotifications
 {
     public long Id { get; set; }
     public long ProjectId { get; set; }
@@ -213,10 +299,15 @@ public class TranslationChange
     public TranslationValue Value { get; set; } = null!;
     public User? ActorUser { get; set; }
     public User? ContributorUser { get; set; }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.HistoryUpdated(ProjectId, Key, LanguageCode);
+    }
 }
 
 [Index(nameof(ProjectId), nameof(Key), nameof(LanguageCode), nameof(CreatedAt))]
-public class TranslationComment
+public class TranslationComment : IUpdateNotifications
 {
     public long Id { get; set; }
     public long ProjectId { get; set; }
@@ -238,10 +329,15 @@ public class TranslationComment
 
     public TranslationValue Value { get; set; } = null!;
     public User AuthorUser { get; set; } = null!;
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.CommentsUpdated(ProjectId, Key, LanguageCode);
+    }
 }
 
 [Index(nameof(Status), nameof(CreatedAt))]
-public class TranslationSuggestion
+public class TranslationSuggestion : IUpdateNotifications
 {
     public long Id { get; set; }
     public long ProjectId { get; set; }
@@ -267,9 +363,14 @@ public class TranslationSuggestion
     public User AuthorUser { get; set; } = null!;
     public User? ResolvedByUser { get; set; }
     public ICollection<TranslationSuggestionVote> Votes { get; set; } = new HashSet<TranslationSuggestionVote>();
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.SuggestionsUpdated(ProjectId, Key, LanguageCode);
+    }
 }
 
-public class TranslationSuggestionVote
+public class TranslationSuggestionVote : IUpdateNotifications
 {
     public long SuggestionId { get; set; }
     public long UserId { get; set; }
@@ -277,6 +378,15 @@ public class TranslationSuggestionVote
 
     public TranslationSuggestion Suggestion { get; set; } = null!;
     public User User { get; set; } = null!;
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        if (Suggestion != null)
+        {
+            yield return TranslationNotificationHelper.SuggestionsUpdated(Suggestion.ProjectId, Suggestion.Key,
+                Suggestion.LanguageCode);
+        }
+    }
 }
 
 public class TranslationSubscription
@@ -297,7 +407,7 @@ public class TranslationSubscription
 }
 
 [Index(nameof(ProjectId), nameof(StartedAt))]
-public class TranslationSyncRun
+public class TranslationSyncRun : IUpdateNotifications
 {
     public long Id { get; set; }
     public long ProjectId { get; set; }
@@ -318,9 +428,14 @@ public class TranslationSyncRun
     public DateTime? CompletedAt { get; set; }
 
     public TranslationProject Project { get; set; } = null!;
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.ProjectSyncStatusUpdated(ProjectId);
+    }
 }
 
-public class TranslationPullRequest
+public class TranslationPullRequest : IUpdateNotifications
 {
     public long ProjectId { get; set; }
     public int Number { get; set; }
@@ -336,4 +451,9 @@ public class TranslationPullRequest
     public DateTime? LastCheckedAt { get; set; }
 
     public TranslationProject Project { get; set; } = null!;
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return TranslationNotificationHelper.ProjectSyncStatusUpdated(ProjectId);
+    }
 }
