@@ -419,6 +419,7 @@ public class NotificationsHub : Hub<INotifications>
             case NotificationGroups.ExternalServerListUpdated:
             case NotificationGroups.CLAListUpdated:
             case NotificationGroups.GithubAutoCommentListUpdated:
+            case NotificationGroups.GithubTokenListUpdated:
             case NotificationGroups.SentBulkEmailListUpdated:
             case NotificationGroups.BackupListUpdated:
             case NotificationGroups.AssociationMemberListUpdated:

@@ -72,6 +72,7 @@ public static class NotificationGroups
     public const string MeetingPollListUpdatedPrefix = "MeetingPoll_";
 
     public const string GithubAutoCommentListUpdated = "GHAutoComment";
+    public const string GithubTokenListUpdated = "GHTokens";
     public const string SentBulkEmailListUpdated = "BulkMails";
 
     public const string CrashReportUpdatedPrefix = "SCReport_";

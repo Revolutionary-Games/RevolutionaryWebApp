@@ -113,6 +113,10 @@ public class GithubAutoCommentListUpdated : ListUpdated<GithubAutoCommentDTO>
 {
 }
 
+public class GithubTokenListUpdated : ListUpdated<GithubTokenDTO>
+{
+}
+
 public class SentBulkEmailListUpdated : ListUpdated<SentBulkEmailDTO>
 {
 }
