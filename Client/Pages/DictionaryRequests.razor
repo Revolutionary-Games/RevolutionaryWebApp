@@ -71,7 +71,10 @@
         requests = await Http.GetFromJsonAsync<DictionaryTermRequestDTO[]>("api/v1/translationDictionaries/requests") ?? [];
     }
 
-    public Task Handle(TranslationDictionaryRequestsUpdated notification, CancellationToken cancellationToken) => LoadAndRender();
+    public Task Handle(TranslationDictionaryRequestsUpdated notification, CancellationToken cancellationToken)
+    {
+        return LoadAndRender();
+    }
 
     public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
