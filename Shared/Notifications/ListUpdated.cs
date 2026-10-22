@@ -7,6 +7,10 @@ using Models.Pages;
 /// <summary>
 ///   Notification about a list being updated
 /// </summary>
+/// <typeparam name="T">
+///   Type of the item in the list that was changed, usually a light-weight object or the full DTO,
+///   if the light-weight variant doesn't exist
+/// </typeparam>
 public abstract class ListUpdated<T> : SerializedNotification
     where T : class, new()
 {
