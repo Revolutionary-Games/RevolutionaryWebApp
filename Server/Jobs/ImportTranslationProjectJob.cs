@@ -274,7 +274,8 @@ public class ImportTranslationProjectJob
 
                     var subscribers = await database.TranslationSubscriptions.AsNoTracking().Where(s =>
                             s.ProjectId == project.Id && s.LanguageCode == language.LanguageCode &&
-                            s.EventType == "TranslationUpdate" && s.UserId != previousEditor)
+                            s.EventType == TranslationSubscriptionEventType.TranslationUpdate &&
+                            s.UserId != previousEditor)
                         .Select(s => s.UserId).ToListAsync(cancellationToken);
                     foreach (var subscriber in subscribers)
                     {
@@ -301,7 +302,7 @@ public class ImportTranslationProjectJob
         if (project.LastImportedSha != null && newKeys.Count > 0)
         {
             var subscribers = await database.TranslationSubscriptions.AsNoTracking()
-                .Where(s => s.ProjectId == project.Id && s.EventType == "NewKey")
+                .Where(s => s.ProjectId == project.Id && s.EventType == TranslationSubscriptionEventType.NewKey)
                 .ToListAsync(cancellationToken);
             foreach (var subscriber in subscribers)
             {

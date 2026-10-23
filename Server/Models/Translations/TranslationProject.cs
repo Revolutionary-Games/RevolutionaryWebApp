@@ -474,8 +474,7 @@ public class TranslationSubscription
     [MaxLength(35)]
     public string LanguageCode { get; set; } = string.Empty;
 
-    [MaxLength(40)]
-    public string EventType { get; set; } = string.Empty;
+    public TranslationSubscriptionEventType EventType { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

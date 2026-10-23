@@ -4939,9 +4939,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(35)")
                         .HasColumnName("language_code");
 
-                    b.Property<string>("EventType")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer")
                         .HasColumnName("event_type");
 
                     b.Property<DateTime>("CreatedAt")
