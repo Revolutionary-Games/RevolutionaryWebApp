@@ -93,20 +93,21 @@ else
                 <legend class="fs-6">State</legend>
                 <InputRadioGroup @bind-Value="editState">
                     <label class="me-3">
-                        <InputRadio Value="@TranslationState.NeedsTranslation"/>
+                        <InputRadio Value="@TranslationState.NeedsTranslation"
+                                    disabled="@(data.LanguageCode == project?.SourceLanguage)"/>
                         Needs changes</label>
-                    <label class="me-3">
+                    <label>
                         <InputRadio Value="@TranslationState.Translated"/>
                         Translated</label>
                     @if (data.CanVerify)
                     {
-                        <label>
+                        <label class="ms-3">
                             <InputRadio Value="@TranslationState.Verified"/>
                             Verified</label>
                     }
-                    else if (!data.CanVerify && editState == TranslationState.Verified)
+                    else if (editState == TranslationState.Verified)
                     {
-                        <strong>Verified</strong>
+                        <strong class="ms-3">Verified</strong>
                     }
                 </InputRadioGroup>
             </fieldset>
@@ -703,6 +704,14 @@ else
 
     private void OnTextChanged()
     {
+        if (data?.LanguageCode == project?.SourceLanguage)
+        {
+            if (editState == TranslationState.Verified)
+                editState = TranslationState.Translated;
+
+            return;
+        }
+
         editState = string.IsNullOrWhiteSpace(editText) ?
             TranslationState.NeedsTranslation :
             TranslationState.Translated;
