@@ -155,7 +155,28 @@ else
             <div class="border border-top-0 p-3">
                 @if (tab == "history")
                 {
-                    @* TODO: pagination so that only 50 items are shown at once, and a button to view older history *@
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <Button Small="true" ButtonStyle="outline-secondary"
+                                Enabled="@(!loadingHistory && historyOffset > 0)"
+                                OnPressed="@(() => ChangeHistoryPage(-1))">
+                            ← Newer history
+                        </Button>
+                        <small class="text-muted">
+                            @if (history.Length > 0)
+                            {
+                                <span>Entries @(historyOffset + 1)–@(historyOffset + history.Length)</span>
+                            }
+                            else
+                            {
+                                <span>No history entries</span>
+                            }
+                        </small>
+                        <Button Small="true" ButtonStyle="outline-secondary"
+                                Enabled="@(!loadingHistory && hasOlderHistory)"
+                                OnPressed="@(() => ChangeHistoryPage(1))">
+                            Older history →
+                        </Button>
+                    </div>
                     @foreach (var change in history)
                     {
                         <div class="border-bottom pb-2 mb-2">
@@ -298,6 +319,9 @@ else
     private TranslationProjectDTO? project;
     private TranslationEditorDTO? data;
     private TranslationHistoryDTO[] history = [];
+    private int historyOffset;
+    private bool loadingHistory;
+    private bool hasOlderHistory;
     private TranslationCommentDTO[] comments = [];
     private NearbyTranslationDTO[] nearby = [];
     private TranslationSuggestionDTO[] suggestions = [];
@@ -403,6 +427,9 @@ else
     {
         message = null;
         data = null;
+        historyOffset = 0;
+        history = [];
+        hasOlderHistory = false;
         try
         {
             project = await Http.GetFromJsonAsync<TranslationProjectDTO>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}");
@@ -478,23 +505,56 @@ else
 
     private async Task RefreshHistory()
     {
-        if (project == null)
+        await LoadHistory(historyOffset);
+    }
+
+    private async Task LoadHistory(int offset)
+    {
+        if (project == null || loadingHistory)
             return;
 
+        loadingHistory = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             var result = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>(
-                $"api/v1/translationEditor/history?{QuerySuffix()}");
+                $"api/v1/translationEditor/history?{QuerySuffix()}&offset={offset}");
             if (result != null)
-                history = result;
+            {
+                if (offset > historyOffset && result.Length == 0)
+                {
+                    hasOlderHistory = false;
+                }
+                else
+                {
+                    history = result;
+                    historyOffset = offset;
+                    hasOlderHistory = result.Length == 50;
+                }
+            }
         }
         catch (Exception e)
         {
             message = $"Failed to load translation history: {e.Message}";
             messageType = SiteNoticeType.Danger;
         }
+        finally
+        {
+            loadingHistory = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
-        await InvokeAsync(StateHasChanged);
+    private async Task ChangeHistoryPage(int direction)
+    {
+        if (loadingHistory)
+            return;
+
+        var newOffset = historyOffset + direction * 50;
+        if (newOffset < 0)
+            return;
+
+        await LoadHistory(newOffset);
     }
 
     private async Task RefreshComments()
@@ -601,10 +661,7 @@ else
                 editState = draft.State;
             }
 
-            var loadedHistory = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>(
-                $"api/v1/translationEditor/history?{suffix}");
-            if (loadedHistory != null)
-                history = loadedHistory;
+            await RefreshHistory();
             var loadedComments = await Http.GetFromJsonAsync<TranslationCommentDTO[]>($"api/v1/translationDiscussion/comments?{suffix}");
             if (loadedComments != null)
                 comments = loadedComments;
