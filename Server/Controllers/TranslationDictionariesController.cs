@@ -491,6 +491,12 @@ public class TranslationDictionariesController : Controller
             return NotFound();
         }
 
+        if (await database.DictionaryTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+                t.Word == word && t.Context == context))
+        {
+            return Conflict("The dictionary term already exists for this context");
+        }
+
         if (await database.DictionaryTermRequests.AnyAsync(r => r.DictionaryId == request.DictionaryId &&
                 r.Word == word && r.Context == context && r.Approved == null))
         {
