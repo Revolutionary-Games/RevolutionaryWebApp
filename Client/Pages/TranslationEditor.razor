@@ -64,21 +64,30 @@ else
                     .
                 </div>
             }
-            <label for="source-text" class="form-label d-block mt-2">English source</label>
-            <textarea id="source-text" class="form-control" rows="4" readonly>@data.SourceText</textarea>
-
-            @if (data.SourceTextTranslatedFrom != data.SourceText &&
-                     !string.IsNullOrEmpty(data.SourceTextTranslatedFrom))
+            @if (data.LanguageCode == project?.SourceLanguage)
             {
-                <h5 class="mt-3">Source changed since this translation was made</h5>
-                @* TODO: we need a word-by-word diff viewer for this as most translations are a single line *@
-                <TextDiffView OldText="@data.SourceTextTranslatedFrom" NewText="@data.SourceText"
-                              OldLabel="When translated" NewLabel="Current source"/>
+                <label for="translation-text" class="form-label d-block mt-2">@LanguageCode source text</label>
+                <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
+                          @bind:event="oninput" @bind:after="OnTextChanged" readonly="@(!data.CanEditSource)"></textarea>
             }
+            else
+            {
+                <label for="source-text" class="form-label d-block mt-2">@project?.SourceLanguage source</label>
+                <textarea id="source-text" class="form-control" rows="4" readonly>@data.SourceText</textarea>
 
-            <label for="translation-text" class="form-label d-block mt-3">@LanguageCode translation</label>
-            <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
-                      @bind:event="oninput" @bind:after="OnTextChanged"></textarea>
+                @if (data.SourceTextTranslatedFrom != data.SourceText &&
+                         !string.IsNullOrEmpty(data.SourceTextTranslatedFrom))
+                {
+                    <h5 class="mt-3">Source changed since this translation was made</h5>
+                    @* TODO: we need a word-by-word diff viewer for this as most translations are a single line *@
+                    <TextDiffView OldText="@data.SourceTextTranslatedFrom" NewText="@data.SourceText"
+                                  OldLabel="When translated" NewLabel="Current source"/>
+                }
+
+                <label for="translation-text" class="form-label d-block mt-3">@LanguageCode translation</label>
+                <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
+                          @bind:event="oninput" @bind:after="OnTextChanged"></textarea>
+            }
 
             <fieldset class="my-3">
                 <legend class="fs-6">State</legend>
@@ -102,11 +111,15 @@ else
                 </InputRadioGroup>
             </fieldset>
 
-            <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!saving)" Spinner="@saving"
+            <Button ButtonStyle="outline-primary" class="me-2"
+                    Enabled="@(!saving && (data.LanguageCode != project?.SourceLanguage || data.CanEditSource))"
+                    Spinner="@saving"
                     OnPressed="@Save">
                 Save
             </Button>
-            <Button ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving" OnPressed="@SaveAndContinue">
+            <Button ButtonStyle="primary"
+                    Enabled="@(!saving && (data.LanguageCode != project?.SourceLanguage || data.CanEditSource))"
+                    Spinner="@saving" OnPressed="@SaveAndContinue">
                 Save &amp; Continue
             </Button>
 
