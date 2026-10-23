@@ -281,6 +281,8 @@ For implementation details and additional cases, see
 `Shared/AllowSortingByAttribute.cs`, `Shared/LinqHelpers.cs`, and
 `Server/Controllers/PrecompiledObjectController.cs`.
 
+Using NotificationsEnabledDb enables all models with `IUpdateNotifications` to automatically send notifications upon DB save.
+
 ## API and model boundaries
 
 - Keep request/response types used by both client and server in `Shared/`.
