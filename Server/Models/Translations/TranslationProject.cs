@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using DevCenterCommunication.Models;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -13,7 +14,7 @@ using Shared.Notifications;
 
 [Index(nameof(Slug), IsUnique = true)]
 [Index(nameof(RepositoryFullName), nameof(SourceBranch))]
-public class TranslationProject : IUpdateNotifications
+public class TranslationProject : IUpdateNotifications, ITimestampedModel
 {
     public long Id { get; set; }
 

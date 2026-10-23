@@ -39,7 +39,7 @@ public class TranslationDictionary : IUpdateNotifications
     }
 }
 
-public class DictionaryTerm : IUpdateNotifications
+public class DictionaryTerm : IUpdateNotifications, IHasUpdatedAt
 {
     public long DictionaryId { get; set; }
 
@@ -87,7 +87,7 @@ public class DictionaryTerm : IUpdateNotifications
     }
 }
 
-public class DictionaryTermTranslation : IUpdateNotifications
+public class DictionaryTermTranslation : IUpdateNotifications, IHasUpdatedAt
 {
     public long DictionaryId { get; set; }
 
@@ -128,7 +128,7 @@ public class DictionaryTermTranslation : IUpdateNotifications
 /// <summary>
 ///   A term that belongs to a specific language and has no English source term.
 /// </summary>
-public class DictionaryLanguageTerm : IUpdateNotifications
+public class DictionaryLanguageTerm : IUpdateNotifications, IHasUpdatedAt
 {
     public long DictionaryId { get; set; }
 
