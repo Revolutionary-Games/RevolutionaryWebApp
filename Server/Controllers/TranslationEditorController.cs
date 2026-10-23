@@ -201,11 +201,11 @@ public class TranslationEditorController : Controller
         if (!Enum.IsDefined(state))
             return BadRequest("Invalid translation state");
 
-        if (request.LanguageCode == project.SourceLanguage && state != TranslationState.Translated)
-            return BadRequest("Source text must be marked translated");
-
-        if (state == TranslationState.Verified && !TranslationPermissions.CanVerify(groups))
-            return this.WorkingForbid("You don't have permission to verify translations");
+        if (request.LanguageCode == project.SourceLanguage &&
+            state is not (TranslationState.Translated or TranslationState.Verified))
+        {
+            return BadRequest("Source text must be marked translated or verified");
+        }
 
         if (string.IsNullOrWhiteSpace(request.Text) && state != TranslationState.NeedsTranslation)
             return BadRequest("Marking a translation 'done' requires text in the translation");
@@ -235,6 +235,15 @@ public class TranslationEditorController : Controller
         var oldState = value.State;
         var previousEditor = value.LastEditedByUserId;
         var textChanged = oldText != request.Text;
+
+        // We probably want a single user to be able to edit the source text and then check the verified box and
+        // submit correctly.
+        /*if (request.LanguageCode == project.SourceLanguage && textChanged && oldState == TranslationState.Verified)
+            state = TranslationState.Translated;*/
+
+        if (state == TranslationState.Verified && !TranslationPermissions.CanVerify(groups))
+            return this.WorkingForbid("You don't have permission to verify translations");
+
         if (!textChanged && oldState == state)
             return await Get(request.ProjectId, request.Key, request.LanguageCode, HttpContext.RequestAborted);
 
