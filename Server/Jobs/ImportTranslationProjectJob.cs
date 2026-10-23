@@ -44,6 +44,9 @@ public class ImportTranslationProjectJob
             return;
 
         ValidateConfiguration(project);
+        var importConfiguration = (project.RepositoryFullName, project.SourceBranch, project.SourceFilePattern,
+            project.TranslationFilePattern, project.SourceLanguage, project.Format);
+
         var checkout = fileLocks.GetTempFilePath($"translationRepos/{project.Id}");
         using (await fileLocks.LockAsync(checkout, cancellationToken))
         {
@@ -61,11 +64,32 @@ public class ImportTranslationProjectJob
                 await GitRunHelpers.Clean(checkout, cancellationToken);
                 var sha = await GitRunHelpers.GetCurrentCommit(checkout, cancellationToken);
 
-                if (sha != project.LastImportedSha)
+                await using var projectLock = sha != project.LastImportedSha ?
+                    await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId, cancellationToken) :
+                    null;
+                if (projectLock != null)
                 {
-                    await ImportFiles(project, checkout, sha, cancellationToken);
-                    project.LastImportedSha = sha;
-                    project.LastImportedAt = DateTime.UtcNow;
+                    await database.Entry(project).ReloadAsync(cancellationToken);
+                    if (database.Entry(project).State == EntityState.Detached)
+                        throw new InvalidOperationException("Translation project was removed during import");
+
+                    if (!project.Enabled || project.RepositoryFullName != importConfiguration.RepositoryFullName ||
+                        project.SourceBranch != importConfiguration.SourceBranch ||
+                        project.SourceFilePattern != importConfiguration.SourceFilePattern ||
+                        project.TranslationFilePattern != importConfiguration.TranslationFilePattern ||
+                        project.SourceLanguage != importConfiguration.SourceLanguage ||
+                        project.Format != importConfiguration.Format)
+                    {
+                        throw new InvalidOperationException(
+                            "Translation project configuration changed during import; retry the import");
+                    }
+
+                    if (sha != project.LastImportedSha)
+                    {
+                        await ImportFiles(project, checkout, sha, cancellationToken);
+                        project.LastImportedSha = sha;
+                        project.LastImportedAt = DateTime.UtcNow;
+                    }
                 }
 
                 run.UpstreamSha = sha;
@@ -133,8 +157,6 @@ public class ImportTranslationProjectJob
             await File.ReadAllTextAsync(englishPath, cancellationToken) :
             sourceContent;
 
-        // Import all languages under a single database transaction, so counts and source versions agree.
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
         var newKeys = new HashSet<string>(StringComparer.Ordinal);
         var conflictWarnings = new List<string>();
@@ -323,7 +345,6 @@ public class ImportTranslationProjectJob
         }
 
         await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
 
         foreach (var warning in conflictWarnings)
         {

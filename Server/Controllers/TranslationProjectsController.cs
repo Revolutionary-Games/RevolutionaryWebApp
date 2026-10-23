@@ -81,6 +81,9 @@ public class TranslationProjectsController : Controller
         if (!TryValidate(request, out var format, out var error))
             return BadRequest(error);
 
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
+            HttpContext.RequestAborted);
+
         var project = await database.TranslationProjects.FindAsync(id);
         if (project == null)
             return NotFound();
@@ -161,6 +164,9 @@ public class TranslationProjectsController : Controller
     [HttpPost("{id:long}/languages")]
     public async Task<IActionResult> AddLanguage(long id, [FromBody] TranslationLanguageConfigurationRequest request)
     {
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
+            HttpContext.RequestAborted);
+
         var project = await database.TranslationProjects.FindAsync(id);
         if (project == null)
             return NotFound();
@@ -243,6 +249,9 @@ public class TranslationProjectsController : Controller
     [HttpPost("{id:long}/conflicts/{conflictId:long}/resolve")]
     public async Task<IActionResult> ResolveConflict(long id, long conflictId, [FromQuery] bool keepLocal)
     {
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
+            HttpContext.RequestAborted);
+
         var conflict = await database.TranslationImportConflicts.FindAsync(conflictId);
         if (conflict == null || conflict.ProjectId != id)
             return NotFound();

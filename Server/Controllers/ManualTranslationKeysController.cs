@@ -36,6 +36,9 @@ public sealed class ManualTranslationKeysController : Controller
         if (!TranslationPermissions.CanTranslate(actor.AccessCachedGroupsOrThrow(), true))
             return Forbid();
 
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId,
+            HttpContext.RequestAborted);
+
         var project = await database.TranslationProjects.FirstOrDefaultAsync(p => p.Id == projectId &&
             p.Enabled && p.Format == TranslationFormat.Manual);
         if (project == null)
