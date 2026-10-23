@@ -483,7 +483,8 @@ else
 
         try
         {
-            var result = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>($"api/v1/translationDiscussion/history?{QuerySuffix()}");
+            var result = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>(
+                $"api/v1/translationEditor/history?{QuerySuffix()}");
             if (result != null)
                 history = result;
         }
@@ -600,13 +601,15 @@ else
                 editState = draft.State;
             }
 
-            var loadedHistory = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>($"api/v1/translationDiscussion/history?{suffix}");
+            var loadedHistory = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>(
+                $"api/v1/translationEditor/history?{suffix}");
             if (loadedHistory != null)
                 history = loadedHistory;
             var loadedComments = await Http.GetFromJsonAsync<TranslationCommentDTO[]>($"api/v1/translationDiscussion/comments?{suffix}");
             if (loadedComments != null)
                 comments = loadedComments;
-            var loadedNearby = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>($"api/v1/translationDiscussion/nearby?{suffix}");
+            var loadedNearby = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>(
+                $"api/v1/translationEditor/nearby?{suffix}");
             if (loadedNearby != null)
                 nearby = loadedNearby;
             var loadedSuggestions = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{suffix}");
