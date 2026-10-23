@@ -17,15 +17,15 @@ using Shared.Models;
 using Shared.Models.Enums;
 
 [ApiController]
-[Route("api/v1/admin/translationProjects")]
+[Route("api/v1/admin/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
-public class AdminTranslationProjectsController : Controller
+public class TranslationProjectsController : Controller
 {
-    private readonly ILogger<AdminTranslationProjectsController> logger;
+    private readonly ILogger<TranslationProjectsController> logger;
     private readonly ApplicationDbContext database;
     private readonly IBackgroundJobClient jobs;
 
-    public AdminTranslationProjectsController(ILogger<AdminTranslationProjectsController> logger,
+    public TranslationProjectsController(ILogger<TranslationProjectsController> logger,
         ApplicationDbContext database, IBackgroundJobClient jobs)
     {
         this.logger = logger;

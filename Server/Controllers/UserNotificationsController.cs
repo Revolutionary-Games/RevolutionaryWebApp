@@ -11,7 +11,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 
 [ApiController]
-[Route("api/v1/userNotifications")]
+[Route("api/v1/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
 public class UserNotificationsController : Controller
 {
