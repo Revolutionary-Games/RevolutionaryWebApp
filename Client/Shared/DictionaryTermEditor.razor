@@ -18,10 +18,15 @@
     @if (Term.IsLanguageSpecific)
     {
         <span class="badge text-bg-secondary">
-            @Term.SourceLanguageCode-specific term (doesn't exist in other languages)
+            @Term.SourceLanguageCode-specific entry matched by its source word
         </span>
         @if (LanguageCode != "en")
         {
+            <label class="form-label mt-2" for="@($"source-word-{controlId}")">
+                Source-language word to match
+            </label>
+            <input id="@($"source-word-{controlId}")" class="form-control" @bind="sourceWord"
+                   @bind:after="NotifyDirtyState"/>
             <label class="form-label mt-2" for="@($"term-{controlId}")">Term in @LanguageCode</label>
             <input id="@($"term-{controlId}")" class="form-control" @bind="text"
                    @bind:after="NotifyDirtyState"/>
@@ -82,6 +87,7 @@
     private readonly string controlId = Guid.NewGuid().ToString("N");
 
     private string text = string.Empty;
+    private string sourceWord = string.Empty;
     private string context = string.Empty;
     private string? explanation;
     private TranslationState state = TranslationState.NeedsTranslation;
@@ -92,6 +98,7 @@
     private string loadedContext = string.Empty;
     private string loadedLanguage = string.Empty;
     private string loadedTargetText = string.Empty;
+    private string loadedSourceWord = string.Empty;
     private string? loadedTargetExplanation;
     private string loadedEntryContext = string.Empty;
     private TranslationState loadedState;
@@ -116,6 +123,7 @@
     private bool CanManage => UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin;
 
     private bool IsDirty => text != loadedTargetText || explanation != loadedTargetExplanation || state != loadedState ||
+        (Term.IsLanguageSpecific && sourceWord != loadedSourceWord) ||
         ((Term.IsLanguageSpecific || LanguageCode == "en") && context != loadedEntryContext);
 
     protected override async Task OnParametersSetAsync()
@@ -138,18 +146,21 @@
         if (Term.IsLanguageSpecific || LanguageCode == "en")
         {
             text = Term.Word;
+            sourceWord = Term.SourceWord ?? string.Empty;
             context = Term.Context;
             explanation = Term.SourceExplanation;
         }
         else
         {
             text = Term.TargetText;
+            sourceWord = string.Empty;
             context = Term.Context;
             explanation = Term.TargetExplanation;
         }
 
         state = Term.State;
         loadedTargetText = text;
+        loadedSourceWord = sourceWord;
         loadedTargetExplanation = explanation;
         loadedEntryContext = context;
         loadedState = state;
@@ -175,6 +186,7 @@
             if (response.IsSuccessStatusCode)
             {
                 loadedTargetText = text;
+                loadedSourceWord = sourceWord;
                 loadedTargetExplanation = explanation;
                 loadedEntryContext = context;
                 loadedState = state;
@@ -229,6 +241,7 @@
                     Word = Term.Word,
                     Context = Term.Context,
                     NewWord = text,
+                    NewSourceWord = sourceWord,
                     NewContext = context,
                     Explanation = explanation,
                 });

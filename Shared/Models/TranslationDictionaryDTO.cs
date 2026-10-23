@@ -31,7 +31,7 @@ public sealed class DictionaryTermDTO : IIdentifiable
     public long Id => HashCode.Combine(DictionaryId, SourceLanguageCode, Word, Context);
 
     /// <summary>
-    ///   The language this word belongs to when it is a language-specific term without an English source.
+    ///   The target language that owns a language-specific dictionary entry.
     /// </summary>
     public string SourceLanguageCode { get; set; } = "en";
 
@@ -39,6 +39,12 @@ public sealed class DictionaryTermDTO : IIdentifiable
 
     [MaxLength(250)]
     public string Word { get; set; } = string.Empty;
+
+    /// <summary>
+    ///   The source-language word used to match this language-specific entry against translation text.
+    /// </summary>
+    [MaxLength(250)]
+    public string? SourceWord { get; set; }
 
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
@@ -71,6 +77,10 @@ public sealed class CreateDictionaryLanguageTermRequest
     [Required]
     [MaxLength(250)]
     public string Word { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(250)]
+    public string SourceWord { get; set; } = string.Empty;
 
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
@@ -153,6 +163,10 @@ public sealed class SaveDictionaryLanguageTermRequest
     [Required]
     [MaxLength(250)]
     public string NewWord { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(250)]
+    public string NewSourceWord { get; set; } = string.Empty;
 
     [MaxLength(250)]
     public string NewContext { get; set; } = string.Empty;

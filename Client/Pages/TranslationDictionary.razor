@@ -69,10 +69,18 @@ else
 @if (Language != "en")
 {
     <h4 class="mt-4">Add a @Language-specific term</h4>
-    <p>Use this for a term that is useful in this language and has no English dictionary entry.</p>
+    <p>Use this for a term that is useful in this language and has no regular (English) dictionary entry.</p>
+    <p>
+        Not all terms requested for the English dictionary are general enough to add to be useful,
+        in that case this language-specific dictionary terms is a useful feature.
+    </p>
     <div class="mb-2">
         <label for="local-term-word" class="form-label">Term</label>
         <input id="local-term-word" class="form-control" @bind="newLanguageWord"/>
+    </div>
+    <div class="mb-2">
+        <label for="local-term-source-word" class="form-label">Source-language word to match</label>
+        <input id="local-term-source-word" class="form-control" @bind="newLanguageSourceWord"/>
     </div>
     <div class="mb-2">
         <label for="local-term-context" class="form-label">Context</label>
@@ -126,6 +134,7 @@ else
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
     private string newLanguageWord = string.Empty;
+    private string newLanguageSourceWord = string.Empty;
     private string newLanguageContext = string.Empty;
     private string? newLanguageExplanation;
     private string? languageMessage;
@@ -157,11 +166,13 @@ else
 
     private bool HasUnsavedChanges => dirtyEditors.Count > 0 || !string.IsNullOrEmpty(newWord) ||
         !string.IsNullOrEmpty(newContext) || !string.IsNullOrEmpty(newExplanation) ||
-        !string.IsNullOrEmpty(newLanguageWord) || !string.IsNullOrEmpty(newLanguageContext) ||
+        !string.IsNullOrEmpty(newLanguageWord) || !string.IsNullOrEmpty(newLanguageSourceWord) ||
+        !string.IsNullOrEmpty(newLanguageContext) ||
         !string.IsNullOrEmpty(newLanguageExplanation);
 
     private bool HasNewTermInput => !string.IsNullOrEmpty(newWord) || !string.IsNullOrEmpty(newContext) ||
         !string.IsNullOrEmpty(newExplanation) || !string.IsNullOrEmpty(newLanguageWord) ||
+        !string.IsNullOrEmpty(newLanguageSourceWord) ||
         !string.IsNullOrEmpty(newLanguageContext) || !string.IsNullOrEmpty(newLanguageExplanation);
 
     public override Task SetParametersAsync(ParameterView parameters)
@@ -450,7 +461,7 @@ else
 
     private async Task SubmitLanguageTerm()
     {
-        if (string.IsNullOrWhiteSpace(newLanguageWord))
+        if (string.IsNullOrWhiteSpace(newLanguageWord) || string.IsNullOrWhiteSpace(newLanguageSourceWord))
             return;
 
         isSubmittingLanguageTerm = true;
@@ -465,6 +476,7 @@ else
                     DictionaryId = DictionaryId,
                     LanguageCode = Language,
                     Word = newLanguageWord,
+                    SourceWord = newLanguageSourceWord,
                     Context = newLanguageContext,
                     Explanation = newLanguageExplanation,
                 });
@@ -475,6 +487,7 @@ else
             if (response.IsSuccessStatusCode)
             {
                 newLanguageWord = string.Empty;
+                newLanguageSourceWord = string.Empty;
                 newLanguageContext = string.Empty;
                 newLanguageExplanation = null;
                 Page = 1;

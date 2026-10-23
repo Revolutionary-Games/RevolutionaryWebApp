@@ -79,6 +79,7 @@ public class TranslationDictionariesController : Controller
             {
                 DictionaryId = id,
                 Word = term.Word,
+                SourceWord = null,
                 Context = term.Context,
                 SourceExplanation = term.Explanation,
                 SourceLanguageCode = "en",
@@ -89,6 +90,7 @@ public class TranslationDictionariesController : Controller
             {
                 DictionaryId = id,
                 Word = term.Word,
+                SourceWord = term.SourceWord,
                 Context = term.Context,
                 SourceExplanation = term.Explanation,
                 TargetText = term.Word,
@@ -143,24 +145,51 @@ public class TranslationDictionariesController : Controller
         if (project?.DictionaryId == null || unit == null)
             return Array.Empty<DictionaryTermDTO>();
 
-        // TODO: probably need to relax the context requirement here
+        // TODO: If this scan becomes expensive as dictionaries grow, cache matching terms or computed matches in
+        // Redis and invalidate the cache when a dictionary entry or the source translation text changes.
         var terms = await database.DictionaryTerms.AsNoTracking()
-            .Where(t => t.DictionaryId == project.DictionaryId &&
-                (t.Context == string.Empty || t.Context == unit.Context))
-            .Take(2000).ToListAsync(cancellationToken);
-        var matches = terms.Where(t => Regex.IsMatch(unit.SourceText,
-                $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(t.Word)}(?![\p{{L}}\p{{N}}])",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
-            .Take(50).ToList();
-        var target = await database.DictionaryTermTranslations.AsNoTracking()
-            .Where(t => t.DictionaryId == project.DictionaryId && t.LanguageCode == language)
+            .Where(t => t.DictionaryId == project.DictionaryId)
             .ToListAsync(cancellationToken);
-        var map = target.ToDictionary(t => (t.Word, t.Context));
-        return matches.Select(term =>
+        var matchingTerms = terms.Where(term => DictionaryWordMatches(unit.SourceText, term.Word)).ToList();
+        var languageTerms = await database.DictionaryLanguageTerms.AsNoTracking()
+            .Where(term => term.DictionaryId == project.DictionaryId && term.LanguageCode == language &&
+                term.SourceWord != string.Empty)
+            .ToListAsync(cancellationToken);
+        var matchingLanguageTerms = languageTerms
+            .Where(term => DictionaryWordMatches(unit.SourceText, term.SourceWord!)).ToList();
+
+        var targetMap = new Dictionary<(string Word, string Context), DictionaryTermTranslation>();
+        if (matchingTerms.Count > 0)
         {
-            map.TryGetValue((term.Word, term.Context), out var translated);
+            var words = matchingTerms.Select(term => term.Word).Distinct().ToArray();
+            var contexts = matchingTerms.Select(term => term.Context).Distinct().ToArray();
+            var target = await database.DictionaryTermTranslations.AsNoTracking()
+                .Where(term => term.DictionaryId == project.DictionaryId && term.LanguageCode == language &&
+                    words.Contains(term.Word) && contexts.Contains(term.Context))
+                .ToListAsync(cancellationToken);
+            targetMap = target.ToDictionary(term => (term.Word, term.Context));
+        }
+
+        var matches = matchingTerms.Select(term =>
+        {
+            targetMap.TryGetValue((term.Word, term.Context), out var translated);
             return term.GetDTO(translated);
-        }).ToArray();
+        }).Concat(matchingLanguageTerms.Select(term => new DictionaryTermDTO
+        {
+            DictionaryId = term.DictionaryId,
+            Word = term.SourceWord!,
+            SourceWord = term.SourceWord,
+            Context = term.Context,
+            TargetText = term.Word,
+            SourceExplanation = term.Explanation,
+            State = TranslationState.Translated,
+            SourceLanguageCode = term.LanguageCode,
+            IsLanguageSpecific = true,
+            LastEditedByUserId = term.LastEditedByUserId,
+        }));
+
+        return matches.OrderBy(term => term.Word).ThenBy(term => term.Context)
+            .ThenBy(term => term.SourceLanguageCode).ToArray();
     }
 
     [HttpPost("terms")]
@@ -325,9 +354,12 @@ public class TranslationDictionariesController : Controller
             return BadRequest("Language-specific terms must use a non-English language");
 
         var word = request.Word.Trim();
+        var sourceWord = request.SourceWord.Trim();
         var context = request.Context.Trim();
         if (word.Length == 0)
             return BadRequest("Dictionary word cannot be empty");
+        if (sourceWord.Length == 0)
+            return BadRequest("Source language word cannot be empty");
 
         if (!await database.TranslationDictionaries.AnyAsync(d => d.Id == request.DictionaryId))
         {
@@ -351,6 +383,7 @@ public class TranslationDictionariesController : Controller
             DictionaryId = request.DictionaryId,
             LanguageCode = request.LanguageCode,
             Word = word,
+            SourceWord = sourceWord,
             Context = context,
             Explanation = request.Explanation,
             LastEditedByUserId = actor.Id,
@@ -374,16 +407,20 @@ public class TranslationDictionariesController : Controller
             return BadRequest("Language-specific terms must use a non-English language");
 
         var word = request.NewWord.Trim();
+        var sourceWord = request.NewSourceWord.Trim();
         var context = request.NewContext.Trim();
         if (word.Length == 0)
             return BadRequest("Dictionary word cannot be empty");
+        if (sourceWord.Length == 0)
+            return BadRequest("Source language word cannot be empty");
 
         var term = await database.DictionaryLanguageTerms.FindAsync(request.DictionaryId, request.LanguageCode,
             request.Word, request.Context);
         if (term == null)
             return NotFound();
 
-        var changed = term.Word != word || term.Context != context || term.Explanation != request.Explanation;
+        var changed = term.Word != word || term.SourceWord != sourceWord || term.Context != context ||
+            term.Explanation != request.Explanation;
         if (!changed)
             return NoContent();
 
@@ -404,6 +441,7 @@ public class TranslationDictionariesController : Controller
                 DictionaryId = request.DictionaryId,
                 LanguageCode = request.LanguageCode,
                 Word = word,
+                SourceWord = sourceWord,
                 Context = context,
                 Explanation = request.Explanation,
                 LastEditedByUserId = actor.Id,
@@ -419,6 +457,7 @@ public class TranslationDictionariesController : Controller
         }
 
         term.Explanation = request.Explanation;
+        term.SourceWord = sourceWord;
         term.LastEditedByUserId = actor.Id;
         term.BumpUpdatedAt();
         await database.SaveChangesAsync();
@@ -629,6 +668,15 @@ public class TranslationDictionariesController : Controller
         logger.LogInformation("Dictionary term request {RequestId} for {Word} ({Context}) rejected by {Email}",
             id, request.Word, request.Context, actor.Email);
         return NoContent();
+    }
+
+    private static bool DictionaryWordMatches(string sourceText, string word)
+    {
+        if (string.IsNullOrWhiteSpace(word))
+            return false;
+
+        return Regex.IsMatch(sourceText, $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(word)}(?![\p{{L}}\p{{N}}])",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
     }
 
     private void AddSourceTermUpdateNotifications(IEnumerable<DictionaryTermTranslation> translations, long actorId,

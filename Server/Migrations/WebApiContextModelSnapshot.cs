@@ -4348,6 +4348,12 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("last_edited_by_user_id");
 
+                    b.Property<string>("SourceWord")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("source_word");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

@@ -126,7 +126,10 @@ public class DictionaryTermTranslation : IUpdateNotifications, IHasUpdatedAt
 }
 
 /// <summary>
-///   A term that belongs to a specific language and has no English source term.
+///   A target-language term with a source word used to find it in translation text.
+///   The reason why this exists is that people cannot just add anything they want to the English dictionary
+///   (they need to request it). So instead if there are some not very important words, but still useful in a
+///   language people can add language-specific dictionary entries that don't go into other languages (and English).
 /// </summary>
 public class DictionaryLanguageTerm : IUpdateNotifications, IHasUpdatedAt
 {
@@ -137,6 +140,9 @@ public class DictionaryLanguageTerm : IUpdateNotifications, IHasUpdatedAt
 
     [MaxLength(250)]
     public string Word { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string SourceWord { get; set; } = string.Empty;
 
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
