@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Translations;
+using Services;
 using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
@@ -170,6 +171,7 @@ public class TranslationEditorController : Controller
             Description = unit.Description,
             SourceLocations = unit.SourceLocations,
             CanVerify = canVerify,
+            CanEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true),
             CommentCount = comments,
             SuggestionCount = suggestions,
         };
@@ -199,16 +201,18 @@ public class TranslationEditorController : Controller
         if (!Enum.IsDefined(state))
             return BadRequest("Invalid translation state");
 
+        if (request.LanguageCode == project.SourceLanguage && state != TranslationState.Translated)
+            return BadRequest("Source text must be marked translated");
+
         if (state == TranslationState.Verified && !TranslationPermissions.CanVerify(groups))
             return this.WorkingForbid("You don't have permission to verify translations");
 
         if (string.IsNullOrWhiteSpace(request.Text) && state != TranslationState.NeedsTranslation)
             return BadRequest("Marking a translation 'done' requires text in the translation");
 
-        if (project.Format == TranslationFormat.Manual && request.LanguageCode == project.SourceLanguage &&
-            string.IsNullOrWhiteSpace(request.Text))
+        if (request.LanguageCode == project.SourceLanguage && string.IsNullOrWhiteSpace(request.Text))
         {
-            return BadRequest("Manual project source text cannot be empty");
+            return BadRequest("Source text cannot be empty");
         }
 
         if (request.Text.Length > 20000)
@@ -246,31 +250,21 @@ public class TranslationEditorController : Controller
         }
 
         // Need to cascade if source text is updated
-        if (textChanged && project.Format == TranslationFormat.Manual &&
-            request.LanguageCode == project.SourceLanguage)
+        if (textChanged && request.LanguageCode == project.SourceLanguage)
         {
             unit.SourceText = request.Text;
-            unit.SourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.Text)));
+            if (project.Format == TranslationFormat.Manual)
+            {
+                unit.SourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.Text)));
+                value.LastImportedText = request.Text;
+            }
+
             ++unit.SourceRevision;
             unit.SourceUpdatedAt = DateTime.UtcNow;
             value.SourceRevisionTranslatedFrom = unit.SourceRevision;
             value.SourceTextTranslatedFrom = request.Text;
-            var targets = await database.TranslationValues.Where(other => other.ProjectId == project.Id &&
-                other.Key == unit.Key && other.LanguageCode != project.SourceLanguage &&
-                other.State != TranslationState.NeedsTranslation).ToListAsync();
-            foreach (var target in targets)
-            {
-                var priorState = target.State;
-                target.State = TranslationState.NeedsTranslation;
-                target.Version = Guid.NewGuid();
-                await database.TranslationChanges.AddAsync(new TranslationChange
-                {
-                    ProjectId = project.Id, Key = unit.Key, LanguageCode = target.LanguageCode,
-                    Kind = TranslationChangeKind.SourceChanged, OldText = target.Text, NewText = target.Text,
-                    OldState = priorState, NewState = target.State,
-                    SourceRevision = unit.SourceRevision, ProjectRevision = ++project.CurrentRevision,
-                });
-            }
+            await TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
+                HttpContext.RequestAborted);
         }
 
         var revision = ++project.CurrentRevision;
@@ -344,7 +338,7 @@ public class TranslationEditorController : Controller
             "saved by {Email}; text changed: {TextChanged}, state: {OldState} to {NewState}", project.Slug,
             unit.Key, value.LanguageCode, actor.Email, textChanged, oldState, state);
 
-        // This get data is safe to abort as we have saved the changes already, and just are returning data to the user
+        // This get data is safe to abort as we have saved the changes already and just are returning data to the user
         return await Get(request.ProjectId, request.Key, request.LanguageCode, HttpContext.RequestAborted);
     }
 }
