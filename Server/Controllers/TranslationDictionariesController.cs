@@ -581,6 +581,11 @@ public class TranslationDictionariesController : Controller
             Message = $"Your dictionary request for {request.Word} was approved.",
             TargetPath = $"/translations/dictionaries/{request.DictionaryId}",
         });
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+            $"Dictionary term request {id} for {request.Word} ({request.Context}) approved")
+        {
+            PerformedById = actor.Id,
+        });
 
         await database.SaveChangesAsync();
         logger.LogInformation("Dictionary term request {RequestId} for {Word} ({Context}) approved by {Email}",
@@ -607,6 +612,11 @@ public class TranslationDictionariesController : Controller
             Type = UserNotificationType.DictionaryRequestRejected,
             Message = $"Your dictionary request for {request.Word} was declined.",
             TargetPath = $"/translations/dictionaries/{request.DictionaryId}",
+        });
+        await database.ActionLogEntries.AddAsync(new ActionLogEntry(
+            $"Dictionary term request {id} for {request.Word} ({request.Context}) rejected")
+        {
+            PerformedById = actor.Id,
         });
         await database.SaveChangesAsync();
         logger.LogInformation("Dictionary term request {RequestId} for {Word} ({Context}) rejected by {Email}",
