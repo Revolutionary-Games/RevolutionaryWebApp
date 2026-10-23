@@ -13,7 +13,7 @@ public enum TranslationRemoteImportResult
 }
 
 /// <summary>
-///   Applies one target-language value from a freshly fetched source repository.
+///   Applies one source or target-language value from a freshly fetched source repository.
 ///   Persistence, audit history, and notices are handled by the calling import job.
 /// </summary>
 public static class TranslationRemoteImport
@@ -33,11 +33,14 @@ public static class TranslationRemoteImport
             return TranslationRemoteImportResult.BaselineAdvanced;
         }
 
-        if (value.PendingRevision != null)
+        // Publishing a PR clears pending work but does not mean the local edit has merged upstream.
+        if (value.Text != value.LastImportedText)
             return TranslationRemoteImportResult.Conflict;
 
         value.Text = incomingText;
         value.LastImportedText = incomingText;
+        value.PendingRevision = null;
+        value.PendingSince = null;
         value.State = fuzzy || string.IsNullOrWhiteSpace(incomingText) ? TranslationState.NeedsTranslation :
             TranslationState.Translated;
         value.LastEditedByUserId = null;
