@@ -2,6 +2,8 @@ namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -13,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Translations;
+using Services;
 using Shared.Models;
 using Shared.Models.Enums;
 
@@ -261,11 +264,19 @@ public class TranslationProjectsController : Controller
         if (value == null || project == null)
             return NotFound();
 
+        var sourceUnit = conflict.LanguageCode == project.SourceLanguage ?
+            await database.TranslationUnits.FindAsync(id, conflict.Key) :
+            null;
+        if (conflict.LanguageCode == project.SourceLanguage && sourceUnit == null)
+            return NotFound();
+
         if (keepLocal)
         {
             value.LastImportedText = conflict.IncomingText;
             value.PendingSince ??= DateTime.UtcNow;
             value.PendingRevision = ++project.CurrentRevision;
+            sourceUnit?.SourceHash = Convert.ToHexString(SHA256.HashData(
+                Encoding.UTF8.GetBytes(conflict.IncomingText)));
         }
         else
         {
@@ -282,6 +293,22 @@ public class TranslationProjectsController : Controller
             value.PendingRevision = null;
             value.PendingSince = null;
             value.Version = Guid.NewGuid();
+            if (sourceUnit != null)
+            {
+                sourceUnit.SourceHash = Convert.ToHexString(SHA256.HashData(
+                    Encoding.UTF8.GetBytes(conflict.IncomingText)));
+                if (sourceUnit.SourceText != conflict.IncomingText)
+                {
+                    sourceUnit.SourceText = conflict.IncomingText;
+                    ++sourceUnit.SourceRevision;
+                    sourceUnit.SourceUpdatedAt = DateTime.UtcNow;
+                    value.SourceRevisionTranslatedFrom = sourceUnit.SourceRevision;
+                    value.SourceTextTranslatedFrom = sourceUnit.SourceText;
+                    await TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, sourceUnit,
+                        HttpContext.RequestAborted);
+                }
+            }
+
             await database.TranslationChanges.AddAsync(new TranslationChange
             {
                 ProjectId = id, Key = conflict.Key, LanguageCode = conflict.LanguageCode,
