@@ -437,7 +437,7 @@ public class TranslationSuggestion : IUpdateNotifications
             Text = Text,
             Score = score,
             Status = Status,
-            CreatedAt = new DateTimeOffset(CreatedAt, TimeSpan.Zero),
+            CreatedAt = CreatedAt,
         };
     }
 

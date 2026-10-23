@@ -18,7 +18,7 @@ public sealed class TranslationSuggestionDTO
 
     public TranslationSuggestionStatus Status { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>
