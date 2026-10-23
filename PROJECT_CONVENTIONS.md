@@ -1,9 +1,8 @@
 # Project conventions
 
-This guide records established patterns for adding or changing frontend pages and
-components, with supporting server and realtime conventions. The examples were
-chosen from existing, non-translation features. Translation code is intentionally
-outside this guide while that area is being brought up to project standards.
+This guide records established patterns for adding or changing frontend pages,
+components, and server controllers, with supporting model and realtime
+conventions.
 
 ## Frontend structure
 
@@ -109,6 +108,178 @@ For model-driven notifications:
 component, and group memberships are recalculated when handlers or user info
 change. Reconnection also rejoins the wanted groups. Keep client group names,
 server notification targets, and hub authorization rules consistent.
+
+## Controllers
+
+Use `[ApiController]` and `[Route("api/v1/[controller]")]` for ordinary API
+controllers. Keep the controller class name aligned with its route. Use a
+custom route only when the public API intentionally has a different shape, and
+preserve existing route shapes when refactoring a controller.
+
+For resources with reversible deletion, derive from
+`BaseSoftDeletedResourceController<TModel,TInfo,TDTO>`. It already provides:
+
+- `GET /api/v1/{controller}` as a paged list, with sort column, direction, page,
+  page size, and an optional `deleted` filter;
+- `GET /api/v1/{controller}/{id}` as a single-resource read;
+- `DELETE /api/v1/{controller}/{id}` as a soft delete; and
+- `POST /api/v1/{controller}/{id}/restore` as a restore.
+
+The base controller applies the configured view-access check, hides deleted
+items from ordinary reads, restricts deleted-item reads to admins, and uses
+`AsNoTracking` for its default list query. Override `CheckExtraAccess` for
+resource-specific access rules or `GetEntitiesForJustInfo` when the default
+list query needs additional filtering. Implement `SaveResourceChanges` to bump
+the timestamp and save through the notification-enabled context.
+
+The model used with this base class implements `ISoftDeletable`,
+`IDTOCreator<TDTO>`, and `IInfoCreator<TInfo>`. Keep the list `Info` type small;
+use the full `DTO` type for single-resource reads and writes. Model changes must
+be saved through the configured context so `IUpdateNotifications` events are
+sent. Use `UpdateableModel` for ordinary ID-based entities with creation and
+update timestamps.
+
+Mark only supported sort properties with `[AllowSortingBy]`. The shared
+`OrderBy` helper rejects arbitrary client-supplied property names; key properties
+are allowed automatically. When writing a custom list action, use
+`AsNoTracking`, the repository `OrderBy` helper, and `ToPagedResultAsync`, then
+map each row to its `Info` DTO. Catch invalid sort requests and follow the
+existing warning and `HttpResponseException` pattern. Do not sort by a property
+that has not been explicitly allowed.
+
+For updates, mark each writable model property with
+`[UpdateFromClientRequest]` and keep a matching property on the request DTO.
+`ModelUpdateApplyHelper.ApplyUpdateRequestToModel` applies only marked
+properties and returns whether anything changed, a description for audit/logging,
+and the changed field names. Return early when no fields changed. For real
+updates, validate any cross-field or uniqueness rules, call `BumpUpdatedAt()`,
+save an `AdminAction` when the operation is administrative, save the entity, and
+write an information log after the save succeeds. Map create requests explicitly
+to a new model; do not bind persistence entities directly from request bodies.
+
+Keep authorization on the server with the established filters or explicit
+checks. A UI access check does not protect an endpoint. Reuse the authenticated
+user within a method (`var user = HttpContext.AuthenticatedUserOrThrow();`)
+instead of fetching it repeatedly. For important successful actions, use the
+controller's `ILogger<T>` with structured fields such as resource ID and actor;
+avoid logging secrets or user-submitted text. Use `NotFound`, `Forbid`,
+`BadRequest`, or `Conflict` consistently with the existing controller behavior.
+
+This `Banana` example assumes `Banana` inherits `UpdateableModel`, implements
+`ISoftDeletable`, `IUpdateNotifications`, `IDTOCreator<BananaDTO>`, and
+`IInfoCreator<BananaInfo>`, and marks `Name` with `[AllowSortingBy]` and
+`[UpdateFromClientRequest]`. `BananaInfo` is the compact list response;
+`BananaDTO` is the detail response and create/update request. The inherited
+actions provide list, get, soft delete, and restore; this controller adds create
+and update:
+
+```csharp
+namespace RevolutionaryWebApp.Server.Controllers;
+
+using System.Threading.Tasks;
+using Authorization;
+using DevCenterCommunication.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Models;
+using Shared.Models.Enums;
+using Utilities;
+
+[ApiController]
+[Route("api/v1/[controller]")]
+public class BananasController : BaseSoftDeletedResourceController<Banana, BananaInfo, BananaDTO>
+{
+    private readonly NotificationsEnabledDb database;
+
+    public BananasController(ILogger<BananasController> logger, NotificationsEnabledDb database)
+    {
+        Logger = logger;
+        this.database = database;
+    }
+
+    protected override ILogger Logger { get; }
+    protected override DbSet<Banana> Entities => database.Bananas;
+    protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
+
+    [HttpPost]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<ActionResult<BananaDTO>> Create([FromBody] BananaDTO request)
+    {
+        var name = request.Name.Trim();
+        if (await database.Bananas.AnyAsync(banana => banana.Name == name))
+            return Conflict("A banana with that name already exists");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        var banana = new Banana { Name = name };
+        await Entities.AddAsync(banana);
+        await database.AdminActions.AddAsync(new AdminAction($"Banana {banana.Name} created")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+
+        Logger.LogInformation("Banana {Id} ({Name}) created by {Email}", banana.Id, banana.Name, user.Email);
+        return CreatedAtAction(nameof(GetSingle), new { id = banana.Id }, banana.GetDTO());
+    }
+
+    [HttpPut("{id:long}")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
+    public async Task<IActionResult> Update(long id, [FromBody] BananaDTO request)
+    {
+        if (request.Id != id)
+            return BadRequest("ID in the request does not match the URL");
+
+        var banana = await Entities.FindAsync(id);
+        if (banana == null || banana.Deleted)
+            return NotFound();
+
+        request.Name = request.Name.Trim();
+        if (await database.Bananas.AnyAsync(other => other.Name == request.Name && other.Id != id))
+            return Conflict("A banana with that name already exists");
+
+        var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(banana, request);
+        if (!changes)
+            return Ok();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        banana.BumpUpdatedAt();
+        await database.AdminActions.AddAsync(new AdminAction($"Banana {id} edited", description)
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+
+        Logger.LogInformation("Banana {Id} edited by {Email}, changes: {Description}", id, user.Email, description);
+        return Ok();
+    }
+
+    protected override async Task SaveResourceChanges(Banana banana)
+    {
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        banana.BumpUpdatedAt();
+        var action = banana.Deleted ? "deleted" : "restored";
+        await database.AdminActions.AddAsync(new AdminAction($"Banana {banana.Id} {action}")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+        Logger.LogInformation("Banana {Id} {Action} by {Email}", banana.Id, action, user.Email);
+    }
+}
+```
+
+The resulting endpoints are `GET /api/v1/Bananas`,
+`GET /api/v1/Bananas/{id}`, `POST /api/v1/Bananas`,
+`PUT /api/v1/Bananas/{id}`, and `DELETE /api/v1/Bananas/{id}`. The list query
+requires `sortColumn`, `sortDirection`, `page`, and `pageSize`. The delete
+endpoint marks the row deleted; it does not remove the database row.
+
+For implementation details and additional cases, see
+`Server/Controllers/BaseSoftDeletedResourceController.cs`,
+`Server/Utilities/ModelUpdateApplyHelper.cs`,
+`Shared/AllowSortingByAttribute.cs`, `Shared/LinqHelpers.cs`, and
+`Server/Controllers/PrecompiledObjectController.cs`.
 
 ## API and model boundaries
 
