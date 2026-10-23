@@ -21,10 +21,10 @@ public class TranslationDiscussionController : Controller
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
 
     private readonly ILogger<TranslationDiscussionController> logger;
-    private readonly ApplicationDbContext database;
+    private readonly NotificationsEnabledDb database;
 
     public TranslationDiscussionController(ILogger<TranslationDiscussionController> logger,
-        ApplicationDbContext database)
+        NotificationsEnabledDb database)
     {
         this.logger = logger;
         this.database = database;

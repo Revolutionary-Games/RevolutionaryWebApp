@@ -14,9 +14,9 @@ using Shared.Models.Enums;
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
 public class TranslationCreditSettingsController : Controller
 {
-    private readonly ApplicationDbContext database;
+    private readonly NotificationsEnabledDb database;
 
-    public TranslationCreditSettingsController(ApplicationDbContext database)
+    public TranslationCreditSettingsController(NotificationsEnabledDb database)
     {
         this.database = database;
     }

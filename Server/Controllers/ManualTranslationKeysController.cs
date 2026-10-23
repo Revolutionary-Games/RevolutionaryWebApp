@@ -18,10 +18,10 @@ using Shared.Models;
 public sealed class ManualTranslationKeysController : Controller
 {
     private readonly ILogger<ManualTranslationKeysController> logger;
-    private readonly ApplicationDbContext database;
+    private readonly NotificationsEnabledDb database;
 
     public ManualTranslationKeysController(ILogger<ManualTranslationKeysController> logger,
-        ApplicationDbContext database)
+        NotificationsEnabledDb database)
     {
         this.logger = logger;
         this.database = database;

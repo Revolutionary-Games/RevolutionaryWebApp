@@ -22,11 +22,11 @@ using Shared.Models.Enums;
 public class TranslationProjectsController : Controller
 {
     private readonly ILogger<TranslationProjectsController> logger;
-    private readonly ApplicationDbContext database;
+    private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobs;
 
     public TranslationProjectsController(ILogger<TranslationProjectsController> logger,
-        ApplicationDbContext database, IBackgroundJobClient jobs)
+        NotificationsEnabledDb database, IBackgroundJobClient jobs)
     {
         this.logger = logger;
         this.database = database;
