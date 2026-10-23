@@ -232,33 +232,11 @@ public sealed class PublishTranslationProjectJob
                 }
             }
 
-            // TODO: do we need to preserve encoding or BOM marks?
-            await File.WriteAllTextAsync(fullPath, content, cancellationToken);
-            await GitRunHelpers.Add(checkout, path, cancellationToken);
-            var contributors = changes.Where(c => c.LanguageCode == language.LanguageCode)
-                .GroupBy(c => c.ContributorUserId!.Value).OrderByDescending(g => g.Count())
-                .ThenBy(g => g.Key).Select(g => authors.GetValueOrDefault(g.Key)).Where(u => u != null)
-                .ToArray();
-            var primary = contributors.FirstOrDefault();
-            var message = new StringBuilder($"Update {language.LanguageCode} translations");
-            foreach (var coauthor in contributors.Skip(1))
+            if (await WriteAndCommitFile(checkout, path, language.LanguageCode, original, content, changes, authors,
+                    cancellationToken))
             {
-                message.Append("\n\nCo-authored-by: ").Append(CreditName(coauthor!)).Append(" <")
-                    .Append(CreditEmail(coauthor!)).Append('>');
+                ++commitCount;
             }
-
-            var environment = new Dictionary<string, string>
-            {
-                ["GIT_AUTHOR_NAME"] = primary == null ? "DevCenter Translations" : CreditName(primary),
-                ["GIT_AUTHOR_EMAIL"] = primary == null ? BotEmail() : CreditEmail(primary),
-                ["GIT_COMMITTER_NAME"] = "DevCenter Translations",
-                ["GIT_COMMITTER_EMAIL"] = BotEmail(),
-            };
-
-            // TODO: Allow each translation project to configure whether commit checks should run.
-            await GitRunHelpers.Commit(checkout, message.ToString(), path, environment, cancellationToken,
-                noVerify: true);
-            ++commitCount;
         }
 
         if (commitCount == 0)
@@ -299,6 +277,44 @@ public sealed class PublishTranslationProjectJob
     private string BotEmail()
     {
         return "noreply@" + MainEmailDomain();
+    }
+
+    private async Task<bool> WriteAndCommitFile(string checkout, string path, string languageCode, string original,
+        string content, IReadOnlyCollection<TranslationChange> changes, IReadOnlyDictionary<long, User> authors,
+        CancellationToken cancellationToken)
+    {
+        if (content == original)
+            return false;
+
+        var fullPath = SafeFile(checkout, path);
+
+        // TODO: do we need to preserve encoding or BOM marks?
+        await File.WriteAllTextAsync(fullPath, content, cancellationToken);
+        await GitRunHelpers.Add(checkout, path, cancellationToken);
+        var contributors = changes.Where(change => change.LanguageCode == languageCode)
+            .GroupBy(change => change.ContributorUserId!.Value).OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key).Select(group => authors.GetValueOrDefault(group.Key))
+            .Where(user => user != null).ToArray();
+        var primary = contributors.FirstOrDefault();
+        var message = new StringBuilder($"Update {languageCode} translations");
+        foreach (var coauthor in contributors.Skip(1))
+        {
+            message.Append("\n\nCo-authored-by: ").Append(CreditName(coauthor!)).Append(" <")
+                .Append(CreditEmail(coauthor!)).Append('>');
+        }
+
+        var environment = new Dictionary<string, string>
+        {
+            ["GIT_AUTHOR_NAME"] = primary == null ? "DevCenter Translations" : CreditName(primary),
+            ["GIT_AUTHOR_EMAIL"] = primary == null ? BotEmail() : CreditEmail(primary),
+            ["GIT_COMMITTER_NAME"] = "DevCenter Translations",
+            ["GIT_COMMITTER_EMAIL"] = BotEmail(),
+        };
+
+        // TODO: Allow each translation project to configure whether commit checks should run.
+        await GitRunHelpers.Commit(checkout, message.ToString(), path, environment, cancellationToken,
+            noVerify: true);
+        return true;
     }
 
     private string CreditEmail(User user)
