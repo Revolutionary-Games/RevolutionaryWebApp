@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -14,7 +15,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Translations;
-using Org.BouncyCastle.X509.Extension;
 using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
@@ -250,8 +250,8 @@ public class TranslationDictionariesController : Controller
 
         if (term.Word != word || term.Context != context)
         {
-            // TODO: this seems to delete already made translations, instead it would be better to update the term
-            // and keep the translations but mark them as needing fixing
+            // The term's word and context are part of its key, so its translation rows must be moved to the new
+            // key. Keep their existing text and explanations so translators can use them as a reference.
             await using var transaction = await database.Database.BeginTransactionAsync();
             database.DictionaryTermTranslations.RemoveRange(translations);
             database.DictionaryTerms.Remove(term);
@@ -267,9 +267,10 @@ public class TranslationDictionariesController : Controller
             };
             updatedTerm.BumpUpdatedAt();
             await database.DictionaryTerms.AddAsync(updatedTerm);
+            var updatedTranslations = new List<DictionaryTermTranslation>(translations.Count);
             foreach (var translation in translations)
             {
-                await database.DictionaryTermTranslations.AddAsync(new DictionaryTermTranslation
+                var updatedTranslation = new DictionaryTermTranslation
                 {
                     DictionaryId = request.DictionaryId,
                     Word = word,
@@ -280,9 +281,13 @@ public class TranslationDictionariesController : Controller
                     State = TranslationState.NeedsTranslation,
                     LastEditedByUserId = translation.LastEditedByUserId,
                     Version = Guid.NewGuid(),
-                });
+                };
+                updatedTranslations.Add(updatedTranslation);
             }
 
+            await database.DictionaryTermTranslations.AddRangeAsync(updatedTranslations);
+            AddSourceTermUpdateNotifications(updatedTranslations, actor.Id, request.DictionaryId, request.Word,
+                request.Context, word, context);
             await database.SaveChangesAsync();
             await transaction.CommitAsync();
             logger.LogInformation("Source dictionary term {OldWord} ({OldContext}) renamed to {Word} ({Context}) " +
@@ -300,6 +305,8 @@ public class TranslationDictionariesController : Controller
             translation.Version = Guid.NewGuid();
         }
 
+        AddSourceTermUpdateNotifications(translations, actor.Id, request.DictionaryId, request.Word, request.Context,
+            word, context);
         await database.SaveChangesAsync();
         logger.LogInformation("Source dictionary term {Word} ({Context}) updated in dictionary {DictionaryId} by " +
             "{Email}", word, context, request.DictionaryId, actor.Email);
@@ -622,5 +629,30 @@ public class TranslationDictionariesController : Controller
         logger.LogInformation("Dictionary term request {RequestId} for {Word} ({Context}) rejected by {Email}",
             id, request.Word, request.Context, actor.Email);
         return NoContent();
+    }
+
+    private void AddSourceTermUpdateNotifications(IEnumerable<DictionaryTermTranslation> translations, long actorId,
+        long dictionaryId, string oldWord, string oldContext, string newWord, string newContext)
+    {
+        foreach (var translation in translations)
+        {
+            if (translation.LastEditedByUserId is not { } previousEditor || previousEditor == actorId)
+                continue;
+
+            var oldTerm = string.IsNullOrEmpty(oldContext) ? oldWord : $"{oldWord} ({oldContext})";
+            var newTerm = string.IsNullOrEmpty(newContext) ? newWord : $"{newWord} ({newContext})";
+            var updateDescription = oldWord == newWord && oldContext == newContext ?
+                $"The source dictionary entry for {newTerm} was updated." :
+                $"The source dictionary entry for {oldTerm} was updated to {newTerm}.";
+            database.UserNotifications.Add(new UserNotification
+            {
+                UserId = previousEditor,
+                DeduplicationKey = $"dictionary-source-update:{dictionaryId}:{translation.Version}",
+                Type = UserNotificationType.DictionaryTermEdited,
+                Message = $"{updateDescription} Your {translation.LanguageCode} translation may need review.",
+                TargetPath = $"/translations/dictionaries/{dictionaryId}?language=" +
+                    Uri.EscapeDataString(translation.LanguageCode),
+            });
+        }
     }
 }
