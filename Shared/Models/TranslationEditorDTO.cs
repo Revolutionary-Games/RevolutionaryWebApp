@@ -39,6 +39,7 @@ public sealed class TranslationEditorDTO
     public string? SourceLocations { get; set; }
 
     public bool CanVerify { get; set; }
+    public bool CanEditSource { get; set; }
     public int CommentCount { get; set; }
     public int SuggestionCount { get; set; }
 }
