@@ -60,15 +60,12 @@ public class TranslationProjectsController : Controller
             PerformedById = user.Id,
         });
         await database.SaveChangesAsync();
-        if (format == TranslationFormat.Manual)
+        await database.TranslationProjectLanguages.AddAsync(new TranslationProjectLanguage
         {
-            await database.TranslationProjectLanguages.AddAsync(new TranslationProjectLanguage
-            {
-                ProjectId = project.Id, Project = project, LanguageCode = project.SourceLanguage,
-                DisplayName = project.SourceLanguage,
-            });
-            await database.SaveChangesAsync();
-        }
+            ProjectId = project.Id, Project = project, LanguageCode = project.SourceLanguage,
+            DisplayName = project.SourceLanguage,
+        });
+        await database.SaveChangesAsync();
 
         logger.LogInformation("Translation project {Slug} created by {Email}", project.Slug, user.Email);
         return CreatedAtAction(nameof(List), project.GetConfigurationDTO());
