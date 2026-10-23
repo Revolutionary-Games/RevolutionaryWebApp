@@ -54,4 +54,28 @@ public class TranslationFileExporterTests
         Assert.Equal("Näkemiin", entries.Single(entry => entry.Key == "Farewell").TargetText);
         Assert.Equal(output, TranslationFileExporter.ExportResx(source, output, values));
     }
+
+    [Fact]
+    public void GettextAndResxSourceCatalogsExportEditedSourceText()
+    {
+        const string template = "msgid \"HELLO\"\nmsgstr \"\"\n";
+        const string english = "msgid \"HELLO\"\nmsgstr \"Hello\"\n";
+        const string sourceResx = "<root><data name=\"Greeting\"><value>Hello</value></data></root>";
+        var gettextValue = new TranslationValue
+        {
+            Key = "HELLO", Text = "Hello there", State = TranslationState.Translated,
+        };
+        var resxValue = new TranslationValue
+        {
+            Key = "Greeting", Text = "Hello there", State = TranslationState.Translated,
+        };
+
+        var englishOutput = TranslationFileExporter.ExportGettext(template, english, [gettextValue]);
+        var editedEnglish = Assert.Single(GettextTranslationParser.Parse(template, englishOutput, englishOutput));
+        Assert.Equal("Hello there", editedEnglish.SourceText);
+
+        var resxOutput = TranslationFileExporter.ExportResx(sourceResx, sourceResx, [resxValue]);
+        var editedResx = Assert.Single(ResxTranslationParser.Parse(resxOutput, resxOutput));
+        Assert.Equal("Hello there", editedResx.SourceText);
+    }
 }
