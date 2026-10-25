@@ -2,10 +2,10 @@ namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 
 using System.Collections.Generic;
 using Bunit;
-using Client.Services;
-using Client.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using RevolutionaryWebApp.Shared.Models;
+using Services;
+using Shared;
 using Xunit;
 
 public class DictionaryTermEditorTests : BunitContext
