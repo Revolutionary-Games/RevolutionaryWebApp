@@ -391,6 +391,7 @@ public class TranslationComment : IUpdateNotifications, IDTOCreator<TranslationC
         {
             Id = Id,
             AuthorUserId = AuthorUserId,
+            LanguageCode = LanguageCode,
             RawMarkdown = RawMarkdown,
             CreatedAt = CreatedAt,
         };

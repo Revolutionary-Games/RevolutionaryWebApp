@@ -34,6 +34,9 @@ public sealed class TranslationCommentDTO
     public long Id { get; set; }
     public long AuthorUserId { get; set; }
 
+    [MaxLength(35)]
+    public string LanguageCode { get; set; } = string.Empty;
+
     [MaxLength(10000)]
     public string RawMarkdown { get; set; } = string.Empty;
 
@@ -54,6 +57,8 @@ public sealed class CreateTranslationCommentRequest
     [Required]
     [MaxLength(35)]
     public string LanguageCode { get; set; } = string.Empty;
+
+    public bool ForEveryone { get; set; }
 
     [Required]
     [MaxLength(10000)]
