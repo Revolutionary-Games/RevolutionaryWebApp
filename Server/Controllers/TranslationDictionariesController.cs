@@ -156,7 +156,7 @@ public class TranslationDictionariesController : Controller
                 term.SourceWord != string.Empty)
             .ToListAsync(cancellationToken);
         var matchingLanguageTerms = languageTerms
-            .Where(term => DictionaryWordMatches(unit.SourceText, term.SourceWord!)).ToList();
+            .Where(term => DictionaryWordMatches(unit.SourceText, term.SourceWord)).ToList();
 
         var targetMap = new Dictionary<(string Word, string Context), DictionaryTermTranslation>();
         if (matchingTerms.Count > 0)
@@ -177,7 +177,7 @@ public class TranslationDictionariesController : Controller
         }).Concat(matchingLanguageTerms.Select(term => new DictionaryTermDTO
         {
             DictionaryId = term.DictionaryId,
-            Word = term.SourceWord!,
+            Word = term.SourceWord,
             SourceWord = term.SourceWord,
             Context = term.Context,
             TargetText = term.Word,
