@@ -3,6 +3,7 @@
 @inject NavigationManager NavManager
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Notifications
+@using System.Globalization
 @using System.Threading
 @using RevolutionaryWebApp.Client.Models
 @using RevolutionaryWebApp.Client.Services
@@ -36,7 +37,9 @@ else
                     continue;
 
                 <tr @key="item.Id">
-                    <td><RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@false" /></td>
+                    <td>
+                        <RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@false"/>
+                    </td>
                     <td>
                         @item.LastUsedFrom
                         @if (item.Current)
@@ -44,7 +47,9 @@ else
                             <span class="badge bg-success ms-2">Current Session</span>
                         }
                     </td>
-                    <td><RecentTimeShortener Time="@item.CreatedAt" /></td>
+                    <td>
+                        <RecentTimeShortener Time="@item.CreatedAt"/>
+                    </td>
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id))"
                                 OnPressed="@(async () => await DeleteSpecificSession(item.Id))"
@@ -58,10 +63,10 @@ else
     </PaginatedTable>
 }
 
-<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType"/>
 
 
-@if(LookingAtSelf)
+@if (LookingAtSelf)
 {
     <Button class="me-1" ButtonStyle="warning" Enabled="@(!processingDestroy)" OnPressed="@DestroyOtherSessions"
             Spinner="@processingDestroy">
@@ -69,7 +74,8 @@ else
     </Button>
 }
 
-<Button ButtonStyle="danger" Enabled="@(!processingDestroy)" OnPressed="@DestroyAllSessions" Spinner="@processingDestroy">
+<Button ButtonStyle="danger" Enabled="@(!processingDestroy)" OnPressed="@DestroyAllSessions"
+        Spinner="@processingDestroy">
     Logout Everywhere
 </Button>
 
@@ -137,8 +143,8 @@ else
 
     protected override Task<PagedResult<SessionDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<SessionDTO>>(
-            QueryHelpers.AddQueryString($"api/v1/UserManagement/{Id}/sessions", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<SessionDTO>>(QueryHelpers.AddQueryString($"api/v1/UserManagement/" +
+            $"{Id}/sessions", requestParams));
     }
 
     private bool IsProcessing(long sessionId)
@@ -223,7 +229,7 @@ else
         }
         else
         {
-            if(LookingAtSelf)
+            if (LookingAtSelf)
             {
                 statusMessage = "All sessions logged out. You will be redirected to the login page in a few seconds.";
                 statusMessageType = SiteNoticeType.Info;
@@ -253,7 +259,8 @@ else
 
         try
         {
-            result = await Http.DeleteAsync($"api/v1/UserManagement/{Id}/sessions/{sessionId}");
+            result = await Http.DeleteAsync($"api/v1/UserManagement/{Id}/sessions/" +
+                $"{sessionId.ToString(CultureInfo.InvariantCulture)}");
         }
         catch (HttpRequestException e)
         {
@@ -282,4 +289,5 @@ else
 
         await InvokeAsync(StateHasChanged);
     }
+
 }
