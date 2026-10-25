@@ -76,8 +76,12 @@ else
             }
             else
             {
-                <label for="source-text" class="form-label d-block mt-2">@project?.SourceLanguage source</label>
-                <textarea id="source-text" class="form-control" rows="4" readonly>@data.SourceText</textarea>
+                <NavLink class="form-label d-block mt-2"
+                         href="@($"translations/{Slug}/{project?.SourceLanguage ?? LanguageCode}/edit?key={Uri.EscapeDataString(Key)}")">
+                    @project?.SourceLanguage source
+                </NavLink>
+                <textarea id="source-text" class="form-control" rows="4" readonly
+                          aria-label="@($"{project?.SourceLanguage ?? LanguageCode} source text")">@data.SourceText</textarea>
 
                 @if (data.SourceTextTranslatedFrom != data.SourceText &&
                          !string.IsNullOrEmpty(data.SourceTextTranslatedFrom))
@@ -235,7 +239,13 @@ else
                 {
                     @foreach (var comment in comments)
                     {
-                        <div class="border-bottom pb-2 mb-2">
+                        <div class="border-bottom pb-2 mb-2 @(comment.LanguageCode == project?.SourceLanguage ?
+                                                                  "border-start border-primary bg-light rounded ps-2 pt-1" :
+                                                                  string.Empty)">
+                            @if (comment.LanguageCode == project?.SourceLanguage)
+                            {
+                                <span class="badge text-bg-primary mb-1">Source comment · @project?.SourceLanguage</span>
+                            }
                             <UsernameDisplayer UserId="@comment.AuthorUserId"/>
                             <small class="text-muted ms-2">
                                 <RecentTimeShortener Time="@comment.CreatedAt" IncludeSeconds="@false"
@@ -247,6 +257,14 @@ else
 
                     @if (CanUseTranslationDiscussion)
                     {
+                        @if (data.LanguageCode != project?.SourceLanguage)
+                        {
+                            <label for="comment-scope" class="form-label">Who should see this discussion?</label>
+                            <select id="comment-scope" class="form-select mb-2" @bind="commentForEveryone">
+                                <option value="false">Only @data.LanguageCode translators</option>
+                                <option value="true">Everyone, including @project?.SourceLanguage contributors</option>
+                            </select>
+                        }
                         <label for="new-comment" class="form-label">
                             Add a comment (Markdown; mention users with @@name)
                         </label>
@@ -323,8 +341,12 @@ else
                 {
                     @foreach (var nearbyItem in nearby)
                     {
-                        @* TODO: add a navlink to go to this translation *@
-                        <p><strong>@nearbyItem.LanguageCode</strong> (@nearbyItem.State): @nearbyItem.Text</p>
+                        <p>
+                            <strong>@nearbyItem.LanguageCode</strong> (@nearbyItem.State):
+                            <NavLink href="@($"translations/{Slug}/{nearbyItem.LanguageCode}/edit?key={Uri.EscapeDataString(Key)}")">
+                                @nearbyItem.Text
+                            </NavLink>
+                        </p>
                     }
                 }
 
@@ -413,6 +435,7 @@ else
     private string editText = string.Empty;
     private TranslationState editState = TranslationState.NeedsTranslation;
     private string newComment = string.Empty;
+    private bool commentForEveryone;
     private string newSuggestion = string.Empty;
     private string? tab;
     private string? message;
@@ -471,7 +494,7 @@ else
 
     public Task Handle(TranslationCommentsUpdated notification, CancellationToken cancellationToken)
     {
-        return IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode) ?
+        return IsCurrentCommentScope(notification.ProjectId, notification.Key, notification.LanguageCode) ?
             RefreshComments() :
             Task.CompletedTask;
     }
@@ -504,6 +527,10 @@ else
         {
             groups.Add(NotificationGroups.TranslationKeyScopeUpdated(project.Id, Key));
             groups.Add(NotificationGroups.TranslationScopeUpdated(project.Id, Key, LanguageCode));
+            if (LanguageCode != project.SourceLanguage)
+            {
+                groups.Add(NotificationGroups.TranslationScopeUpdated(project.Id, Key, project.SourceLanguage));
+            }
             if (project.DictionaryId is { } dictionaryId)
                 groups.Add(NotificationGroups.TranslationDictionaryUpdatedPrefix + dictionaryId);
         }
@@ -581,6 +608,12 @@ else
     private bool IsCurrent(long projectId, string key, string languageCode)
     {
         return projectId == project?.Id && key == Key && languageCode == LanguageCode;
+    }
+
+    private bool IsCurrentCommentScope(long projectId, string key, string languageCode)
+    {
+        return projectId == project?.Id && key == Key &&
+            (languageCode == LanguageCode || languageCode == project.SourceLanguage);
     }
 
     private async Task RefreshAfterItemChange()
@@ -966,7 +999,7 @@ else
                 new CreateTranslationCommentRequest
                 {
                     ProjectId = data.ProjectId, Key = data.Key, LanguageCode = data.LanguageCode,
-                    RawMarkdown = newComment,
+                    ForEveryone = commentForEveryone, RawMarkdown = newComment,
                 });
 
             if (response.IsSuccessStatusCode)

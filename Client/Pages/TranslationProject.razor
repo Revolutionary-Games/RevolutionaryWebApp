@@ -58,6 +58,13 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     </ul>
 }
 
+@if (project?.DictionaryId is { } dictionaryId)
+{
+    <p class="mt-3">
+        <NavLink href="@($"translations/dictionaries/{dictionaryId}")">Related dictionary</NavLink>
+    </p>
+}
+
 @if (project?.CanAddSourceKeys == true)
 {
     <div class="mt-3">

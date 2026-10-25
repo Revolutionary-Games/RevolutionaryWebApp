@@ -109,6 +109,21 @@ else
     }
 }
 
+@if (project?.DictionaryId is { } dictionaryId)
+{
+    <h4 class="mt-4">Translation dictionary</h4>
+    <p>
+        Matching dictionary words appear alongside translation text that contains them, helping translators use
+        consistent wording for tricky terms throughout this language. Dictionary entries guide translators; they do
+        not change the final translated text automatically.
+    </p>
+    <div>
+        <NavLink href="@($"translations/dictionaries/{dictionaryId}?language={Uri.EscapeDataString(LanguageCode)}")">
+            Open dictionary for @LanguageCode
+        </NavLink>
+    </div>
+}
+
 <DevCenterTitle>@LanguageCode translations</DevCenterTitle>
 
 @code {
