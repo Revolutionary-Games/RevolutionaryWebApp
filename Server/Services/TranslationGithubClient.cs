@@ -13,7 +13,7 @@ using Shared;
 /// <summary>
 ///   Small GitHub API surface used by translation publishing.
 /// </summary>
-public sealed class TranslationGithubClient : IDisposable
+public sealed class TranslationGithubClient : ITranslationGithubClient
 {
     private const string GithubApiVersion = "2026-03-10";
 
