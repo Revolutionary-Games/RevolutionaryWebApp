@@ -130,7 +130,8 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
                 return;
             }
 
-            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/projects/" +
+                $"{Uri.EscapeDataString(Slug)}/languages") ?? [];
             loadError = null;
         }
         catch (Exception e)
@@ -218,7 +219,8 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     {
         try
         {
-            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+            languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/projects/" +
+                $"{Uri.EscapeDataString(Slug)}/languages") ?? [];
             loadError = null;
         }
         catch (Exception e)

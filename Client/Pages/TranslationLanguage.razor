@@ -173,8 +173,8 @@ else
         {
             try
             {
-                subscription = await Http.GetFromJsonAsync<TranslationSubscriptionDTO>($"api/v1/translationSubscriptions?projectId={project.Id}" +
-                    $"&language={Uri.EscapeDataString(LanguageCode)}");
+                subscription = await Http.GetFromJsonAsync<TranslationSubscriptionDTO>($"api/v1/translationSubscriptions?" +
+                    $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}");
                 subscribeNewKeys = subscription?.NewKeys ?? false;
                 subscribeUpdates = subscription?.TranslationUpdates ?? false;
             }
@@ -256,7 +256,8 @@ else
         try
         {
             var next = await Http.GetFromJsonAsync<TranslationListItemDTO[]>("api/v1/translationEditor/list?" +
-                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&query={Uri.EscapeDataString(query)}&offset={items.Length}");
+                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&query={Uri.EscapeDataString(query)}" +
+                $"&offset={items.Length}");
             if (next != null)
                 items = [.. items, .. next];
         }

@@ -68,7 +68,8 @@ else
             {
                 <label for="translation-text" class="form-label d-block mt-2">@LanguageCode source text</label>
                 <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
-                          @bind:event="oninput" @bind:after="OnTextChanged" readonly="@(!data.CanEditSource)"></textarea>
+                          @bind:event="oninput" @bind:after="OnTextChanged"
+                          readonly="@(!data.CanEditSource)"></textarea>
             }
             else
             {
@@ -252,7 +253,8 @@ else
                                     Spinner="@(processingAction == $"vote-{suggestion.Id}")"
                                     OnPressed="@(() => Vote(suggestion.Id, -1))">▼
                             </Button>
-                            @* TODO: for English / main language suggestions this needs to check if current user has write access and disable the button if missing write access *@
+                            @* TODO: for English / main language suggestions this needs to check if current user has write access
+                            and disable the button if missing write access *@
                             <Button Small="true" ButtonStyle="outline-success" Enabled="@(processingAction == null)"
                                     Spinner="@(processingAction == $"accept-{suggestion.Id}")"
                                     OnPressed="@(() => Accept(suggestion.Id))">Accept
@@ -531,8 +533,8 @@ else
         await InvokeAsync(StateHasChanged);
         try
         {
-            var result = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>(
-                $"api/v1/translationEditor/history?{QuerySuffix()}&offset={offset}");
+            var result = await Http.GetFromJsonAsync<TranslationHistoryDTO[]>($"api/v1/translationEditor/history?" +
+                $"{QuerySuffix()}&offset={offset}");
             if (result != null)
             {
                 if (offset > historyOffset && result.Length == 0)
@@ -679,14 +681,14 @@ else
             var loadedComments = await Http.GetFromJsonAsync<TranslationCommentDTO[]>($"api/v1/translationDiscussion/comments?{suffix}");
             if (loadedComments != null)
                 comments = loadedComments;
-            var loadedNearby = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>(
-                $"api/v1/translationEditor/nearby?{suffix}");
+            var loadedNearby = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>($"api/v1/translationEditor/nearby?{suffix}");
             if (loadedNearby != null)
                 nearby = loadedNearby;
             var loadedSuggestions = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{suffix}");
             if (loadedSuggestions != null)
                 suggestions = loadedSuggestions;
-            var loadedDictionaryMatches = await Http.GetFromJsonAsync<DictionaryTermDTO[]>($"api/v1/translationDictionaries/matching?{suffix}");
+            var loadedDictionaryMatches = await Http.GetFromJsonAsync<DictionaryTermDTO[]>($"api/v1/translationDictionaries/" +
+                $"matching?{suffix}");
             if (loadedDictionaryMatches != null)
                 dictionaryMatches = loadedDictionaryMatches;
             tab ??= comments.Length > 0 ? "comments" : "history";
@@ -774,7 +776,8 @@ else
                 editState = data.State;
 
                 // TODO: we might want to reduce server load by only requesting this occasionally...
-                offerSubscriptions = (await Http.GetFromJsonAsync<TranslationSubscriptionPromptDTO>("api/v1/translationSubscriptions/prompt"))?.ShowPrompt ?? false;
+                offerSubscriptions = (await Http.GetFromJsonAsync<TranslationSubscriptionPromptDTO>("api/v1/translationSubscriptions/" +
+                    "prompt"))?.ShowPrompt ?? false;
             }
         }
         catch (Exception e)
@@ -943,7 +946,8 @@ else
         await InvokeAsync(StateHasChanged);
         try
         {
-            using var response = await Http.PutAsJsonAsync($"api/v1/translationSuggestions/{id}/vote", new VoteOnTranslationSuggestionRequest { Value = value });
+            using var response = await Http.PutAsJsonAsync($"api/v1/translationSuggestions/{id}/vote",
+                new VoteOnTranslationSuggestionRequest { Value = value });
 
             if (!response.IsSuccessStatusCode)
             {

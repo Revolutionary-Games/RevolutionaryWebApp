@@ -207,7 +207,8 @@ else
 
     protected override Task<PagedResult<DictionaryTermDTO>?> StartQuery(Dictionary<string, string?> requestParams)
     {
-        return Http.GetFromJsonAsync<PagedResult<DictionaryTermDTO>>(QueryHelpers.AddQueryString($"api/v1/translationDictionaries/{DictionaryId}/terms", requestParams));
+        return Http.GetFromJsonAsync<PagedResult<DictionaryTermDTO>>(QueryHelpers.AddQueryString($"api/v1/translationDictionaries/" +
+            $"{DictionaryId}/terms", requestParams));
     }
 
     protected override Dictionary<string, string?> CreatePageRequestParams()

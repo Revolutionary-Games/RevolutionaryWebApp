@@ -61,7 +61,8 @@
 
         try
         {
-            unread = (await Http.GetFromJsonAsync<UnreadNotificationCountDTO>("api/v1/userNotifications/unreadCount", shutdown.Token))?.Count ?? 0;
+            unread = (await Http.GetFromJsonAsync<UnreadNotificationCountDTO>("api/v1/userNotifications/" +
+                "unreadCount", shutdown.Token))?.Count ?? 0;
             await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException)
