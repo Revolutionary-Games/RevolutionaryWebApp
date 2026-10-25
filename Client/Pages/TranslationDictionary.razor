@@ -181,9 +181,10 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     [QueryStringParameter]
     public string Language { get; set; } = "en";
 
-    private bool CanManage => UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin;
+    private bool CanManage => UserInfo.AcceptedTranslator &&
+        (UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin);
 
-    private bool CanEditTargetDictionary => UserInfo.HasAccessLevel(GroupType.User);
+    private bool CanEditTargetDictionary => UserInfo.AcceptedTranslator && UserInfo.HasAccessLevel(GroupType.User);
 
     public TranslationDictionary() : base(new SortHelper(nameof(DictionaryTermDTO.Word), SortDirection.Ascending))
     {

@@ -4,6 +4,7 @@
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
 @using System.Threading
+@inject CurrentUserInfo UserInfo
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
 @implements INotificationHandler<TranslationProjectUpdated>
@@ -66,7 +67,7 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     </p>
 }
 
-@if (project?.CanAddSourceKeys == true)
+@if (UserInfo.AcceptedTranslator && project?.CanAddSourceKeys == true)
 {
     <div class="mt-3">
         <h4>Add source key</h4>

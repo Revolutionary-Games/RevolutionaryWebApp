@@ -128,7 +128,8 @@ else
                         OnPressed="@Save">
                     Save
                 </Button>
-                <Button ButtonStyle="primary" class="mb-1" Enabled="@(!saving)" Spinner="@saving" OnPressed="@SaveAndContinue">
+                <Button ButtonStyle="primary" class="mb-1" Enabled="@(!saving)" Spinner="@saving"
+                        OnPressed="@SaveAndContinue">
                     Save &amp; Continue
                 </Button>
             }
@@ -331,7 +332,7 @@ else
                         can edit it directly, for that language you may only be able to create suggestions rather
                         than editing directly.
                     </p>
-                    @if (CanUseTranslationDiscussion)
+                    @if (CanUseTranslationDiscussion && UserInfo.AcceptedTranslator)
                     {
                         <label for="new-suggestion" class="form-label">Suggest a translation</label>
                         <textarea id="new-suggestion" class="form-control" rows="3" @bind="newSuggestion"></textarea>
@@ -473,12 +474,13 @@ else
     private bool HasLocalChanges => data != null &&
         (editText != data.Text || editState != data.State);
 
-    private bool CanEditTranslation => data != null && UserInfo.HasAccessLevel(GroupType.User) &&
+    private bool CanEditTranslation => UserInfo.AcceptedTranslator && data != null &&
+        UserInfo.HasAccessLevel(GroupType.User) &&
         (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
 
     private bool CanUseTranslationDiscussion => UserInfo.HasAccessLevel(GroupType.User);
 
-    private bool CanAcceptSuggestions => CanUseTranslationDiscussion && data != null &&
+    private bool CanAcceptSuggestions => UserInfo.AcceptedTranslator && CanUseTranslationDiscussion && data != null &&
         (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
 
     public Task Handle(TranslationValueUpdated notification, CancellationToken cancellationToken)
@@ -1042,7 +1044,8 @@ else
 
     private async Task PostSuggestion()
     {
-        if (!CanUseTranslationDiscussion || data == null || string.IsNullOrWhiteSpace(newSuggestion) ||
+        if (!UserInfo.AcceptedTranslator || !CanUseTranslationDiscussion || data == null ||
+            string.IsNullOrWhiteSpace(newSuggestion) ||
             processingAction == "suggestion")
         {
             return;
