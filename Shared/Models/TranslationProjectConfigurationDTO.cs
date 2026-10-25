@@ -38,7 +38,7 @@ public sealed class TranslationProjectConfigurationDTO
 
     public bool Enabled { get; set; } = true;
     public long? DictionaryId { get; set; }
-    public DateTimeOffset? LastImportedAt { get; set; }
+    public DateTime? LastImportedAt { get; set; }
 
     [MaxLength(80)]
     public string? LastImportedSha { get; set; }

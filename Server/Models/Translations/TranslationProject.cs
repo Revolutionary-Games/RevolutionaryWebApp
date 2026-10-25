@@ -73,9 +73,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel
             TranslationFilePattern = TranslationFilePattern ?? string.Empty,
             Enabled = Enabled,
             DictionaryId = DictionaryId,
-            LastImportedAt = LastImportedAt == null ?
-                null :
-                new DateTimeOffset(LastImportedAt.Value, TimeSpan.Zero),
+            LastImportedAt = LastImportedAt,
             LastImportedSha = LastImportedSha,
         };
     }
@@ -349,7 +347,7 @@ public class TranslationChange : IUpdateNotifications
             NewText = NewText,
             OldState = OldState,
             NewState = NewState,
-            CreatedAt = new DateTimeOffset(CreatedAt, TimeSpan.Zero),
+            CreatedAt = CreatedAt,
         };
     }
 
@@ -390,7 +388,7 @@ public class TranslationComment : IUpdateNotifications, IDTOCreator<TranslationC
             Id = Id,
             AuthorUserId = AuthorUserId,
             RawMarkdown = RawMarkdown,
-            CreatedAt = new DateTimeOffset(CreatedAt, TimeSpan.Zero),
+            CreatedAt = CreatedAt,
         };
     }
 

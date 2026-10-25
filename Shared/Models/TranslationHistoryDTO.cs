@@ -23,7 +23,7 @@ public sealed class TranslationHistoryDTO
 
     public TranslationState NewState { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>
@@ -37,7 +37,7 @@ public sealed class TranslationCommentDTO
     [MaxLength(10000)]
     public string RawMarkdown { get; set; } = string.Empty;
 
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 /// <summary>
