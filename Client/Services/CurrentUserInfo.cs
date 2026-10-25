@@ -51,6 +51,8 @@ public class CurrentUserInfo : INotificationHandler<UserUpdated>
     /// </summary>
     public bool InfoReady { get; private set; }
 
+    public bool AcceptedTranslator => InfoReady && Info?.AcceptedTranslator == true;
+
     public bool IsAdmin => HasGroup(GroupType.Admin);
     public bool IsDeveloper => HasGroup(GroupType.Developer);
     public IUserGroupData? Groups => Info?.Groups;

@@ -5308,6 +5308,10 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<bool>("AcceptedTranslator")
+                        .HasColumnType("boolean")
+                        .HasColumnName("accepted_translator");
+
                     b.Property<string>("ApiToken")
                         .HasColumnType("text")
                         .HasColumnName("api_token");

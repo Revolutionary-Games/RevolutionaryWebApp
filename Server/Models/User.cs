@@ -63,6 +63,8 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     /// </summary>
     public bool UseEmailInTranslationCredits { get; set; }
 
+    public bool AcceptedTranslator { get; set; }
+
     public bool TranslationSubscriptionPromptShown { get; set; }
 
     // TODO: remove (replace as property for when password hash is not null)
@@ -460,6 +462,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             {
                 info.Email = Email;
                 info.UseEmailInTranslationCredits = UseEmailInTranslationCredits;
+                info.AcceptedTranslator = AcceptedTranslator;
                 info.TotalLauncherLinks = TotalLauncherLinks;
                 info.CreatedAt = CreatedAt;
                 info.UpdatedAt = UpdatedAt;
