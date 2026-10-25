@@ -10,6 +10,7 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject NotificationHandler NotificationHandler
+@inject CurrentUserInfo UserInfo
 @implements INotificationHandler<TranslationValueUpdated>
 @implements INotificationHandler<TranslationUnitUpdated>
 @implements INotificationHandler<TranslationHistoryUpdated>
@@ -329,6 +330,30 @@ else
                         }
                     </div>
                 }
+            }
+            <hr/>
+            <h6>Key created</h6>
+            <RecentTimeShortener Time="@data.KeyCreatedAt" IncludeSeconds="@false"/>
+            @if (data.TranslationCreatedAt != data.KeyCreatedAt)
+            {
+                <h6 class="mt-2">Translation created</h6>
+                <RecentTimeShortener Time="@data.TranslationCreatedAt" IncludeSeconds="@false"/>
+            }
+            <h6 class="mt-2">Last updated</h6>
+            <RecentTimeShortener Time="@data.LastUpdatedAt" IncludeSeconds="@false"/>
+            @if (UserInfo.LoggedIn)
+            {
+                <div class="mt-2">
+                    Last edited by:
+                    @if (data.LastEditedByUserId is { } editorId)
+                    {
+                        <UsernameDisplayer UserId="@editorId"/>
+                    }
+                    else
+                    {
+                        <span>system</span>
+                    }
+                </div>
             }
         </aside>
     </div>
