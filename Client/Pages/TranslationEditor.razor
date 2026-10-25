@@ -272,9 +272,9 @@ else
                         @if (data.LanguageCode != project?.SourceLanguage)
                         {
                             <label for="comment-scope" class="form-label">Who should see this discussion?</label>
-                            <select id="comment-scope" class="form-select mb-2" @bind="commentForEveryone">
-                                <option value="false">Only @data.LanguageCode translators</option>
-                                <option value="true">Everyone, including @project?.SourceLanguage contributors</option>
+                            <select id="comment-scope" class="form-select mb-2" @bind="commentScope">
+                                <option value="language">Only @data.LanguageCode translators</option>
+                                <option value="everyone">Everyone, including @project?.SourceLanguage contributors</option>
                             </select>
                         }
 
@@ -445,7 +445,7 @@ else
     private string editText = string.Empty;
     private TranslationState editState = TranslationState.NeedsTranslation;
     private string newComment = string.Empty;
-    private bool commentForEveryone;
+    private string commentScope = "language";
     private string newSuggestion = string.Empty;
     private string? tab;
     private string? message;
@@ -1010,7 +1010,7 @@ else
                 new CreateTranslationCommentRequest
                 {
                     ProjectId = data.ProjectId, Key = data.Key, LanguageCode = data.LanguageCode,
-                    ForEveryone = commentForEveryone, RawMarkdown = newComment,
+                    ForEveryone = commentScope == "everyone", RawMarkdown = newComment,
                 });
 
             if (response.IsSuccessStatusCode)
