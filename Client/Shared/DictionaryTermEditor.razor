@@ -103,6 +103,7 @@
     private string loadedEntryContext = string.Empty;
     private TranslationState loadedState;
     private int loadedResetVersion;
+    private (string Word, string Context, bool IsDirty)? lastNotifiedDirtyState;
 
     [Parameter]
     [EditorRequired]
@@ -168,7 +169,13 @@
 
     private Task NotifyDirtyState()
     {
-        return OnDirtyChanged.InvokeAsync((Term.Word, Term.Context, IsDirty));
+        var dirtyState = (Term.Word, Term.Context, IsDirty);
+        if (lastNotifiedDirtyState == dirtyState)
+            return Task.CompletedTask;
+
+        // Update before invoking the parent, as its callback can render this editor again.
+        lastNotifiedDirtyState = dirtyState;
+        return OnDirtyChanged.InvokeAsync(dirtyState);
     }
 
     private async Task Save()
@@ -190,7 +197,7 @@
                 loadedTargetExplanation = explanation;
                 loadedEntryContext = context;
                 loadedState = state;
-                await OnDirtyChanged.InvokeAsync((Term.Word, Term.Context, false));
+                await NotifyDirtyState();
             }
             else
             {
