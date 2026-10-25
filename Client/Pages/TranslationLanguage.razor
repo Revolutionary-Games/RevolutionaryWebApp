@@ -14,6 +14,9 @@
 @implements IAsyncDisposable
 
 <h3>@LanguageCode translations for @Slug</h3>
+<div class="mb-3">
+    <NavLink href="@($"translations/{Slug}")">← Languages</NavLink>
+</div>
 <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
 
 @if (project == null && message == null)
