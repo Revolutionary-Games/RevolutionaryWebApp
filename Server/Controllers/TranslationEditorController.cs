@@ -152,7 +152,9 @@ public class TranslationEditorController : Controller
         var groups = HttpContext.AuthenticatedUser()?.AccessCachedGroupsOrThrow();
         var canVerify = groups != null && TranslationPermissions.CanVerify(groups);
         var comments = await database.TranslationComments.CountAsync(c => c.ProjectId == projectId &&
-            c.Key == key && c.LanguageCode == language && !c.Deleted, cancellationToken);
+                c.Key == key && (c.LanguageCode == language ||
+                    (language != project.SourceLanguage && c.LanguageCode == project.SourceLanguage)) && !c.Deleted,
+            cancellationToken);
         var suggestions = await database.TranslationSuggestions.CountAsync(s => s.ProjectId == projectId &&
                 s.Key == key && s.LanguageCode == language && s.Status == TranslationSuggestionStatus.Open,
             cancellationToken);

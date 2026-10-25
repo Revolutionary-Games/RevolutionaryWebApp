@@ -33,9 +33,19 @@ public class TranslationDiscussionController : Controller
     [HttpGet("comments")]
     public async Task<ActionResult<TranslationCommentDTO[]>> Comments(long projectId, string key, string language)
     {
+        var sourceLanguage = await database.TranslationProjects.AsNoTracking()
+            .Where(project => project.Id == projectId && project.Enabled)
+            .Select(project => project.SourceLanguage)
+            .FirstOrDefaultAsync();
+
+        if (sourceLanguage == null)
+            return NotFound();
+
         // TODO: if anything ever gets more than a 500 comments, we will need pagination APIs and GUI
         var rows = await database.TranslationComments.AsNoTracking().Where(comment =>
-                comment.ProjectId == projectId && comment.Key == key && comment.LanguageCode == language &&
+                comment.ProjectId == projectId && comment.Key == key &&
+                (comment.LanguageCode == language || (language != sourceLanguage &&
+                    comment.LanguageCode == sourceLanguage)) &&
                 !comment.Deleted)
             .OrderBy(comment => comment.CreatedAt).Take(500).ToListAsync();
         return rows.Select(comment => comment.GetDTO()).ToArray();
@@ -57,15 +67,19 @@ public class TranslationDiscussionController : Controller
 
         var project = await database.TranslationProjects.AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == request.ProjectId && p.Enabled);
-        if (project == null || !await database.TranslationValues.AnyAsync(v => v.ProjectId == request.ProjectId &&
-                v.Key == request.Key && v.LanguageCode == request.LanguageCode))
+        if (project == null)
+            return NotFound();
+
+        var targetLanguage = request.ForEveryone ? project.SourceLanguage : request.LanguageCode;
+        if (!await database.TranslationValues.AnyAsync(v => v.ProjectId == request.ProjectId &&
+                v.Key == request.Key && v.LanguageCode == targetLanguage))
         {
             return NotFound();
         }
 
         var comment = new TranslationComment
         {
-            ProjectId = request.ProjectId, Key = request.Key, LanguageCode = request.LanguageCode,
+            ProjectId = request.ProjectId, Key = request.Key, LanguageCode = targetLanguage,
             AuthorUserId = actor.Id, RawMarkdown = request.RawMarkdown,
         };
 
@@ -91,20 +105,20 @@ public class TranslationDiscussionController : Controller
                 UserId = user.Id, DeduplicationKey = $"translation-comment:{comment.Id}:mention:{user.Id}",
                 Type = UserNotificationType.TranslationMention,
                 Message = $"{actor.UserName} mentioned you in a translation comment.",
-                TargetPath = $"/translations/{project.Slug}/{request.LanguageCode}/edit" +
+                TargetPath = $"/translations/{project.Slug}/{targetLanguage}/edit" +
                     $"?key={Uri.EscapeDataString(request.Key)}",
             });
         }
 
         await database.SaveChangesAsync();
         logger.LogInformation("Translation comment {CommentId} added to project {ProjectId}, key {Key}, " +
-            "language {LanguageCode} by {Email}", comment.Id, request.ProjectId, request.Key, request.LanguageCode,
+            "language {LanguageCode} by {Email}", comment.Id, request.ProjectId, request.Key, targetLanguage,
             actor.Email);
         return CreatedAtAction(nameof(Comments), new
         {
             request.ProjectId,
             request.Key,
-            language = request.LanguageCode,
+            language = targetLanguage,
         }, comment.GetDTO());
     }
 }
