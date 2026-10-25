@@ -99,7 +99,7 @@ public class TranslationEditorController : Controller
                 .OrderBy(candidate => candidate).FirstOrDefaultAsync() :
             await keys.Where(candidate => string.Compare(candidate, key) < 0)
                 .OrderByDescending(candidate => candidate).FirstOrDefaultAsync();
-        return neighbor == null ? NotFound() : neighbor;
+        return neighbor == null ? NoContent() : Json(neighbor);
     }
 
     [HttpGet("history")]

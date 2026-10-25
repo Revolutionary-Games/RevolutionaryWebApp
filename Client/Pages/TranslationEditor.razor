@@ -4,6 +4,7 @@
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
 @using System.Net
+@using System.Globalization
 @using System.Threading
 @using SharedBase.Utilities
 @inject HttpClient Http
@@ -204,7 +205,7 @@ else
                             {
                                 <span>system</span>
                             }
-                            <small class="text-muted">@change.CreatedAt.ToLocalTime().ToString("g")</small>
+                            <small class="text-muted ms-2">@change.CreatedAt.ToLocalTime().ToString("g")</small>
                             <div>@change.OldState → @change.NewState</div>
                             @if (change.OldText != change.NewText)
                             {
@@ -824,13 +825,20 @@ else
 
         var url = $"api/v1/translationEditor/neighbor?projectId={project.Id}" +
             $"&language={Uri.EscapeDataString(LanguageCode)}&key={Uri.EscapeDataString(Key)}" +
-            $"&direction={direction}";
+            $"&direction={direction.ToString(CultureInfo.InvariantCulture)}";
         processingAction = "move";
         message = null;
         await InvokeAsync(StateHasChanged);
         try
         {
             using var response = await Http.GetAsync(url);
+
+            if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                message = direction < 0 ? "Already at the first key." : "Already at the last key.";
+                messageType = SiteNoticeType.Info;
+                return;
+            }
 
             if (!response.IsSuccessStatusCode)
             {
