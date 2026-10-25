@@ -77,51 +77,67 @@ else
         Not all terms requested for the English dictionary are general enough to add to be useful,
         in that case this language-specific dictionary terms is a useful feature.
     </p>
-    <div class="mb-2">
-        <label for="local-term-word" class="form-label">Term</label>
-        <input id="local-term-word" class="form-control" @bind="newLanguageWord"/>
-    </div>
-    <div class="mb-2">
-        <label for="local-term-source-word" class="form-label">Source-language word to match</label>
-        <input id="local-term-source-word" class="form-control" @bind="newLanguageSourceWord"/>
-    </div>
-    <div class="mb-2">
-        <label for="local-term-context" class="form-label">
-            Context (if needed to differentiate, leave blank otherwise)
-        </label>
-        <input id="local-term-context" class="form-control" @bind="newLanguageContext"/>
-    </div>
-    <div class="mb-2">
-        <label for="local-term-explanation" class="form-label">Explanation in @Language</label>
-        <textarea id="local-term-explanation" class="form-control" @bind="newLanguageExplanation"></textarea>
-    </div>
-    <Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingLanguageTerm)"
-            Spinner="@isSubmittingLanguageTerm" OnPressed="@SubmitLanguageTerm">Add @Language term
-    </Button>
-    <StatusMessageShower Message="@languageMessage" Type="@languageMessageType"/>
+    @if (CanEditTargetDictionary)
+    {
+        <div class="mb-2">
+            <label for="local-term-word" class="form-label">Term</label>
+            <input id="local-term-word" class="form-control" @bind="newLanguageWord"/>
+        </div>
+        <div class="mb-2">
+            <label for="local-term-source-word" class="form-label">Source-language word to match</label>
+            <input id="local-term-source-word" class="form-control" @bind="newLanguageSourceWord"/>
+        </div>
+        <div class="mb-2">
+            <label for="local-term-context" class="form-label">
+                Context (if needed to differentiate, leave blank otherwise)
+            </label>
+            <input id="local-term-context" class="form-control" @bind="newLanguageContext"/>
+        </div>
+        <div class="mb-2">
+            <label for="local-term-explanation" class="form-label">Explanation in @Language</label>
+            <textarea id="local-term-explanation" class="form-control" @bind="newLanguageExplanation"></textarea>
+        </div>
+        <Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingLanguageTerm)"
+                Spinner="@isSubmittingLanguageTerm" OnPressed="@SubmitLanguageTerm">Add @Language term
+        </Button>
+        <StatusMessageShower Message="@languageMessage" Type="@languageMessageType"/>
+    }
+    else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+    {
+        <p><NavLink href="@NavManager.GetLinkToLogin("Log in to add dictionary terms")">Log in</NavLink>
+            to add language-specific terms.</p>
+    }
 }
 
 <h4 class="mt-4">Add an English term</h4>
-<p>Anyone can request a word. Dictionary managers can add it directly.</p>
-<div class="mb-2">
-    <label for="new-term-word" class="form-label">Word</label>
-    <input id="new-term-word" class="form-control" @bind="newWord"/>
-</div>
-<div class="mb-2">
-    <label for="new-term-context" class="form-label">
-        Context (if needed to differentiate the same word used to mean different things, leave blank otherwise)
-    </label>
-    <input id="new-term-context" class="form-control" @bind="newContext"/>
-</div>
-<div class="mb-2">
-    <label for="new-term-explanation" class="form-label">English explanation</label>
-    <textarea id="new-term-explanation" class="form-control" @bind="newExplanation"></textarea>
-</div>
-<Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingTerm)" Spinner="@isSubmittingTerm"
-        OnPressed="@SubmitTerm">
-    @(CanManage ? "Add term" : "Request term")
-</Button>
-<StatusMessageShower Message="@message" Type="@messageType"/>
+<p>Logged-in users can request a word. Dictionary managers can add it directly.</p>
+@if (CanEditTargetDictionary)
+{
+    <div class="mb-2">
+        <label for="new-term-word" class="form-label">Word</label>
+        <input id="new-term-word" class="form-control" @bind="newWord"/>
+    </div>
+    <div class="mb-2">
+        <label for="new-term-context" class="form-label">
+            Context (if needed to differentiate the same word used to mean different things, leave blank otherwise)
+        </label>
+        <input id="new-term-context" class="form-control" @bind="newContext"/>
+    </div>
+    <div class="mb-2">
+        <label for="new-term-explanation" class="form-label">English explanation</label>
+        <textarea id="new-term-explanation" class="form-control" @bind="newExplanation"></textarea>
+    </div>
+    <Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingTerm)" Spinner="@isSubmittingTerm"
+            OnPressed="@SubmitTerm">
+        @(CanManage ? "Add term" : "Request term")
+    </Button>
+    <StatusMessageShower Message="@message" Type="@messageType"/>
+}
+else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+{
+    <p><NavLink href="@NavManager.GetLinkToLogin("Log in to request dictionary terms")">Log in</NavLink>
+        to request a dictionary term.</p>
+}
 
 <DevCenterTitle>Dictionary</DevCenterTitle>
 
@@ -166,6 +182,8 @@ else
 
     private bool CanManage => UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin;
 
+    private bool CanEditTargetDictionary => UserInfo.HasAccessLevel(GroupType.User);
+
     public TranslationDictionary() : base(new SortHelper(nameof(DictionaryTermDTO.Word), SortDirection.Ascending))
     {
         DefaultPageSize = 100;
@@ -186,6 +204,12 @@ else
     {
         this.SetParametersFromQueryString(NavManager);
         return base.SetParametersAsync(parameters);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        UserInfo.OnUserInfoChanged += UserInfoChanged;
+        await base.OnInitializedAsync();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -531,10 +555,17 @@ else
 
     public override async ValueTask DisposeAsync()
     {
+        UserInfo.OnUserInfoChanged -= UserInfoChanged;
+
         if (registeredDictionaryId.HasValue)
             await NotificationHandler.Unregister<TranslationDictionaryUpdated>(this);
 
         await base.DisposeAsync();
+    }
+
+    private void UserInfoChanged(object? sender, UserDTO? newInfo)
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
 }

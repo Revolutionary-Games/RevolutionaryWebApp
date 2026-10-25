@@ -1,6 +1,7 @@
 @page "/translations/{Slug}/{LanguageCode}/edit"
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
 @using System.Net
@@ -71,7 +72,7 @@ else
                 <label for="translation-text" class="form-label d-block mt-2">@LanguageCode source text</label>
                 <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
                           @bind:event="oninput" @bind:after="OnTextChanged"
-                          readonly="@(!data.CanEditSource)"></textarea>
+                          readonly="@(!CanEditTranslation)"></textarea>
             }
             else
             {
@@ -89,10 +90,11 @@ else
 
                 <label for="translation-text" class="form-label d-block mt-3">@LanguageCode translation</label>
                 <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
-                          @bind:event="oninput" @bind:after="OnTextChanged"></textarea>
+                          @bind:event="oninput" @bind:after="OnTextChanged"
+                          readonly="@(!CanEditTranslation)"></textarea>
             }
 
-            <fieldset class="my-3">
+            <fieldset class="my-3" disabled="@(!CanEditTranslation)">
                 <legend class="fs-6">State</legend>
                 <InputRadioGroup @bind-Value="editState">
                     <label class="me-3">
@@ -115,17 +117,27 @@ else
                 </InputRadioGroup>
             </fieldset>
 
-            <Button ButtonStyle="outline-primary" class="me-2"
-                    Enabled="@(!saving && (data.LanguageCode != project?.SourceLanguage || data.CanEditSource))"
-                    Spinner="@saving"
-                    OnPressed="@Save">
-                Save
-            </Button>
-            <Button ButtonStyle="primary"
-                    Enabled="@(!saving && (data.LanguageCode != project?.SourceLanguage || data.CanEditSource))"
-                    Spinner="@saving" OnPressed="@SaveAndContinue">
-                Save &amp; Continue
-            </Button>
+            @if (CanEditTranslation)
+            {
+                <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!saving)" Spinner="@saving"
+                        OnPressed="@Save">
+                    Save
+                </Button>
+                <Button ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving" OnPressed="@SaveAndContinue">
+                    Save &amp; Continue
+                </Button>
+            }
+            else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+            {
+                <p class="text-muted">
+                    <NavLink href="@Navigation.GetLinkToLogin("Log in before translating")">Log in</NavLink>
+                    before translating.
+                </p>
+            }
+            else if (UserInfo.InfoReady && data.LanguageCode == project?.SourceLanguage && !data.CanEditSource)
+            {
+                <p class="text-muted">You don't have permission to edit source text.</p>
+            }
 
             <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
 
@@ -233,14 +245,24 @@ else
                         </div>
                     }
 
-                    <label for="new-comment" class="form-label">
-                        Add a comment (Markdown; mention users with @@name)
-                    </label>
-                    <textarea id="new-comment" class="form-control" rows="3" @bind="newComment"></textarea>
-                    <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
-                            Spinner="@(processingAction == "comment")" OnPressed="@PostComment">
-                        Post comment
-                    </Button>
+                    @if (CanUseTranslationDiscussion)
+                    {
+                        <label for="new-comment" class="form-label">
+                            Add a comment (Markdown; mention users with @@name)
+                        </label>
+                        <textarea id="new-comment" class="form-control" rows="3" @bind="newComment"></textarea>
+                        <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
+                                Spinner="@(processingAction == "comment")" OnPressed="@PostComment">
+                            Post comment
+                        </Button>
+                    }
+                    else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+                    {
+                        <p>
+                            <NavLink href="@Navigation.GetLinkToLogin("Log in to post comments")">Log in</NavLink>
+                            to post a comment.
+                        </p>
+                    }
                 }
                 else if (tab == "suggestions")
                 {
@@ -251,22 +273,26 @@ else
                             <small class="text-muted ms-2">Score: @suggestion.Score</small>
                             <TextDiffView OldText="@data.Text" NewText="@suggestion.Text"/>
                             @* TODO: word-by-word diff viewer here as well *@
-                            <Button Small="true" class="me-1" ButtonStyle="outline-primary"
-                                    Enabled="@(processingAction == null)"
-                                    Spinner="@(processingAction == $"vote-{suggestion.Id}")"
-                                    OnPressed="@(() => Vote(suggestion.Id, 1))">▲
-                            </Button>
-                            <Button Small="true" class="me-1" ButtonStyle="outline-dangerous"
-                                    Enabled="@(processingAction == null)"
-                                    Spinner="@(processingAction == $"vote-{suggestion.Id}")"
-                                    OnPressed="@(() => Vote(suggestion.Id, -1))">▼
-                            </Button>
-                            @* TODO: for English / main language suggestions this needs to check if current user has write access
-                            and disable the button if missing write access *@
-                            <Button Small="true" ButtonStyle="outline-success" Enabled="@(processingAction == null)"
-                                    Spinner="@(processingAction == $"accept-{suggestion.Id}")"
-                                    OnPressed="@(() => Accept(suggestion.Id))">Accept
-                            </Button>
+                            @if (CanUseTranslationDiscussion)
+                            {
+                                <Button Small="true" class="me-1" ButtonStyle="outline-primary"
+                                        Enabled="@(processingAction == null)"
+                                        Spinner="@(processingAction == $"vote-{suggestion.Id}")"
+                                        OnPressed="@(() => Vote(suggestion.Id, 1))">▲
+                                </Button>
+                                <Button Small="true" class="me-1" ButtonStyle="outline-dangerous"
+                                        Enabled="@(processingAction == null)"
+                                        Spinner="@(processingAction == $"vote-{suggestion.Id}")"
+                                        OnPressed="@(() => Vote(suggestion.Id, -1))">▼
+                                </Button>
+                            }
+                            @if (CanAcceptSuggestions)
+                            {
+                                <Button Small="true" ButtonStyle="outline-success" Enabled="@(processingAction == null)"
+                                        Spinner="@(processingAction == $"accept-{suggestion.Id}")"
+                                        OnPressed="@(() => Accept(suggestion.Id))">Accept
+                                </Button>
+                            }
                         </div>
                     }
 
@@ -276,12 +302,22 @@ else
                         can edit it directly, for that language you may only be able to create suggestions rather
                         than editing directly.
                     </p>
-                    <label for="new-suggestion" class="form-label">Suggest a translation</label>
-                    <textarea id="new-suggestion" class="form-control" rows="3" @bind="newSuggestion"></textarea>
-                    <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
-                            Spinner="@(processingAction == "suggestion")" OnPressed="@PostSuggestion">
-                        Add suggestion
-                    </Button>
+                    @if (CanUseTranslationDiscussion)
+                    {
+                        <label for="new-suggestion" class="form-label">Suggest a translation</label>
+                        <textarea id="new-suggestion" class="form-control" rows="3" @bind="newSuggestion"></textarea>
+                        <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
+                                Spinner="@(processingAction == "suggestion")" OnPressed="@PostSuggestion">
+                            Add suggestion
+                        </Button>
+                    }
+                    else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+                    {
+                        <p>
+                            <NavLink href="@Navigation.GetLinkToLogin("Log in to suggest or vote")">Log in</NavLink>
+                            to suggest a translation or vote on suggestions.
+                        </p>
+                    }
                 }
                 else if (tab == "nearby")
                 {
@@ -402,6 +438,14 @@ else
     private bool HasLocalChanges => data != null &&
         (editText != data.Text || editState != data.State);
 
+    private bool CanEditTranslation => data != null && UserInfo.HasAccessLevel(GroupType.User) &&
+        (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
+
+    private bool CanUseTranslationDiscussion => UserInfo.HasAccessLevel(GroupType.User);
+
+    private bool CanAcceptSuggestions => CanUseTranslationDiscussion && data != null &&
+        (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
+
     public Task Handle(TranslationValueUpdated notification, CancellationToken cancellationToken)
     {
         if (!IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode))
@@ -467,8 +511,16 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        UserInfo.OnUserInfoChanged -= UserInfoChanged;
+
         if (registeredProjectId.HasValue)
             await NotificationHandler.Unregister<TranslationValueUpdated>(this);
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        UserInfo.OnUserInfoChanged += UserInfoChanged;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -778,7 +830,7 @@ else
 
     private async Task Save()
     {
-        if (data == null || saving)
+        if (!CanEditTranslation || data == null || saving)
             return;
 
         lastSaveSucceeded = false;
@@ -831,6 +883,9 @@ else
 
     private async Task SaveAndContinue()
     {
+        if (!CanEditTranslation)
+            return;
+
         await Save();
         if (lastSaveSucceeded)
             await Next();
@@ -896,8 +951,11 @@ else
 
     private async Task PostComment()
     {
-        if (data == null || string.IsNullOrWhiteSpace(newComment) || processingAction == "comment")
+        if (!CanUseTranslationDiscussion || data == null || string.IsNullOrWhiteSpace(newComment) ||
+            processingAction == "comment")
+        {
             return;
+        }
 
         processingAction = "comment";
         message = null;
@@ -938,8 +996,11 @@ else
 
     private async Task PostSuggestion()
     {
-        if (data == null || string.IsNullOrWhiteSpace(newSuggestion) || processingAction == "suggestion")
+        if (!CanUseTranslationDiscussion || data == null || string.IsNullOrWhiteSpace(newSuggestion) ||
+            processingAction == "suggestion")
+        {
             return;
+        }
 
         processingAction = "suggestion";
         message = null;
@@ -980,6 +1041,9 @@ else
 
     private async Task Vote(long id, int value)
     {
+        if (!CanUseTranslationDiscussion)
+            return;
+
         processingAction = $"vote-{id}";
         message = null;
         await InvokeAsync(StateHasChanged);
@@ -1014,6 +1078,9 @@ else
 
     private async Task Accept(long id)
     {
+        if (!CanAcceptSuggestions)
+            return;
+
         processingAction = $"accept-{id}";
         message = null;
         await InvokeAsync(StateHasChanged);
@@ -1080,6 +1147,11 @@ else
     private void ClearMessage()
     {
         message = null;
+    }
+
+    private void UserInfoChanged(object? sender, UserDTO? newInfo)
+    {
+        _ = InvokeAsync(StateHasChanged);
     }
 
 }

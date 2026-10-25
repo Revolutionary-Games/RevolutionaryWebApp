@@ -2,6 +2,7 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared
 @inject HttpClient Http
+@inject NavigationManager Navigation
 @inject Services.CurrentUserInfo UserInfo
 
 <div class="border-bottom py-3">
@@ -26,19 +27,31 @@
                 Source-language word to match
             </label>
             <input id="@($"source-word-{controlId}")" class="form-control" @bind="sourceWord"
+                   readonly="@(!CanSaveTerm)"
                    @bind:after="NotifyDirtyState"/>
             <label class="form-label mt-2" for="@($"term-{controlId}")">Term in @LanguageCode</label>
-            <input id="@($"term-{controlId}")" class="form-control" @bind="text"
+            <input id="@($"term-{controlId}")" class="form-control" @bind="text" readonly="@(!CanSaveTerm)"
                    @bind:after="NotifyDirtyState"/>
             <label class="form-label mt-2" for="@($"explanation-{controlId}")">Explanation in @LanguageCode</label>
             <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
+                      readonly="@(!CanSaveTerm)"
                       @bind:after="NotifyDirtyState"></textarea>
             <label class="form-label mt-2" for="@($"context-{controlId}")">Context</label>
-            <input id="@($"context-{controlId}")" class="form-control" @bind="context"
+            <input id="@($"context-{controlId}")" class="form-control" @bind="context" readonly="@(!CanSaveTerm)"
                    @bind:after="NotifyDirtyState"/>
-            <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
-                    OnPressed="@Save">Save Term
-            </Button>
+            @if (CanSaveTerm)
+            {
+                <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
+                        OnPressed="@Save">Save Term
+                </Button>
+            }
+            else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+            {
+                <p class="mt-2">
+                    <NavLink href="@Navigation.GetLinkToLogin("Log in to translate dictionary terms")">Log in</NavLink>
+                    to edit this term.
+                </p>
+            }
             <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-2" OnClosed="ClearMessage"/>
         }
         else
@@ -65,20 +78,31 @@
     else if (LanguageCode != "en")
     {
         <label class="form-label" for="@($"term-{controlId}")">@LanguageCode translation</label>
-        <input id="@($"term-{controlId}")" class="form-control" @bind="text"
+        <input id="@($"term-{controlId}")" class="form-control" @bind="text" readonly="@(!CanSaveTerm)"
                @bind:after="TranslationTextChanged"/>
         <label class="form-label mt-2" for="@($"explanation-{controlId}")">
             Explanation in @LanguageCode (<strong>if</strong> needed to clarify why this is translated like this)
         </label>
         <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
+                  readonly="@(!CanSaveTerm)"
                   @bind:after="NotifyDirtyState"></textarea>
-        <select class="form-select mt-2" @bind="state" @bind:after="NotifyDirtyState">
+        <select class="form-select mt-2" @bind="state" disabled="@(!CanSaveTerm)" @bind:after="NotifyDirtyState">
             <option value="@TranslationState.NeedsTranslation">Needs changes</option>
             <option value="@TranslationState.Translated">Translated</option>
         </select>
-        <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
-                OnPressed="@Save">Save Term
-        </Button>
+        @if (CanSaveTerm)
+        {
+            <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
+                    OnPressed="@Save">Save Term
+            </Button>
+        }
+        else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
+        {
+            <p class="mt-2">
+                <NavLink href="@Navigation.GetLinkToLogin("Log in to translate dictionary terms")">Log in</NavLink>
+                to edit this term.
+            </p>
+        }
         <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-2" OnClosed="ClearMessage"/>
     }
 </div>
@@ -122,6 +146,10 @@
     public int ResetVersion { get; set; }
 
     private bool CanManage => UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin;
+
+    private bool CanEditTarget => UserInfo.HasAccessLevel(GroupType.User);
+
+    private bool CanSaveTerm => LanguageCode == "en" ? CanManage : CanEditTarget;
 
     private bool IsDirty => text != loadedTargetText || explanation != loadedTargetExplanation || state != loadedState ||
         (Term.IsLanguageSpecific && sourceWord != loadedSourceWord) ||
@@ -186,6 +214,9 @@
 
     private async Task Save()
     {
+        if (!CanSaveTerm)
+            return;
+
         saving = true;
         message = null;
         await InvokeAsync(StateHasChanged);
