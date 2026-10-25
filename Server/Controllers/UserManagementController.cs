@@ -118,11 +118,7 @@ public class UserManagementController : Controller
         return user.GetDTO(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
     }
 
-    // TODO: should this be allowed for non-logged in users so that the uploader names in public folder items
-    // could be shown?
-
     [HttpPost("usernames")]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
     {
         var users = await database.Users.Where(u => ids.Contains(u.Id))
