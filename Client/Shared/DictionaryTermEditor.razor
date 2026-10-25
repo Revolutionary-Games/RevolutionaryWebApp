@@ -64,12 +64,12 @@
     }
     else if (LanguageCode != "en")
     {
-        /* TODO: show the English text here if it isn't easily available */
-
         <label class="form-label" for="@($"term-{controlId}")">@LanguageCode translation</label>
         <input id="@($"term-{controlId}")" class="form-control" @bind="text"
-               @bind:after="NotifyDirtyState"/>
-        <label class="form-label mt-2" for="@($"explanation-{controlId}")">Explanation in @LanguageCode</label>
+               @bind:after="TranslationTextChanged"/>
+        <label class="form-label mt-2" for="@($"explanation-{controlId}")">
+            Explanation in @LanguageCode (<strong>if</strong> needed to clarify why this is translated like this)
+        </label>
         <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
                   @bind:after="NotifyDirtyState"></textarea>
         <select class="form-select mt-2" @bind="state" @bind:after="NotifyDirtyState">
@@ -165,6 +165,12 @@
         loadedTargetExplanation = explanation;
         loadedEntryContext = context;
         loadedState = state;
+    }
+
+    private Task TranslationTextChanged()
+    {
+        state = string.IsNullOrWhiteSpace(text) ? TranslationState.NeedsTranslation : TranslationState.Translated;
+        return NotifyDirtyState();
     }
 
     private Task NotifyDirtyState()
