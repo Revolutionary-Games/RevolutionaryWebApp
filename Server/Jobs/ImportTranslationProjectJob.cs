@@ -64,7 +64,8 @@ public class ImportTranslationProjectJob
                 await GitRunHelpers.Clean(checkout, cancellationToken);
                 var sha = await GitRunHelpers.GetCurrentCommit(checkout, cancellationToken);
 
-                await using var projectLock = sha != project.LastImportedSha ?
+                var needsSourceBackfill = await NeedsSourceValueBackfill(project, cancellationToken);
+                await using var projectLock = sha != project.LastImportedSha || needsSourceBackfill ?
                     await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId, cancellationToken) :
                     null;
                 if (projectLock != null)
@@ -84,7 +85,8 @@ public class ImportTranslationProjectJob
                             "Translation project configuration changed during import; retry the import");
                     }
 
-                    if (sha != project.LastImportedSha)
+                    if (sha != project.LastImportedSha ||
+                        await NeedsSourceValueBackfill(project, cancellationToken))
                     {
                         await ImportFiles(project, checkout, sha, cancellationToken);
                         project.LastImportedSha = sha;
@@ -126,9 +128,38 @@ public class ImportTranslationProjectJob
         }
     }
 
+    private async Task<bool> NeedsSourceValueBackfill(TranslationProject project,
+        CancellationToken cancellationToken)
+    {
+        var hasSourceLanguage = await database.TranslationProjectLanguages.AnyAsync(language =>
+                language.ProjectId == project.Id && language.LanguageCode == project.SourceLanguage,
+            cancellationToken);
+        if (!hasSourceLanguage)
+            return true;
+
+        return await database.TranslationUnits.AnyAsync(unit => unit.ProjectId == project.Id && unit.Active &&
+            !database.TranslationValues.Any(value => value.ProjectId == unit.ProjectId &&
+                value.Key == unit.Key && value.LanguageCode == project.SourceLanguage), cancellationToken);
+    }
+
     private async Task ImportFiles(TranslationProject project, string checkout, string sha,
         CancellationToken cancellationToken)
     {
+        var sourceLanguage = await database.TranslationProjectLanguages.FirstOrDefaultAsync(language =>
+                language.ProjectId == project.Id && language.LanguageCode == project.SourceLanguage,
+            cancellationToken);
+        if (sourceLanguage == null)
+        {
+            sourceLanguage = new TranslationProjectLanguage
+            {
+                ProjectId = project.Id,
+                LanguageCode = project.SourceLanguage,
+                DisplayName = project.SourceLanguage,
+            };
+            await database.TranslationProjectLanguages.AddAsync(sourceLanguage, cancellationToken);
+        }
+
+        sourceLanguage.Enabled = true;
         var languages = await database.TranslationProjectLanguages
             .Where(l => l.ProjectId == project.Id && l.Enabled && l.LanguageCode != project.SourceLanguage)
             .ToListAsync(cancellationToken);
@@ -185,7 +216,7 @@ public class ImportTranslationProjectJob
 
             foreach (var entry in parsed)
             {
-                seenKeys.Add(entry.Key);
+                var firstSourceEntry = seenKeys.Add(entry.Key);
                 var unit = await database.TranslationUnits.FindAsync([project.Id, entry.Key],
                     cancellationToken);
                 var sourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(entry.SourceText)));
@@ -201,37 +232,87 @@ public class ImportTranslationProjectJob
                     };
                     await database.TranslationUnits.AddAsync(unit, cancellationToken);
                 }
-                else if (unit.SourceHash != sourceHash)
-                {
-                    unit.SourceText = entry.SourceText;
-                    unit.SourceHash = sourceHash;
-                    ++unit.SourceRevision;
-                    unit.SourceUpdatedAt = DateTime.UtcNow;
-                    var oldValues = await database.TranslationValues
-                        .Where(v => v.ProjectId == project.Id && v.Key == entry.Key).ToListAsync(cancellationToken);
-                    foreach (var oldValue in oldValues)
-                    {
-                        if (oldValue.State == TranslationState.NeedsTranslation)
-                            continue;
-
-                        var oldState = oldValue.State;
-                        oldValue.State = TranslationState.NeedsTranslation;
-                        oldValue.Version = Guid.NewGuid();
-                        oldValue.PendingSince ??= DateTime.UtcNow;
-                        oldValue.PendingRevision = ++project.CurrentRevision;
-                        await database.TranslationChanges.AddAsync(new TranslationChange
-                        {
-                            ProjectId = project.Id, Key = entry.Key, LanguageCode = oldValue.LanguageCode,
-                            Kind = TranslationChangeKind.SourceChanged, OldText = oldValue.Text,
-                            NewText = oldValue.Text, OldState = oldState, NewState = oldValue.State,
-                            SourceRevision = unit.SourceRevision, ProjectRevision = project.CurrentRevision,
-                        }, cancellationToken);
-                    }
-                }
 
                 unit.Active = true;
                 unit.Description = entry.Description;
                 unit.SourceLocations = entry.SourceLocations;
+
+                // Source entries are shared by all target catalogs; import each key only once.
+                if (firstSourceEntry)
+                {
+                    var sourceValue = await database.TranslationValues.FindAsync(
+                        [project.Id, entry.Key, project.SourceLanguage], cancellationToken);
+                    if (sourceValue == null)
+                    {
+                        sourceValue = new TranslationValue
+                        {
+                            ProjectId = project.Id,
+                            Key = entry.Key,
+                            LanguageCode = project.SourceLanguage,
+                            Text = unit.SourceText,
+                            LastImportedText = unit.SourceText,
+                            State = TranslationState.Translated,
+                            SourceRevisionTranslatedFrom = unit.SourceRevision,
+                            SourceTextTranslatedFrom = unit.SourceText,
+                        };
+                        await database.TranslationValues.AddAsync(sourceValue, cancellationToken);
+                    }
+
+                    var previousSourceText = unit.SourceText;
+                    var previousSourceState = sourceValue.State;
+                    var sourceImportResult = TranslationRemoteImport.Apply(sourceValue, entry.SourceText, false);
+                    unit.SourceHash = sourceHash;
+                    if (sourceImportResult == TranslationRemoteImportResult.Conflict)
+                    {
+                        var exists = await database.TranslationImportConflicts.AnyAsync(conflict =>
+                            conflict.ProjectId == project.Id && conflict.Key == entry.Key &&
+                            conflict.LanguageCode == project.SourceLanguage && conflict.ResolvedAt == null &&
+                            conflict.IncomingText == entry.SourceText, cancellationToken);
+                        if (!exists)
+                        {
+                            await database.TranslationImportConflicts.AddAsync(new TranslationImportConflict
+                            {
+                                ProjectId = project.Id,
+                                Key = entry.Key,
+                                LanguageCode = project.SourceLanguage,
+                                LocalText = sourceValue.Text,
+                                IncomingText = entry.SourceText,
+                            }, cancellationToken);
+                            conflictWarnings.Add($"Source text conflict in {project.Name}, key {entry.Key}. " +
+                                "An admin needs to resolve it in the translation UI.");
+                        }
+                    }
+                    else
+                    {
+                        if (unit.SourceText != sourceValue.Text)
+                        {
+                            unit.SourceText = sourceValue.Text;
+                            ++unit.SourceRevision;
+                            unit.SourceUpdatedAt = DateTime.UtcNow;
+                            await TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
+                                cancellationToken);
+                        }
+
+                        sourceValue.SourceRevisionTranslatedFrom = unit.SourceRevision;
+                        sourceValue.SourceTextTranslatedFrom = unit.SourceText;
+                        if (sourceImportResult == TranslationRemoteImportResult.TextChanged)
+                        {
+                            await database.TranslationChanges.AddAsync(new TranslationChange
+                            {
+                                ProjectId = project.Id,
+                                Key = entry.Key,
+                                LanguageCode = project.SourceLanguage,
+                                Kind = TranslationChangeKind.SystemImport,
+                                OldText = previousSourceText,
+                                NewText = sourceValue.Text,
+                                OldState = previousSourceState,
+                                NewState = sourceValue.State,
+                                SourceRevision = unit.SourceRevision,
+                                ProjectRevision = ++project.CurrentRevision,
+                            }, cancellationToken);
+                        }
+                    }
+                }
 
                 var value = await database.TranslationValues.FindAsync([project.Id, entry.Key, language.LanguageCode],
                     cancellationToken);
