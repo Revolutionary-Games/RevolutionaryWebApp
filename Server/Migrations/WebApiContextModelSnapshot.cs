@@ -4339,6 +4339,12 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(250)")
                         .HasColumnName("context");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("timezone('utc', now())");
+
                     b.Property<string>("Explanation")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -4382,6 +4388,12 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)")
                         .HasColumnName("context");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("timezone('utc', now())");
 
                     b.Property<string>("Explanation")
                         .HasMaxLength(500)
@@ -4490,6 +4502,12 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(35)
                         .HasColumnType("character varying(35)")
                         .HasColumnName("language_code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("timezone('utc', now())");
 
                     b.Property<string>("Explanation")
                         .HasMaxLength(500)

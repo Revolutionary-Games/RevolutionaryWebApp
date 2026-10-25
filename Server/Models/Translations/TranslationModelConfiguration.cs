@@ -95,6 +95,7 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<DictionaryTerm>(entity =>
         {
             entity.HasKey(t => new { t.DictionaryId, t.Word, t.Context });
+            entity.Property(t => t.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             entity.HasOne(t => t.Dictionary).WithMany(d => d.Terms).HasForeignKey(t => t.DictionaryId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(t => t.LastEditedByUser).WithMany(u => u.LastEditedDictionaryTerms)
@@ -105,6 +106,7 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<DictionaryTermTranslation>(entity =>
         {
             entity.HasKey(t => new { t.DictionaryId, t.Word, t.Context, t.LanguageCode });
+            entity.Property(t => t.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             entity.HasOne(t => t.Term).WithMany(d => d.Translations)
                 .HasForeignKey(t => new { t.DictionaryId, t.Word, t.Context })
                 .OnDelete(DeleteBehavior.Restrict);
@@ -116,6 +118,7 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<DictionaryLanguageTerm>(entity =>
         {
             entity.HasKey(t => new { t.DictionaryId, t.LanguageCode, t.Word, t.Context });
+            entity.Property(t => t.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             entity.HasOne(t => t.Dictionary).WithMany(d => d.LanguageTerms).HasForeignKey(t => t.DictionaryId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(t => t.LastEditedByUser).WithMany().HasForeignKey(t => t.LastEditedByUserId)

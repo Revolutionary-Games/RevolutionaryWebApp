@@ -53,6 +53,7 @@ public class DictionaryTerm : IUpdateNotifications, IHasUpdatedAt
     public string? Explanation { get; set; }
 
     public long? LastEditedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public TranslationDictionary Dictionary { get; set; } = null!;
@@ -108,6 +109,7 @@ public class DictionaryTermTranslation : IUpdateNotifications, IHasUpdatedAt
 
     public TranslationState State { get; set; }
     public long? LastEditedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Guid Version { get; set; } = Guid.NewGuid();
 
@@ -151,6 +153,7 @@ public class DictionaryLanguageTerm : IUpdateNotifications, IHasUpdatedAt
     public string? Explanation { get; set; }
 
     public long? LastEditedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public TranslationDictionary Dictionary { get; set; } = null!;
