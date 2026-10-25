@@ -3,6 +3,8 @@ namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Common.Utilities;
 using Hangfire;
@@ -11,7 +13,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using NSubstitute.Extensions;
 using Server.Authorization;
@@ -69,34 +70,105 @@ public sealed class LoginControllerTests : IDisposable
         logger = new XunitLogger<LoginController>(output);
     }
 
-    [Fact]
-    public void LoginController_DiscourseGroupMembershipCheckWorks()
+    [Theory]
+    [InlineData(null, null, false)]
+    [InlineData("trust_level_0", null, false)]
+    [InlineData("Supporter,VIP_supporter", null, false)]
+    [InlineData(null, LoginController.SsoTypePatreon, false)]
+    [InlineData(null, LoginController.SsoTypeDevForum, false)]
+    [InlineData(null, LoginController.SsoTypeCommunityForum, true)]
+    public async Task LoginController_CommunityLoginChecksAccountInsteadOfSupporterGroups(string? groups,
+        string? existingSource, bool developer)
     {
-        StringValues groups = new StringValues(new[]
+        string? seenSessionId = null;
+        var cookiesMock = Substitute.For<IResponseCookies>();
+        cookiesMock.When(cookies =>
+                cookies.Append(AppInfo.SessionCookieName, Arg.Any<string>(), Arg.Any<CookieOptions>()))
+            .Do(x => { seenSessionId = x.ArgAt<string>(1).Split(':')[0]; });
+
+        SetupPatronMocks(cookiesMock, out var csrfMock, out var notificationsMock, out var jobClientMock,
+            out var patreonMock, out var requestCookiesMock, out var httpContextMock);
+
+        const string secret = "CommunityTestSecret";
+        var configuration = CreateConfiguration(false, false);
+        configuration["Login:CommunityForum:SsoSecret"] = secret;
+        configuration["Login:CommunityForum:BaseUrl"] = "https://community.example.com/";
+
+        await using var database = CreateMemoryDatabase(Guid.NewGuid().ToString(), notificationsMock);
+
+        User? existingUser = null;
+        if (existingSource != null)
         {
-            "Supporter", "Developer", "VIP_supporter", "trust_level_0", "trust_level_2", "trust_level_3",
-            "trust_level_1",
+            existingUser = new User(PatronEmail, "communityuser")
+            {
+                SsoSource = existingSource,
+                Local = false,
+            };
+            if (developer)
+            {
+                var developerGroup = new UserGroup(GroupType.Developer, "Developer");
+                database.UserGroups.Add(developerGroup);
+                existingUser.Groups.Add(developerGroup);
+            }
+
+            existingUser.ForceResolveGroupsForTesting(new CachedUserGroups(
+                developer ? GroupType.Developer : GroupType.User));
+            database.Users.Add(existingUser);
+            await database.SaveChangesAsync();
+        }
+
+        var controller = new LoginController(logger, database, configuration, csrfMock,
+            new RedirectVerifier(configuration), patreonMock, jobClientMock)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContextMock },
+        };
+
+        await controller.StartSsoLogin(new SsoStartFormData
+        {
+            SsoType = LoginController.SsoTypeCommunityForum,
+            CSRF = CSRFValue,
         });
 
-        Assert.Contains(groups, group =>
-            DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
-            DiscourseApiHelpers.CommunityVIPGroup.Equals(group));
+        Assert.NotNull(seenSessionId);
+        var session = await database.Sessions.Include(session => session.User).SingleAsync();
+        requestCookiesMock.TryGetValue(AppInfo.SessionCookieName, out Arg.Any<string>()!)
+            .Returns(x =>
+            {
+                x[1] = seenSessionId + ":-1";
+                return true;
+            });
 
-        var blockString =
-            "Supporter,Developer,VIP_supporter,trust_level_0,trust_level_2,trust_level_3,trust_level_1";
+        var payload = $"nonce={session.SsoNonce}&email={PatronEmail}&username=communityuser";
+        if (groups != null)
+            payload += "&groups=" + groups;
 
-        var parsedGroups = blockString.Split(',');
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload));
+        var signature = Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret),
+            Encoding.UTF8.GetBytes(encoded))).ToLowerInvariant();
 
-        Assert.Contains(parsedGroups, group =>
-            DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
-            DiscourseApiHelpers.CommunityVIPGroup.Equals(group));
+        var result = Assert.IsType<RedirectResult>(await controller.SsoReturnCommunity(encoded, signature));
+        if (developer || existingSource == LoginController.SsoTypeDevForum)
+        {
+            Assert.Contains("developer account", WebUtility.UrlDecode(result.Url));
+            Assert.Null(session.User);
+            Assert.Equal(existingSource, existingUser!.SsoSource);
+        }
+        else
+        {
+            Assert.Equal("/", result.Url);
+            var loggedInSession =
+                await database.Sessions.Include(s => s.User).ThenInclude(user => user!.Groups).SingleAsync();
+            Assert.NotNull(loggedInSession.User);
+            Assert.Equal(LoginController.SsoTypeCommunityForum, loggedInSession.User.SsoSource);
+            Assert.DoesNotContain(loggedInSession.User.Groups, g => g.Id == GroupType.PatreonSupporter);
+            Assert.Empty(database.Patrons);
+        }
     }
 
     [Fact]
     public void PatreonLoginRejectsSyntheticEmail()
     {
-        var error = LoginController.GetPatreonEmailError(
-            "noreply+patron-user-1@revolutionarygamesstudio.com");
+        var error = LoginController.GetPatreonEmailError("noreply+patron-user-1@revolutionarygamesstudio.com");
 
         Assert.Equal(LoginController.InvalidPatreonEmailMessage, error);
         Assert.Null(LoginController.GetPatreonEmailError("patron@example.com"));

@@ -136,7 +136,7 @@ public class LoginController : SSOLoginController
                 },
                 new()
                 {
-                    Name = "Supporter (patron) login",
+                    Name = "SSO Login",
                     Options = new List<LoginOption>
                     {
                         new()
@@ -144,12 +144,6 @@ public class LoginController : SSOLoginController
                             ReadableName = "Login Using a Community Forum Account",
                             InternalName = SsoTypeCommunityForum,
                             Active = CommunityForumConfigured,
-                        },
-                        new()
-                        {
-                            ReadableName = "Login Using Patreon",
-                            InternalName = SsoTypePatreon,
-                            Active = PatreonConfigured,
                         },
                     },
                 },
@@ -164,6 +158,19 @@ public class LoginController : SSOLoginController
                             InternalName = "local",
                             Active = localLoginEnabled,
                             Local = true,
+                        },
+                    },
+                },
+                new()
+                {
+                    Name = "Supporter (patron) login",
+                    Options = new List<LoginOption>
+                    {
+                        new()
+                        {
+                            ReadableName = "Login Using Patreon",
+                            InternalName = SsoTypePatreon,
+                            Active = PatreonConfigured,
                         },
                     },
                 },
@@ -583,30 +590,6 @@ public class LoginController : SSOLoginController
 
             var email = emailRaw[0];
 
-            if (ssoType == SsoTypeCommunityForum)
-            {
-                // Check membership in required groups
-
-                if (!payload.TryGetValue("groups", out StringValues groups))
-                    return GetInvalidSsoParametersResult();
-
-                var parsedGroups = groups.Where(g => g != null).SelectMany(g => g!.Split(','));
-
-                if (!parsedGroups.Any(group =>
-                        DiscourseApiHelpers.CommunityDevBuildGroup.Equals(group) ||
-                        DiscourseApiHelpers.CommunityVIPGroup.Equals(group)))
-                {
-                    Logger.LogInformation(
-                        "Not allowing login due to missing group membership for: {Email}, groups: {ParsedGroups}",
-                        email,
-                        parsedGroups);
-                    return Redirect(QueryHelpers.AddQueryString("/login", "error",
-                        "You must be either in the Supporter or VIP supporter group to login. " +
-                        "These are granted to our Patrons. If you just signed up, please wait up to an " +
-                        "hour for groups to sync."));
-                }
-            }
-
             var username = email;
 
             if (payload.TryGetValue("username", out StringValues usernameRaw) && usernameRaw.Count > 0)
@@ -738,7 +721,19 @@ public class LoginController : SSOLoginController
         var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == email);
 
         if (user != null)
+        {
             await user.ComputeUserGroups(Database);
+
+            if ((ssoType == SsoTypeCommunityForum || user.SsoSource != ssoType) &&
+                (user.SsoSource == SsoTypeDevForum ||
+                    user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer)))
+            {
+                return (Redirect(QueryHelpers.AddQueryString("/login", "error",
+                        "Your account is a developer account. You need to login through the Development Forums " +
+                        "(or a local password).")),
+                    false);
+            }
+        }
 
         var developerGroup = new Lazy<Task<UserGroup>>(async () =>
             await Database.UserGroups.FindAsync(GroupType.Developer) ??
@@ -784,14 +779,6 @@ public class LoginController : SSOLoginController
             Logger.LogInformation(
                 "User logged in with different SSO source than before, new: {SsoType}, old: {SsoSource}", ssoType,
                 user.SsoSource);
-
-            if (user.SsoSource == SsoTypeDevForum ||
-                user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer))
-            {
-                return (Redirect(QueryHelpers.AddQueryString("/login", "error",
-                        "Your account is a developer account. You need to login through the Development Forums.")),
-                    false);
-            }
 
             // TODO: remove most of these account type changes
             if (ssoType == SsoTypeDevForum)
