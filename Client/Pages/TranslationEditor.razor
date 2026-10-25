@@ -205,7 +205,10 @@ else
                             {
                                 <span>system</span>
                             }
-                            <small class="text-muted ms-2">@change.CreatedAt.ToLocalTime().ToString("g")</small>
+                            <small class="text-muted ms-2">
+                                <RecentTimeShortener Time="@change.CreatedAt" IncludeSeconds="@false"
+                                                     ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
+                            </small>
                             <div>@change.OldState → @change.NewState</div>
                             @if (change.OldText != change.NewText)
                             {
@@ -221,7 +224,10 @@ else
                     {
                         <div class="border-bottom pb-2 mb-2">
                             <UsernameDisplayer UserId="@comment.AuthorUserId"/>
-                            <small class="text-muted ms-2">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
+                            <small class="text-muted ms-2">
+                                <RecentTimeShortener Time="@comment.CreatedAt" IncludeSeconds="@false"
+                                                     ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
+                            </small>
                             <MarkdownRenderer MarkdownText="@comment.RawMarkdown"/>
                         </div>
                     }
