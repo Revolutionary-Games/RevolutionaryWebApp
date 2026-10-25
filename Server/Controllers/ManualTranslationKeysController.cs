@@ -28,6 +28,7 @@ public sealed class ManualTranslationKeysController : Controller
     }
 
     [HttpPost("{projectId:long}")]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> Create(long projectId, [FromBody] CreateManualTranslationKeyRequest request)
     {
         var actor = HttpContext.AuthenticatedUser();

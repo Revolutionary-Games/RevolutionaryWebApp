@@ -185,6 +185,7 @@ public class TranslationEditorController : Controller
 
     [HttpPut]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<ActionResult<TranslationEditorDTO>> Save([FromBody] TranslationSaveRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();

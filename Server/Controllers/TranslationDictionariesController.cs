@@ -197,6 +197,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPost("terms")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> AddTerm([FromBody] CreateDictionaryTermRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
@@ -249,6 +250,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPut("terms/source")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> SaveSourceTerm([FromBody] SaveDictionaryTermRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
@@ -347,6 +349,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPost("terms/language")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> AddLanguageTerm([FromBody] CreateDictionaryLanguageTermRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
@@ -400,6 +403,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPut("terms/language")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> SaveLanguageTerm([FromBody] SaveDictionaryLanguageTermRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
@@ -472,6 +476,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPut("terms/translation")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> SaveTranslation([FromBody] SaveDictionaryTranslationRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
@@ -526,6 +531,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPost("requests")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> RequestTerm([FromBody] CreateDictionaryTermRequest request)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
@@ -583,6 +589,7 @@ public class TranslationDictionariesController : Controller
 
     [HttpPost("requests/{id:long}/approve")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.DictionaryManager, AllowAdmin = true)]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> ApproveRequest(long id)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();

@@ -54,6 +54,7 @@ public class TranslationSuggestionsController : Controller
     }
 
     [HttpPost]
+    [RequireTranslatorAgreement]
     public async Task<ActionResult<TranslationSuggestionDTO>> Create(
         [FromBody] CreateTranslationSuggestionRequest request)
     {
@@ -146,6 +147,7 @@ public class TranslationSuggestionsController : Controller
     }
 
     [HttpPost("{id:long}/accept")]
+    [RequireTranslatorAgreement]
     public async Task<IActionResult> Accept(long id)
     {
         var actor = HttpContext.AuthenticatedUser();
