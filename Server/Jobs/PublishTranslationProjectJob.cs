@@ -15,7 +15,6 @@ using Models;
 using Models.Translations;
 using Services;
 using Shared.Models;
-using SharedBase.Utilities;
 
 /// <summary>
 ///   Regenerates an app-owned PR branch from the latest public upstream branch.
@@ -24,6 +23,7 @@ using SharedBase.Utilities;
 public sealed class PublishTranslationProjectJob
 {
     private readonly ApplicationDbContext database;
+    private readonly TranslationRepositoryOperations repository;
     private readonly ILocalTempFileLocks fileLocks;
     private readonly ITranslationGithubTokenProvider tokenProvider;
     private readonly IConfiguration configuration;
@@ -31,9 +31,10 @@ public sealed class PublishTranslationProjectJob
 
     public PublishTranslationProjectJob(ApplicationDbContext database, ILocalTempFileLocks fileLocks,
         ITranslationGithubTokenProvider tokenProvider, IConfiguration configuration,
-        ILogger<PublishTranslationProjectJob> logger)
+        ILogger<PublishTranslationProjectJob> logger, TranslationRepositoryOperations? repository = null)
     {
         this.database = database;
+        this.repository = repository ?? new TranslationRepositoryOperations();
         this.fileLocks = fileLocks;
         this.tokenProvider = tokenProvider;
         this.configuration = configuration;
@@ -135,12 +136,8 @@ public sealed class PublishTranslationProjectJob
             .ToListAsync(cancellationToken);
         var pending = values.Where(v => v.PendingRevision != null).ToArray();
         var snapshotRevision = project.CurrentRevision;
-        await GitRunHelpers.EnsureRepoIsCloned($"https://github.com/{project.RepositoryFullName}.git", checkout,
-            true, cancellationToken);
-        await GitRunHelpers.FetchRef(checkout, $"refs/heads/{project.SourceBranch}", cancellationToken);
-        await GitRunHelpers.Checkout(checkout, $"origin/{project.SourceBranch}", true, cancellationToken, true);
-        await GitRunHelpers.Clean(checkout, cancellationToken);
-        var upstreamSha = await GitRunHelpers.GetCurrentCommit(checkout, cancellationToken);
+        var upstreamSha = await repository.PrepareCheckout(project.RepositoryFullName, project.SourceBranch,
+            checkout, cancellationToken);
         run.UpstreamSha = upstreamSha;
         if (upstreamSha != project.LastImportedSha)
         {
@@ -148,7 +145,7 @@ public sealed class PublishTranslationProjectJob
                 "Upstream changed since import; import the new commit before publishing");
         }
 
-        using var github = new TranslationGithubClient(token);
+        using var github = repository.CreateGithubClient(token);
         var forkOwner = await github.GetLogin(cancellationToken);
         await github.EnsureFork(project.RepositoryFullName, forkOwner, cancellationToken);
         var tracked = await database.TranslationPullRequests.FindAsync([project.Id],
@@ -175,8 +172,7 @@ public sealed class PublishTranslationProjectJob
         var branch = reusePr ?
             tracked!.HeadBranch :
             $"devcenter/translations/{project.Id}/{DateTime.UtcNow:yyyyMMddHHmmss}";
-        await GitRunHelpers.CheckoutNewBranch(checkout, branch, $"origin/{project.SourceBranch}", true,
-            cancellationToken);
+        await repository.CheckoutNewBranch(checkout, branch, project.SourceBranch, cancellationToken);
 
         var sourceContent = await File.ReadAllTextAsync(SafeFile(checkout, project.SourceFilePattern),
             cancellationToken);
@@ -288,7 +284,7 @@ public sealed class PublishTranslationProjectJob
             return;
         }
 
-        var headSha = await GitRunHelpers.GetCurrentCommit(checkout, cancellationToken);
+        var headSha = await repository.GetCurrentCommit(checkout, cancellationToken);
         var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"x-access-token:{token}"));
         var authEnvironment = new Dictionary<string, string>
         {
@@ -297,7 +293,7 @@ public sealed class PublishTranslationProjectJob
             ["GIT_CONFIG_VALUE_0"] = $"AUTHORIZATION: basic {auth}",
         };
         var expected = reusePr ? tracked!.HeadSha ?? string.Empty : string.Empty;
-        await GitRunHelpers.PushBranch(checkout,
+        await repository.PushBranch(checkout,
             $"https://github.com/{forkOwner}/{project.RepositoryFullName.Split('/')[1]}.git", branch, expected,
             authEnvironment, cancellationToken);
 
@@ -333,7 +329,6 @@ public sealed class PublishTranslationProjectJob
 
         // TODO: do we need to preserve encoding or BOM marks?
         await File.WriteAllTextAsync(fullPath, content, cancellationToken);
-        await GitRunHelpers.Add(checkout, path, cancellationToken);
         var contributors = changes.Where(change => change.LanguageCode == languageCode)
             .GroupBy(change => change.ContributorUserId!.Value).OrderByDescending(group => group.Count())
             .ThenBy(group => group.Key).Select(group => authors.GetValueOrDefault(group.Key))
@@ -355,8 +350,7 @@ public sealed class PublishTranslationProjectJob
         };
 
         // TODO: Allow each translation project to configure whether commit checks should run.
-        await GitRunHelpers.Commit(checkout, message.ToString(), path, environment, cancellationToken,
-            noVerify: true);
+        await repository.CommitFile(checkout, path, message.ToString(), environment, cancellationToken);
         return true;
     }
 

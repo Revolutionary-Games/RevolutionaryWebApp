@@ -15,7 +15,6 @@ using Models;
 using Models.Translations;
 using Services;
 using Shared.Models;
-using SharedBase.Utilities;
 
 /// <summary>
 ///   Imports current translations from the configured public repository branch.
@@ -27,14 +26,16 @@ public class ImportTranslationProjectJob
     private readonly ApplicationDbContext database;
     private readonly ILocalTempFileLocks fileLocks;
     private readonly IBackgroundJobClient jobs;
+    private readonly TranslationRepositoryOperations repository;
 
     public ImportTranslationProjectJob(ILogger<ImportTranslationProjectJob> logger, ApplicationDbContext database,
-        ILocalTempFileLocks fileLocks, IBackgroundJobClient jobs)
+        ILocalTempFileLocks fileLocks, IBackgroundJobClient jobs, TranslationRepositoryOperations? repository = null)
     {
         this.logger = logger;
         this.database = database;
         this.fileLocks = fileLocks;
         this.jobs = jobs;
+        this.repository = repository ?? new TranslationRepositoryOperations();
     }
 
     public async Task Execute(long projectId, CancellationToken cancellationToken)
@@ -56,13 +57,8 @@ public class ImportTranslationProjectJob
 
             try
             {
-                var url = $"https://github.com/{project.RepositoryFullName}.git";
-                await GitRunHelpers.EnsureRepoIsCloned(url, checkout, true, cancellationToken);
-                await GitRunHelpers.FetchRef(checkout, $"refs/heads/{project.SourceBranch}", cancellationToken);
-                await GitRunHelpers.Checkout(checkout, $"origin/{project.SourceBranch}", true,
-                    cancellationToken, true);
-                await GitRunHelpers.Clean(checkout, cancellationToken);
-                var sha = await GitRunHelpers.GetCurrentCommit(checkout, cancellationToken);
+                var sha = await repository.PrepareCheckout(project.RepositoryFullName, project.SourceBranch!,
+                    checkout, cancellationToken);
 
                 var needsSourceBackfill = await NeedsSourceValueBackfill(project, cancellationToken);
                 await using var projectLock = sha != project.LastImportedSha || needsSourceBackfill ?
