@@ -121,6 +121,15 @@ public class UserManagementController : Controller
     [HttpPost("usernames")]
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
     {
+        if (ids.Count > 1000)
+            return BadRequest("Too big request");
+
+        if (ids.Count == 0)
+            return new Dictionary<long, string>();
+
+        if (ids.Count > 100 && HttpContext.AuthenticatedUser() == null)
+            return BadRequest("Can't request that many IDs");
+
         var users = await database.Users.Where(u => ids.Contains(u.Id))
             .Select(u => new Tuple<long, string>(u.Id, u.UserName)).ToListAsync();
 
@@ -148,7 +157,7 @@ public class UserManagementController : Controller
     public async Task<ActionResult<Dictionary<long, string>>> FindUserToPick(
         [Required] [StringLength(300, MinimumLength = AppInfo.MinNameLengthToLookFor)] [FromBody] string partialName)
     {
-        // TODO: case insensitive matching
+        // TODO: case-insensitive matching
         // TODO: fuzzy matching
         var users = await database.Users
             .Where(u => u.UserName.Contains(partialName) ||
