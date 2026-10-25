@@ -28,6 +28,11 @@ public sealed class TranslationEditorDTO
     [MaxLength(20000)]
     public string Text { get; set; } = string.Empty;
 
+    public DateTime KeyCreatedAt { get; set; }
+    public DateTime TranslationCreatedAt { get; set; }
+    public DateTime LastUpdatedAt { get; set; }
+    public long? LastEditedByUserId { get; set; }
+
     public TranslationState State { get; set; }
 
     public Guid Version { get; set; }

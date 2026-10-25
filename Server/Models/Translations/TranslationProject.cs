@@ -200,6 +200,8 @@ public class TranslationUnit : IUpdateNotifications
 
     public long SourceRevision { get; set; }
     public bool Active { get; set; } = true;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime SourceUpdatedAt { get; set; } = DateTime.UtcNow;
 
     public TranslationProject Project { get; set; } = null!;
@@ -248,6 +250,8 @@ public class TranslationValue : IUpdateNotifications
 
     public long? LastEditedByUserId { get; set; }
     public DateTime? LastEditedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public Guid Version { get; set; } = Guid.NewGuid();
     public long? PendingRevision { get; set; }
     public DateTime? PendingSince { get; set; }

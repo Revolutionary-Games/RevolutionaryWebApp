@@ -22,6 +22,7 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<TranslationUnit>(entity =>
         {
             entity.HasKey(u => new { u.ProjectId, u.Key });
+            entity.Property(u => u.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             entity.HasOne(u => u.Project).WithMany(p => p.Units).HasForeignKey(u => u.ProjectId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
@@ -29,6 +30,7 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<TranslationValue>(entity =>
         {
             entity.HasKey(v => new { v.ProjectId, v.Key, v.LanguageCode });
+            entity.Property(v => v.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             entity.HasOne(v => v.Unit).WithMany(u => u.Values).HasForeignKey(v => new { v.ProjectId, v.Key })
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(v => v.Language).WithMany(l => l.Values)
