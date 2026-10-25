@@ -1,0 +1,29 @@
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@inject CurrentUserInfo UserInfo
+@implements IDisposable
+
+@if (UserInfo.InfoReady && UserInfo.LoggedIn && !UserInfo.AcceptedTranslator)
+{
+    <div class="alert alert-warning" role="alert">
+        Before contributing translations, suggestions, or dictionary words, please read and accept the
+        <NavLink href="translations/agreement">translation agreement</NavLink>.
+    </div>
+}
+
+@code {
+    public void Dispose()
+    {
+        UserInfo.OnUserInfoChanged -= UserInfoChanged;
+    }
+
+    protected override void OnInitialized()
+    {
+        UserInfo.OnUserInfoChanged += UserInfoChanged;
+    }
+
+    private void UserInfoChanged(object? sender, UserDTO? info)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+}
