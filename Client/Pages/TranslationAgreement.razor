@@ -1,0 +1,106 @@
+@page "/translations/agreement"
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inherits UserInfoReactingComponent
+@implements IDisposable
+@inject HttpClient Http
+@inject CurrentUserInfo UserInfo
+
+<h3>Translation agreement</h3>
+
+@if (UserInfo.AcceptedTranslator)
+{
+    <div class="alert alert-success" role="status">You have already agreed to the translation terms.</div>
+}
+
+<p>
+    Contributions to Thrive translations and dictionaries are licensed under the MIT No Attribution (MIT-0) license
+    to the Thrive developers.
+    Please read the license and the
+    <a href="https://wiki.revolutionarygamesstudio.com/wiki/Translation_Guidelines">Translation Guidelines</a>
+    before agreeing.
+</p>
+
+<h4>MIT No Attribution (MIT-0)</h4>
+<p>
+    Copyright &copy; the translation contributors
+</p>
+<p>
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+    documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+    and to permit persons to whom the Software is furnished to do so.
+</p>
+<p>
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+    THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+    CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+    IN THE SOFTWARE.
+</p>
+
+<StatusMessageShower Message="@message" Type="SiteNoticeType.Danger" OnClosed="@(() => message = null)"/>
+
+<AccessLimited RequiredAccess="GroupType.RestrictedUser" AutoRedirectIfNotLoggedIn="true">
+    @if (!UserInfo.AcceptedTranslator)
+    {
+        <div class="form-check mb-3">
+            <input id="translator-agreement" type="checkbox" class="form-check-input" @bind="agreed"
+                   disabled="@saving"/>
+            <label class="form-check-label" for="translator-agreement">
+                I agree to license my translations and dictionary contributions to the Thrive development team under
+                the MIT-0 terms above and to follow the Translation Guidelines.
+            </label>
+        </div>
+        <Button ButtonStyle="primary" Enabled="@(agreed && !saving)" Spinner="@saving" OnPressed="Agree">
+            Agree
+        </Button>
+    }
+</AccessLimited>
+
+@code {
+    private bool agreed;
+    private bool saving;
+    private string? message;
+
+    private async Task Agree()
+    {
+        if (!agreed || saving)
+            return;
+
+        saving = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/translationAgreement", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not save your agreement: {await response.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            var user = await response.Content.ReadFromJsonAsync<UserDTO>();
+            if (user == null)
+            {
+                message = "Could not load your updated agreement status. Please reload the page.";
+            }
+            else
+            {
+                UserInfo.OnReceivedOurInfo(user);
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not save your agreement: {e.Message}";
+        }
+        finally
+        {
+            saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+}
