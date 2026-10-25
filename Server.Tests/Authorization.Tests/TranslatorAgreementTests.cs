@@ -86,7 +86,9 @@ public class TranslatorAgreementTests
         var result = await controller.Agree();
         Assert.True(result.Value!.AcceptedTranslator);
         database.ChangeTracker.Clear();
-        Assert.True((await database.Users.FindAsync(user.Id))!.AcceptedTranslator);
+        var reloadedUser = (await database.Users.FindAsync(user.Id))!;
+        Assert.True(reloadedUser.AcceptedTranslator);
+        reloadedUser.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         Assert.True((await controller.Agree()).Value!.AcceptedTranslator);
     }
 
