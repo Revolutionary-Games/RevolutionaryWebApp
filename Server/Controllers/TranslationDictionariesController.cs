@@ -82,7 +82,10 @@ public class TranslationDictionariesController : Controller
                 SourceWord = null,
                 Context = term.Context,
                 SourceExplanation = term.Explanation,
+                TargetText = string.Empty,
+                State = TranslationState.NeedsTranslation,
                 SourceLanguageCode = "en",
+                IsLanguageSpecific = false,
             });
         var languageTerms = database.DictionaryLanguageTerms.AsNoTracking()
             .Where(t => t.DictionaryId == id && t.LanguageCode == language)
