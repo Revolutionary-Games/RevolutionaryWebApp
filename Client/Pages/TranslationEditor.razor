@@ -22,8 +22,6 @@
 @implements INotificationHandler<TranslationDictionaryLanguagesUpdated>
 @implements IAsyncDisposable
 
-<StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
-
 @if (data == null && message == null)
 {
     <div class="spinner-border text-primary" role="status">
@@ -32,6 +30,8 @@
 }
 else if (data == null)
 {
+    <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
     <p>Could not load this translation.</p>
 }
 else
@@ -123,11 +123,11 @@ else
 
             @if (CanEditTranslation)
             {
-                <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!saving)" Spinner="@saving"
+                <Button ButtonStyle="outline-primary" class="me-2 mb-1" Enabled="@(!saving)" Spinner="@saving"
                         OnPressed="@Save">
                     Save
                 </Button>
-                <Button ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving" OnPressed="@SaveAndContinue">
+                <Button ButtonStyle="primary" class="mb-1" Enabled="@(!saving)" Spinner="@saving" OnPressed="@SaveAndContinue">
                     Save &amp; Continue
                 </Button>
             }
@@ -274,7 +274,8 @@ else
                             <label for="comment-scope" class="form-label">Who should see this discussion?</label>
                             <select id="comment-scope" class="form-select mb-2" @bind="commentScope">
                                 <option value="language">Only @data.LanguageCode translators</option>
-                                <option value="everyone">Everyone, including @project?.SourceLanguage contributors</option>
+                                <option value="everyone">Everyone, including @project?.SourceLanguage contributors
+                                </option>
                             </select>
                         }
 
