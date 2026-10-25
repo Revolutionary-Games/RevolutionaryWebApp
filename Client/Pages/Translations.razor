@@ -10,6 +10,7 @@
 @implements INotificationHandler<TranslationDictionaryListUpdated>
 @inherits ListDataPage<TranslationProjectDTO>
 
+<TranslationAgreementWarning/>
 <h3>Translation Projects</h3>
 
 @if (!string.IsNullOrEmpty(Error))

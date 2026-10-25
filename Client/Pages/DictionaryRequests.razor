@@ -10,6 +10,7 @@
 @implements INotificationHandler<TranslationDictionaryRequestsUpdated>
 @implements IAsyncDisposable
 
+<TranslationAgreementWarning/>
 <AccessLimited RequiredGroup="GroupType.DictionaryManager" OrHasOverride="GroupType.Admin"
                RedirectOnInsufficientPermission="true">
     <h3>Pending dictionary terms</h3>
