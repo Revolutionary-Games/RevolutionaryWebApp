@@ -66,6 +66,9 @@ else
     </div>
 }
 
+
+<hr/>
+
 @if (Language != "en")
 {
     <h4 class="mt-4">Add a @Language-specific term</h4>
@@ -83,7 +86,9 @@ else
         <input id="local-term-source-word" class="form-control" @bind="newLanguageSourceWord"/>
     </div>
     <div class="mb-2">
-        <label for="local-term-context" class="form-label">Context</label>
+        <label for="local-term-context" class="form-label">
+            Context (if needed to differentiate, leave blank otherwise)
+        </label>
         <input id="local-term-context" class="form-control" @bind="newLanguageContext"/>
     </div>
     <div class="mb-2">
@@ -103,7 +108,9 @@ else
     <input id="new-term-word" class="form-control" @bind="newWord"/>
 </div>
 <div class="mb-2">
-    <label for="new-term-context" class="form-label">Context</label>
+    <label for="new-term-context" class="form-label">
+        Context (if needed to differentiate the same word used to mean different things, leave blank otherwise)
+    </label>
     <input id="new-term-context" class="form-control" @bind="newContext"/>
 </div>
 <div class="mb-2">
