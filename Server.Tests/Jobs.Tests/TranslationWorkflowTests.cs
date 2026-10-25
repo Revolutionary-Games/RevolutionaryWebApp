@@ -25,21 +25,25 @@ using Xunit;
 
 public class TranslationWorkflowTests
 {
-    [Fact]
-    public async Task FirstImportUserEditsAndNonconflictingUpstreamChangePublishUpdatedGettextCatalogs()
+    [Theory]
+    [InlineData(TranslationFormat.Gettext)]
+    [InlineData(TranslationFormat.Resx)]
+    public async Task FirstImportUserEditsAndNonconflictingUpstreamChangePublishUpdatedCatalogs(
+        TranslationFormat format)
     {
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
             Substitute.For<IModelUpdateNotificationSender>());
+        var extension = format == TranslationFormat.Gettext ? "po" : "resx";
         var project = new TranslationProject
         {
             Name = "First deployment",
             Slug = "first-deployment",
-            Format = TranslationFormat.Gettext,
+            Format = format,
             RepositoryFullName = "example/translations",
             SourceBranch = "main",
-            SourceFilePattern = "template.pot",
-            TranslationFilePattern = "{language}.po",
+            SourceFilePattern = format == TranslationFormat.Gettext ? "template.pot" : "en.resx",
+            TranslationFilePattern = "{language}." + extension,
         };
         var user = new User("translator@example.com", "Translator");
         user.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.SourceTextTranslator));
@@ -50,12 +54,13 @@ public class TranslationWorkflowTests
         var checkout = Directory.CreateTempSubdirectory("translation-workflow-test-");
         try
         {
-            var template = Catalog(string.Empty, string.Empty, string.Empty);
-            var english = Catalog("Confirm", "Cancel", "Help");
-            var finnish = Catalog("Vahvista", string.Empty, string.Empty);
-            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "template.pot"), template);
-            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "en.po"), english);
-            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "fi.po"), finnish);
+            var template = Catalog(format, string.Empty, string.Empty, string.Empty);
+            var english = Catalog(format, "Confirm", "Cancel", "Help");
+            var finnish = Catalog(format, "Vahvista", string.Empty, string.Empty);
+            if (format == TranslationFormat.Gettext)
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "template.pot"), template);
+            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "en." + extension), english);
+            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension), finnish);
 
             var locks = Substitute.For<ILocalTempFileLocks>();
             locks.GetTempFilePath($"translationRepos/{project.Id}").Returns(checkout.FullName);
@@ -125,8 +130,8 @@ public class TranslationWorkflowTests
             Assert.NotNull(targetRevision);
 
             // Git still has the old English and confirmation texts but gains an unrelated Finnish translation.
-            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "fi.po"),
-                Catalog("Vahvista", "Peruuta", string.Empty));
+            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension),
+                Catalog(format, "Vahvista", "Peruuta", string.Empty));
             repository.PrepareCheckout(project.RepositoryFullName, project.SourceBranch, checkout.FullName,
                 CancellationToken.None).Returns("updated-upstream-sha");
             await import.Execute(project.Id, CancellationToken.None);
@@ -163,12 +168,10 @@ public class TranslationWorkflowTests
                 NullLogger<PublishTranslationProjectJob>.Instance, repository);
             await publish.Execute(project.Id, CancellationToken.None);
 
-            var finalEnglish = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "en.po"));
-            var finalFinnish = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "fi.po"));
-            var englishEntries = GettextTranslationParser.Parse(template, finalEnglish, finalEnglish)
-                .ToDictionary(entry => entry.Key);
-            var finnishEntries = GettextTranslationParser.Parse(template, finalEnglish, finalFinnish)
-                .ToDictionary(entry => entry.Key);
+            var finalEnglish = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "en." + extension));
+            var finalFinnish = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension));
+            var englishEntries = ParseCatalog(format, template, finalEnglish, finalEnglish);
+            var finnishEntries = ParseCatalog(format, template, finalEnglish, finalFinnish);
             Assert.Equal(3, englishEntries.Count);
             Assert.Equal(3, finnishEntries.Count);
             Assert.Equal("Confirm selection", englishEntries["CONFIRM_BUTTON"].TargetText);
@@ -178,10 +181,21 @@ public class TranslationWorkflowTests
             Assert.Equal("Vahvista valinta", finnishEntries["CONFIRM_BUTTON"].TargetText);
             Assert.Equal("Peruuta", finnishEntries["CANCEL_BUTTON"].TargetText);
             Assert.Equal(string.Empty, finnishEntries["HELP_BUTTON"].TargetText);
-            Assert.False(finnishEntries["CONFIRM_BUTTON"].Fuzzy);
-            Assert.False(finnishEntries["CANCEL_BUTTON"].Fuzzy);
-            Assert.True(finnishEntries["HELP_BUTTON"].Fuzzy);
-            Assert.Equal(template, await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "template.pot")));
+            if (format == TranslationFormat.Gettext)
+            {
+                var gettextEntries = GettextTranslationParser.Parse(template, finalEnglish, finalFinnish)
+                    .ToDictionary(entry => entry.Key);
+                Assert.False(gettextEntries["CONFIRM_BUTTON"].Fuzzy);
+                Assert.False(gettextEntries["CANCEL_BUTTON"].Fuzzy);
+                Assert.True(gettextEntries["HELP_BUTTON"].Fuzzy);
+                Assert.Equal(template, await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "template.pot")));
+            }
+            else
+            {
+                Assert.Equal(new[] { "en.resx", "fi.resx" }, checkout.GetFiles()
+                    .Select(file => file.Name).OrderBy(name => name).ToArray());
+            }
+
             Assert.Null(source.PendingRevision);
             Assert.Null(target.PendingRevision);
             Assert.Equal(sourceRevision, source.LastPublishedRevision);
@@ -199,10 +213,10 @@ public class TranslationWorkflowTests
                 Assert.NotNull(run.CompletedAt);
             });
 
-            await repository.Received(1).CommitFile(checkout.FullName, "en.po", "Update en translations",
+            await repository.Received(1).CommitFile(checkout.FullName, "en." + extension, "Update en translations",
                 Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.UserName),
                 CancellationToken.None);
-            await repository.Received(1).CommitFile(checkout.FullName, "fi.po", "Update fi translations",
+            await repository.Received(1).CommitFile(checkout.FullName, "fi." + extension, "Update fi translations",
                 Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.UserName),
                 CancellationToken.None);
             await repository.Received(1).PushBranch(checkout.FullName,
@@ -215,8 +229,23 @@ public class TranslationWorkflowTests
         }
     }
 
-    private static string Catalog(string confirm, string cancel, string help)
+    private static string Catalog(TranslationFormat format, string confirm, string cancel, string help)
     {
+        if (format == TranslationFormat.Resx)
+        {
+            return $"""
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <root>
+                      <data name="CONFIRM_BUTTON" xml:space="preserve">
+                        <value>{confirm}</value>
+                        <comment>Confirm the current selection</comment>
+                      </data>
+                      <data name="CANCEL_BUTTON" xml:space="preserve"><value>{cancel}</value></data>
+                      <data name="HELP_BUTTON" xml:space="preserve"><value>{help}</value></data>
+                    </root>
+                    """;
+        }
+
         return $"""
                 msgid ""
                 msgstr ""
@@ -233,6 +262,16 @@ public class TranslationWorkflowTests
                 msgstr "{help}"
 
                 """;
+    }
+
+    private static Dictionary<string, (string SourceText, string TargetText)> ParseCatalog(
+        TranslationFormat format, string template, string source, string target)
+    {
+        return format == TranslationFormat.Gettext ?
+            GettextTranslationParser.Parse(template, source, target)
+                .ToDictionary(entry => entry.Key, entry => (entry.SourceText, entry.TargetText)) :
+            ResxTranslationParser.Parse(source, target)
+                .ToDictionary(entry => entry.Key, entry => (entry.SourceText, entry.TargetText));
     }
 
     private static async Task<TranslationValue> Value(ApplicationDbContext database, long projectId, string key,
