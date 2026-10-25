@@ -248,8 +248,8 @@ else
                         <div class="border-bottom pb-2 mb-2">
                             <UsernameDisplayer UserId="@suggestion.AuthorUserId"/>
                             <small class="text-muted ms-2">Score: @suggestion.Score</small>
-                            @*TODO: show word diff against the current translation if the current translation is not empty *@
-                            <pre class="text-wrap">@suggestion.Text</pre>
+                            <TextDiffView OldText="@data.Text" NewText="@suggestion.Text"/>
+                            @* TODO: word-by-word diff viewer here as well *@
                             <Button Small="true" class="me-1" ButtonStyle="outline-primary"
                                     Enabled="@(processingAction == null)"
                                     Spinner="@(processingAction == $"vote-{suggestion.Id}")"
