@@ -290,7 +290,19 @@ else
             var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"api/v1/translationEditor/list?" +
                 $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&offset=0{stateParam}");
             if (result is { Length: > 0 })
+            {
                 Navigation.NavigateTo(EditorUrl(result[0].Key));
+            }
+            else if (state == "NeedsTranslation")
+            {
+                message = "Nothing found, everything is already translated!";
+                messageType = SiteNoticeType.Info;
+            }
+            else if (state == "Translated")
+            {
+                message = "Everything is verified already!";
+                messageType = SiteNoticeType.Info;
+            }
         }
         catch (Exception e)
         {
