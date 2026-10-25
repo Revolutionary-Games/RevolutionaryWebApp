@@ -57,6 +57,7 @@ public class TranslationSubscriptionsController : Controller
             if (user == null)
                 return Unauthorized();
 
+            await user.ComputeUserGroups(database);
             user.TranslationSubscriptionPromptShown = true;
         }
 
@@ -107,6 +108,7 @@ public class TranslationSubscriptionsController : Controller
         if (user == null)
             return Unauthorized();
 
+        await user.ComputeUserGroups(database);
         user.TranslationSubscriptionPromptShown = true;
         await database.SaveChangesAsync();
         return NoContent();
