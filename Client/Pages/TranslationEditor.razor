@@ -240,23 +240,35 @@ else
                     @foreach (var comment in comments)
                     {
                         <div class="border-bottom pb-2 mb-2 @(comment.LanguageCode == project?.SourceLanguage ?
-                                                                  "border-start border-primary bg-light rounded ps-2 pt-1" :
-                                                                  string.Empty)">
-                            @if (comment.LanguageCode == project?.SourceLanguage)
-                            {
-                                <span class="badge text-bg-primary mb-1">Source comment · @project?.SourceLanguage</span>
-                            }
-                            <UsernameDisplayer UserId="@comment.AuthorUserId"/>
-                            <small class="text-muted ms-2">
-                                <RecentTimeShortener Time="@comment.CreatedAt" IncludeSeconds="@false"
-                                                     ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
-                            </small>
+                                                                "border border-primary bg-light rounded p-2" :
+                                                                string.Empty)">
+                            <div class="clearfix">
+                                @if (comment.LanguageCode == project?.SourceLanguage)
+                                {
+                                    <span class="badge bg-primary text-white float-end">
+                                        Source language · @project?.SourceLanguage
+                                    </span>
+                                }
+                                <UsernameDisplayer UserId="@comment.AuthorUserId"/>
+                                <small class="text-muted ms-2">
+                                    <RecentTimeShortener Time="@comment.CreatedAt" IncludeSeconds="@false"
+                                                         ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
+                                </small>
+                            </div>
                             <MarkdownRenderer MarkdownText="@comment.RawMarkdown"/>
                         </div>
                     }
 
                     @if (CanUseTranslationDiscussion)
                     {
+                        <br/>
+                        <label for="new-comment" class="form-label">
+                            Add a comment (Markdown; mention users with @@name)
+                        </label>
+                        <textarea id="new-comment" class="form-control mb-1" rows="3" @bind="newComment"
+                                  placeholder="Comment text (for comments on source language, please write in English)">
+                        </textarea>
+
                         @if (data.LanguageCode != project?.SourceLanguage)
                         {
                             <label for="comment-scope" class="form-label">Who should see this discussion?</label>
@@ -265,10 +277,7 @@ else
                                 <option value="true">Everyone, including @project?.SourceLanguage contributors</option>
                             </select>
                         }
-                        <label for="new-comment" class="form-label">
-                            Add a comment (Markdown; mention users with @@name)
-                        </label>
-                        <textarea id="new-comment" class="form-control" rows="3" @bind="newComment"></textarea>
+
                         <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
                                 Spinner="@(processingAction == "comment")" OnPressed="@PostComment">
                             Post comment
@@ -343,7 +352,8 @@ else
                     {
                         <p>
                             <strong>@nearbyItem.LanguageCode</strong> (@nearbyItem.State):
-                            <NavLink href="@($"translations/{Slug}/{nearbyItem.LanguageCode}/edit?key={Uri.EscapeDataString(Key)}")">
+                            <NavLink
+                                href="@($"translations/{Slug}/{nearbyItem.LanguageCode}/edit?key={Uri.EscapeDataString(Key)}")">
                                 @nearbyItem.Text
                             </NavLink>
                         </p>
@@ -531,6 +541,7 @@ else
             {
                 groups.Add(NotificationGroups.TranslationScopeUpdated(project.Id, Key, project.SourceLanguage));
             }
+
             if (project.DictionaryId is { } dictionaryId)
                 groups.Add(NotificationGroups.TranslationDictionaryUpdatedPrefix + dictionaryId);
         }
