@@ -1,4 +1,4 @@
-namespace RevolutionaryWebApp.Server.Tests.Jobs.Tests;
+﻿namespace RevolutionaryWebApp.Server.Tests.Jobs.Tests;
 
 using System;
 using System.Collections.Generic;
@@ -29,11 +29,6 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
     public ProcessUploadedImageJobTests(ITestOutputHelper output)
     {
         logger = new XunitLogger<ProcessUploadedImageJob>(output);
-    }
-
-    public void Dispose()
-    {
-        logger.Dispose();
     }
 
     [Fact]
@@ -144,5 +139,10 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
         Assert.True(pageBytes.Length <= originalSavedBytes.Length,
             $"Downsized page image size ({pageBytes.Length} bytes) should be less than or equal to original " +
             $"image size ({originalSavedBytes.Length} bytes)");
+    }
+
+    public void Dispose()
+    {
+        logger.Dispose();
     }
 }
