@@ -244,7 +244,7 @@ public class TranslationDictionariesController : Controller
         await database.SaveChangesAsync();
         logger.LogInformation("Source dictionary term {Word} ({Context}) added to dictionary {DictionaryId} by " +
             "{Email}", word, context, request.DictionaryId, actor.Email);
-        return CreatedAtAction(nameof(Terms), new { id = request.DictionaryId, language = "en" });
+        return CreatedAtAction(nameof(Terms), new { id = request.DictionaryId, language = "en" }, null);
     }
 
     [HttpPut("terms/source")]
@@ -395,7 +395,7 @@ public class TranslationDictionariesController : Controller
         logger.LogInformation("Language-specific dictionary term {Word} ({Context}) added for {LanguageCode} " +
             "in dictionary {DictionaryId} by {Email}", word, context, request.LanguageCode, request.DictionaryId,
             actor.Email);
-        return CreatedAtAction(nameof(Terms), new { id = request.DictionaryId, language = request.LanguageCode });
+        return CreatedAtAction(nameof(Terms), new { id = request.DictionaryId, language = request.LanguageCode }, null);
     }
 
     [HttpPut("terms/language")]
