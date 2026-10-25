@@ -193,6 +193,49 @@ public sealed class PublishTranslationProjectJob
             cancellationToken);
         var commitCount = 0;
 
+        var sourceValues = values.Where(value => value.LanguageCode == project.SourceLanguage).ToArray();
+        var sourcePath = project.Format == TranslationFormat.Gettext ?
+            project.TranslationFilePattern!.Replace("{language}", project.SourceLanguage, StringComparison.Ordinal) :
+            project.SourceFilePattern!;
+        var sourceFullPath = SafeFile(checkout, sourcePath);
+        var sourceOriginal = await File.ReadAllTextAsync(sourceFullPath, cancellationToken);
+        var sourceOutput = project.Format == TranslationFormat.Gettext ?
+            TranslationFileExporter.ExportGettext(sourceContent, sourceOriginal, sourceValues) :
+            TranslationFileExporter.ExportResx(sourceContent, sourceContent, sourceValues);
+
+        if (project.Format == TranslationFormat.Gettext)
+        {
+            var parsedSource = GettextTranslationParser.Parse(sourceContent, sourceOutput, sourceOutput)
+                .ToDictionary(entry => entry.Key, StringComparer.Ordinal);
+            foreach (var value in sourceValues.Where(value => parsedSource.ContainsKey(value.Key)))
+            {
+                if (parsedSource[value.Key].TargetText != value.Text)
+                    throw new InvalidOperationException($"Gettext export changed the source value of {value.Key}");
+            }
+        }
+        else if (project.Format == TranslationFormat.Resx)
+        {
+            var parsedSource = ResxTranslationParser.Parse(sourceOutput, sourceOutput)
+                .ToDictionary(entry => entry.Key, StringComparer.Ordinal);
+            foreach (var value in sourceValues.Where(value => parsedSource.ContainsKey(value.Key)))
+            {
+                if (parsedSource[value.Key].SourceText != value.Text)
+                    throw new InvalidOperationException($"RESX export changed the source value of {value.Key}");
+            }
+
+            sourceContent = sourceOutput;
+        }
+        else
+        {
+            throw new NotImplementedException("Unimplemented project format: {project.Format}");
+        }
+
+        if (await WriteAndCommitFile(checkout, sourcePath, project.SourceLanguage, sourceOriginal, sourceOutput,
+                changes, authors, cancellationToken))
+        {
+            ++commitCount;
+        }
+
         foreach (var language in languages)
         {
             var path = language.FilePath ?? project.TranslationFilePattern.Replace("{language}",
