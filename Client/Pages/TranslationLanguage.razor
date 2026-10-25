@@ -67,8 +67,9 @@ else
     <div class="input-group mb-3">
         <label class="visually-hidden" for="translation-search">Search source, key, or translated text</label>
         <input id="translation-search" class="form-control" placeholder="Search source, key, or translated text"
-               @bind="query" @bind:event="oninput"/>
-        <Button ButtonStyle="outline-secondary" Enabled="@(!searching)" Spinner="@searching"
+               @bind="query" @bind:event="oninput" @bind:after="TriggerSearchDebounce"
+               @onkeydown="HandleSearchKeyDown"/>
+        <Button ButtonStyle="secondary" Enabled="@(!searching)" Spinner="@searching"
                 OnPressed="Search">Search
         </Button>
     </div>
@@ -122,8 +123,10 @@ else
     private long? registeredProjectId;
     private bool savingSubscription;
     private bool searching;
+    private bool searchPending;
     private bool loadingMore;
     private bool jumping;
+    private CancellationTokenSource? searchDebounceToken;
 
     [Parameter]
     public string Slug { get; set; } = string.Empty;
@@ -149,6 +152,16 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        try
+        {
+            if (searchDebounceToken != null)
+                await searchDebounceToken.CancelAsync();
+            searchDebounceToken?.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
         if (registeredProjectId.HasValue)
             await NotificationHandler.Unregister<TranslationProjectTranslationsUpdated>(this);
     }
@@ -208,19 +221,30 @@ else
 
     private async Task Search()
     {
-        if (project == null || searching)
+        CancelSearchDebounce();
+
+        if (project == null)
             return;
 
-        searching = true;
-        message = null;
-        items = null;
-        await InvokeAsync(StateHasChanged);
+        if (searching)
+        {
+            searchPending = true;
+            return;
+        }
 
         // Wait until conflicting operation is done
         while (loadingMore)
         {
             await Task.Delay(100);
         }
+
+        if (project == null)
+            return;
+
+        searching = true;
+        message = null;
+        items = null;
+        await InvokeAsync(StateHasChanged);
 
         try
         {
@@ -238,7 +262,46 @@ else
         {
             searching = false;
             await InvokeAsync(StateHasChanged);
+
+            if (searchPending)
+            {
+                searchPending = false;
+                await Search();
+            }
         }
+    }
+
+    private void TriggerSearchDebounce()
+    {
+        CancelSearchDebounce();
+
+        searchDebounceToken = new CancellationTokenSource();
+        _ = DebouncedSearchAsync(searchDebounceToken.Token);
+    }
+
+    private async Task DebouncedSearchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(1000, cancellationToken);
+            await Search();
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer query or an explicit search superseded this timer.
+        }
+    }
+
+    private void CancelSearchDebounce()
+    {
+        searchDebounceToken?.Cancel();
+        searchDebounceToken?.Dispose();
+        searchDebounceToken = null;
+    }
+
+    private Task HandleSearchKeyDown(KeyboardEventArgs args)
+    {
+        return args.Key == "Enter" ? Search() : Task.CompletedTask;
     }
 
     private async Task LoadMore()
