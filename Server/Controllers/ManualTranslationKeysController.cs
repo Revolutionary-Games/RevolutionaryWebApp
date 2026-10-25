@@ -54,11 +54,14 @@ public sealed class ManualTranslationKeysController : Controller
             return Conflict("Translation key already exists");
         }
 
+        var createdAt = DateTime.UtcNow;
         var unit = new TranslationUnit
         {
             ProjectId = projectId, Key = key, SourceText = source,
             Description = request.Description, SourceRevision = 1,
             SourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))),
+            CreatedAt = createdAt,
+            SourceUpdatedAt = createdAt,
         };
         await database.TranslationUnits.AddAsync(unit);
 
@@ -75,8 +78,9 @@ public sealed class ManualTranslationKeysController : Controller
                 State = isSource ? TranslationState.Translated : TranslationState.NeedsTranslation,
                 SourceRevisionTranslatedFrom = unit.SourceRevision,
                 SourceTextTranslatedFrom = source,
+                CreatedAt = createdAt,
                 LastEditedByUserId = isSource ? actor.Id : null,
-                LastEditedAt = isSource ? DateTime.UtcNow : null,
+                LastEditedAt = isSource ? createdAt : null,
             });
         }
 
@@ -88,6 +92,7 @@ public sealed class ManualTranslationKeysController : Controller
             Kind = TranslationChangeKind.UserEdit,
             OldText = string.Empty, NewText = source,
             OldState = TranslationState.NeedsTranslation, NewState = TranslationState.Translated,
+            CreatedAt = createdAt,
             SourceRevision = unit.SourceRevision, ProjectRevision = sourceRevision,
             CountsAsContribution = true,
         });

@@ -220,11 +220,14 @@ public class ImportTranslationProjectJob
                 if (unit == null)
                 {
                     newKeys.Add(entry.Key);
+                    var createdAt = DateTime.UtcNow;
                     unit = new TranslationUnit
                     {
                         ProjectId = project.Id, Key = entry.Key, SourceText = entry.SourceText,
                         SourceHash = sourceHash, SourceRevision = 1, Description = entry.Description,
                         SourceLocations = entry.SourceLocations,
+                        CreatedAt = createdAt,
+                        SourceUpdatedAt = createdAt,
                     };
                     await database.TranslationUnits.AddAsync(unit, cancellationToken);
                 }
@@ -250,6 +253,7 @@ public class ImportTranslationProjectJob
                             State = TranslationState.Translated,
                             SourceRevisionTranslatedFrom = unit.SourceRevision,
                             SourceTextTranslatedFrom = unit.SourceText,
+                            CreatedAt = unit.CreatedAt,
                         };
                         await database.TranslationValues.AddAsync(sourceValue, cancellationToken);
                     }
