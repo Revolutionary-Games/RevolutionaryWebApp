@@ -51,14 +51,14 @@ else
     }
 
     <div class="mb-3">
-        <Button ButtonStyle="primary" class="me-2" Enabled="@(!jumping)" Spinner="@jumping"
+        <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!jumping)" Spinner="@jumping"
                 OnPressed="@(() => Jump(null))">First string
         </Button>
-        <Button ButtonStyle="outline-primary" class="me-2"
+        <Button ButtonStyle="primary" class="me-2"
                 Enabled="@(!jumping)" Spinner="@jumping" OnPressed="JumpNeedsTranslation">
             First needing translation
         </Button>
-        <Button ButtonStyle="outline-primary" Enabled="@(!jumping)" Spinner="@jumping"
+        <Button ButtonStyle="outline-secondary" Enabled="@(!jumping)" Spinner="@jumping"
                 OnPressed="JumpUnverified">
             First unverified
         </Button>
