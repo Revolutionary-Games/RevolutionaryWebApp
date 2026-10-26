@@ -16,7 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Keep aligned with Server: AngleSharp 1.8.6 breaks bUnit 2.12.5's DOM wrappers. -->
-    <PackageReference Include="AngleSharp" Version="1.8.5" />
+    <PackageReference Include="AngleSharp" Version="1.8.6" />
     <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageReference Include="Markdig" Version="1.5.0" />
   </ItemGroup>
