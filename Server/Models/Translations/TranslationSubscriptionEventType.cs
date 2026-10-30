@@ -7,4 +7,6 @@ public enum TranslationSubscriptionEventType
 {
     NewKey,
     TranslationUpdate,
+    Comment,
+    SourceChange,
 }

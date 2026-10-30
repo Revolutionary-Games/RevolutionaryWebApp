@@ -18,4 +18,6 @@ public enum UserNotificationType
     DictionaryRequestRejected,
     SuggestionAccepted,
     TranslationMention,
+    TranslationComments,
+    TranslationSourceChanged,
 }

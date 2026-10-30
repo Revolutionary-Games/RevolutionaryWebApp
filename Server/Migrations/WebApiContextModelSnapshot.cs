@@ -5162,6 +5162,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("description");
 
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
                     b.Property<string>("SourceHash")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -5230,6 +5234,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<long?>("LastEditedByUserId")
                         .HasColumnType("bigint")
                         .HasColumnName("last_edited_by_user_id");
+
+                    b.Property<bool>("LastImportedFuzzy")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_imported_fuzzy");
 
                     b.Property<string>("LastImportedText")
                         .IsRequired()
@@ -6841,7 +6849,7 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "AuthorUser")
                         .WithMany("AuthoredTranslationSuggestions")
                         .HasForeignKey("AuthorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_translation_suggestions_users_author_user_id");
 
@@ -6877,7 +6885,7 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("TranslationSuggestionVotes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_translation_suggestion_votes_users_user_id");
 

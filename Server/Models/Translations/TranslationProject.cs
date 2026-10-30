@@ -200,6 +200,7 @@ public class TranslationUnit : IUpdateNotifications
 
     public long SourceRevision { get; set; }
     public bool Active { get; set; } = true;
+    public int Position { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime SourceUpdatedAt { get; set; } = DateTime.UtcNow;
@@ -238,6 +239,8 @@ public class TranslationValue : IUpdateNotifications
 
     [MaxLength(20000)]
     public string LastImportedText { get; set; } = string.Empty;
+
+    public bool LastImportedFuzzy { get; set; }
 
     [MaxLength(100000)]
     public string? PluralFormsJson { get; set; }
