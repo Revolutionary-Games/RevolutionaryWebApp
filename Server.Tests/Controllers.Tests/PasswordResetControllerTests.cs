@@ -90,6 +90,9 @@ public sealed class PasswordResetControllerTests : IDisposable
         var resetOk = Assert.IsType<OkObjectResult>(resetResponse);
         Assert.Equal(200, resetOk.StatusCode);
         Assert.True(user.Local);
+        var notice = Assert.Single(await database.UserNotifications.ToListAsync());
+        Assert.Equal(NotificationPriority.High, notice.Priority);
+        Assert.Equal(UserNotificationType.PasswordChanged, notice.Type);
 
         // Assert: login with new password works and sets session cookie
         var login = CreateLoginController(database, configuration);
@@ -165,6 +168,9 @@ public sealed class PasswordResetControllerTests : IDisposable
         var resetOk = Assert.IsType<OkObjectResult>(resetResponse);
         Assert.Equal(200, resetOk.StatusCode);
         Assert.True(user.Local);
+        var notice = Assert.Single(await database.UserNotifications.ToListAsync());
+        Assert.Equal(NotificationPriority.High, notice.Priority);
+        Assert.Equal(UserNotificationType.PasswordChanged, notice.Type);
 
         // Assert: login with new password works and sets session cookie
         var login = CreateLoginController(database, configuration);

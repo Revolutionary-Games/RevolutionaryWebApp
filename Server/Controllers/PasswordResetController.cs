@@ -17,6 +17,7 @@ using Models;
 using Services;
 using Shared;
 using Shared.Forms;
+using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
@@ -135,6 +136,15 @@ public class PasswordResetController : Controller
             PerformedById = targetUser.Id,
         });
 
+        database.UserNotifications.Add(new UserNotification
+        {
+            UserId = targetUser.Id,
+            DeduplicationKey = $"password-changed:{Guid.NewGuid()}",
+            Type = UserNotificationType.PasswordChanged,
+            Priority = NotificationPriority.High,
+            Message = "Your password was changed. If this wasn't you, secure your account immediately.",
+            TargetPath = $"/users/{targetUser.Id}",
+        });
         await database.SaveChangesAsync(HttpContext.RequestAborted);
 
         logger.LogInformation("Password reset completed for {Email}", targetUser.Email);
