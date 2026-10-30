@@ -182,12 +182,13 @@ public sealed class PublishTranslationProjectJob
         var contributedSince = tracked?.LastPublishedRevision ?? 0;
         var changes = await database.TranslationChanges.AsNoTracking()
             .Where(c => c.ProjectId == project.Id && c.ProjectRevision > contributedSince &&
-                c.ProjectRevision <= snapshotRevision && c.CountsAsContribution && c.ContributorUserId != null)
+                c.ProjectRevision <= snapshotRevision)
             .ToListAsync(cancellationToken);
         var authors = await database.Users.AsNoTracking().Where(u =>
             changes.Select(c => c.ContributorUserId).Contains(u.Id)).ToDictionaryAsync(u => u.Id,
             cancellationToken);
         var commitCount = 0;
+        var automatedFiles = new List<string>();
 
         var sourceValues = values.Where(value => value.LanguageCode == project.SourceLanguage).ToArray();
         var sourcePath = project.Format == TranslationFormat.Gettext ?
@@ -227,7 +228,7 @@ public sealed class PublishTranslationProjectJob
         }
 
         if (await WriteAndCommitFile(checkout, sourcePath, project.SourceLanguage, sourceOriginal, sourceOutput,
-                changes, authors, cancellationToken))
+                changes, authors, automatedFiles, cancellationToken))
         {
             ++commitCount;
         }
@@ -272,10 +273,23 @@ public sealed class PublishTranslationProjectJob
             }
 
             if (await WriteAndCommitFile(checkout, path, language.LanguageCode, original, content, changes, authors,
-                    cancellationToken))
+                    automatedFiles, cancellationToken))
             {
                 ++commitCount;
             }
+        }
+
+        if (automatedFiles.Count > 0)
+        {
+            await repository.CommitFile(checkout, ".", "Update automated translation states",
+                new Dictionary<string, string>
+                {
+                    ["GIT_AUTHOR_NAME"] = "DevCenter Translations",
+                    ["GIT_AUTHOR_EMAIL"] = BotEmail(),
+                    ["GIT_COMMITTER_NAME"] = "DevCenter Translations",
+                    ["GIT_COMMITTER_EMAIL"] = BotEmail(),
+                }, cancellationToken);
+            ++commitCount;
         }
 
         if (commitCount == 0)
@@ -320,7 +334,7 @@ public sealed class PublishTranslationProjectJob
 
     private async Task<bool> WriteAndCommitFile(string checkout, string path, string languageCode, string original,
         string content, IReadOnlyCollection<TranslationChange> changes, IReadOnlyDictionary<long, User> authors,
-        CancellationToken cancellationToken)
+        List<string> automatedFiles, CancellationToken cancellationToken)
     {
         if (content == original)
             return false;
@@ -329,7 +343,15 @@ public sealed class PublishTranslationProjectJob
 
         // TODO: do we need to preserve encoding or BOM marks?
         await File.WriteAllTextAsync(fullPath, content, cancellationToken);
-        var contributors = changes.Where(change => change.LanguageCode == languageCode)
+        var languageChanges = changes.Where(change => change.LanguageCode == languageCode).ToArray();
+        if (languageChanges.All(change => change.ActorUserId == null && change.ContributorUserId == null))
+        {
+            automatedFiles.Add(path);
+            return false;
+        }
+
+        var contributors = languageChanges.Where(change => change.CountsAsContribution &&
+                change.ContributorUserId != null)
             .GroupBy(change => change.ContributorUserId!.Value).OrderByDescending(group => group.Count())
             .ThenBy(group => group.Key).Select(group => authors.GetValueOrDefault(group.Key))
             .Where(user => user != null).ToArray();
