@@ -9,6 +9,7 @@ public enum TranslationRemoteImportResult
     Unchanged,
     BaselineAdvanced,
     TextChanged,
+    StateChanged,
     Conflict,
 }
 
@@ -21,8 +22,26 @@ public static class TranslationRemoteImport
     public static TranslationRemoteImportResult Apply(TranslationValue value, string incomingText, bool fuzzy)
     {
         // A replayed webhook or a changed file with identical text does not alter authorship.
+        var fuzzyChanged = fuzzy != value.LastImportedFuzzy;
+        value.LastImportedFuzzy = fuzzy;
         if (incomingText == value.LastImportedText)
-            return TranslationRemoteImportResult.Unchanged;
+        {
+            if (!fuzzyChanged)
+                return TranslationRemoteImportResult.Unchanged;
+
+            // Preserve pending local work, but record the upstream flag so a replay cannot overwrite it.
+            if (value.PendingRevision != null || value.Text != value.LastImportedText)
+                return TranslationRemoteImportResult.Unchanged;
+
+            var state = fuzzy || string.IsNullOrWhiteSpace(incomingText) ? TranslationState.NeedsTranslation :
+                TranslationState.Translated;
+            if (value.State == state)
+                return TranslationRemoteImportResult.Unchanged;
+
+            value.State = state;
+            value.Version = Guid.NewGuid();
+            return TranslationRemoteImportResult.StateChanged;
+        }
 
         // The upstream branch has caught up with a locally edited value. Keep its human attribution.
         if (incomingText == value.Text)
