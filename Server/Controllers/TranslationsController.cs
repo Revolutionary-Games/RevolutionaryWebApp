@@ -1,9 +1,11 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using BlazorPagination;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +51,63 @@ public class TranslationsController : Controller
         var groups = HttpContext.AuthenticatedUser()?.AccessCachedGroupsOrThrow();
         var canEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true);
         return project.GetDTO(canEditSource);
+    }
+
+    [HttpGet("projects/{slug}/recent")]
+    public async Task<ActionResult<PagedResult<TranslationActivityDTO>>> Recent(string slug, string language,
+        [FromQuery] TranslationActivityView view = TranslationActivityView.Edits, [FromQuery] int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        if (page < 1 || !Enum.IsDefined(view))
+            return BadRequest("Invalid activity view or page");
+
+        var project = await database.TranslationProjects.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Slug == slug && item.Enabled, cancellationToken);
+        if (project == null || !await database.TranslationProjectLanguages.AnyAsync(item =>
+                item.ProjectId == project.Id && item.LanguageCode == language && item.Enabled, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        IQueryable<TranslationActivityDTO> activity;
+        if (view == TranslationActivityView.Comments)
+        {
+            activity = database.TranslationComments.AsNoTracking().Where(comment => comment.ProjectId == project.Id &&
+                    !comment.Deleted && (comment.LanguageCode == language ||
+                        comment.LanguageCode == project.SourceLanguage))
+                .Select(comment => new TranslationActivityDTO
+                {
+                    Id = comment.Id, Key = comment.Key, LanguageCode = comment.LanguageCode,
+                    UserId = comment.AuthorUserId, CreatedAt = comment.CreatedAt,
+                    Description = "Comment", Text = comment.RawMarkdown,
+                });
+        }
+        else if (view == TranslationActivityView.Keys)
+        {
+            activity = database.TranslationUnits.AsNoTracking()
+                .Where(unit => unit.ProjectId == project.Id && unit.Active)
+                .Select(unit => new TranslationActivityDTO
+                {
+                    Key = unit.Key, LanguageCode = language, CreatedAt = unit.CreatedAt,
+                    Description = "New key", Text = unit.SourceText,
+                });
+        }
+        else
+        {
+            activity = database.TranslationChanges.AsNoTracking().Where(change => change.ProjectId == project.Id &&
+                    (view == TranslationActivityView.Source ? change.LanguageCode == project.SourceLanguage :
+                        change.LanguageCode == language || change.LanguageCode == project.SourceLanguage))
+                .Select(change => new TranslationActivityDTO
+                {
+                    Id = change.Id, Key = change.Key, LanguageCode = change.LanguageCode,
+                    UserId = change.ActorUserId, CreatedAt = change.CreatedAt,
+                    Description = "Translation edit", Text = change.NewText, PreviousText = change.OldText,
+                    State = change.NewState, PreviousState = change.OldState,
+                });
+        }
+
+        return await activity.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
+            .ThenBy(item => item.Key).ToPagedResultAsync(page, 50);
     }
 
     [HttpGet("projects/{slug}/languages")]
