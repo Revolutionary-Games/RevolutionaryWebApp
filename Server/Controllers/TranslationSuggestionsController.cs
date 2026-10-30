@@ -2,6 +2,8 @@ namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -10,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Translations;
+using Services;
 using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
@@ -68,7 +71,8 @@ public class TranslationSuggestionsController : Controller
             return BadRequest("Suggestion cannot be empty");
 
         var value = await database.TranslationValues.AsNoTracking().FirstOrDefaultAsync(v =>
-            v.ProjectId == request.ProjectId && v.Key == request.Key && v.LanguageCode == request.LanguageCode);
+            v.ProjectId == request.ProjectId && v.Key == request.Key && v.LanguageCode == request.LanguageCode &&
+            v.Unit.Active);
         if (value == null)
             return NotFound();
 
@@ -183,6 +187,9 @@ public class TranslationSuggestionsController : Controller
             return Conflict("Suggestion was made for an older source text");
         }
 
+        if (!unit.Active)
+            return Conflict("This source text has been removed and does not need translation");
+
         if (!TranslationPermissions.CanTranslate(actor.AccessCachedGroupsOrThrow(),
                 suggestion.LanguageCode == project.SourceLanguage))
         {
@@ -204,8 +211,30 @@ public class TranslationSuggestionsController : Controller
             value.LastEditedAt = DateTime.UtcNow;
             value.SourceRevisionTranslatedFrom = unit.SourceRevision;
             value.SourceTextTranslatedFrom = unit.SourceText;
-            value.PendingRevision = ++project.CurrentRevision;
-            value.PendingSince ??= DateTime.UtcNow;
+            if (suggestion.LanguageCode == project.SourceLanguage)
+            {
+                unit.SourceText = suggestion.Text;
+                if (project.Format == TranslationFormat.Manual)
+                {
+                    unit.SourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(suggestion.Text)));
+                    value.LastImportedText = suggestion.Text;
+                }
+
+                ++unit.SourceRevision;
+                unit.SourceUpdatedAt = DateTime.UtcNow;
+                value.SourceRevisionTranslatedFrom = unit.SourceRevision;
+                value.SourceTextTranslatedFrom = suggestion.Text;
+                await TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
+                    HttpContext.RequestAborted);
+            }
+
+            var revision = ++project.CurrentRevision;
+            if (project.Format != TranslationFormat.Manual)
+            {
+                value.PendingRevision = revision;
+                value.PendingSince ??= DateTime.UtcNow;
+            }
+
             await database.TranslationChanges.AddAsync(new TranslationChange
             {
                 ProjectId = project.Id, Key = suggestion.Key, LanguageCode = suggestion.LanguageCode,
@@ -213,7 +242,7 @@ public class TranslationSuggestionsController : Controller
                 Kind = TranslationChangeKind.SuggestionAccepted,
                 OldText = previousText, NewText = suggestion.Text,
                 OldState = previousState, NewState = value.State,
-                SourceRevision = unit.SourceRevision, ProjectRevision = project.CurrentRevision,
+                SourceRevision = unit.SourceRevision, ProjectRevision = revision,
                 CountsAsContribution = true,
             });
 
