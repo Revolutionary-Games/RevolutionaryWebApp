@@ -86,6 +86,24 @@ public class TranslationDiscussionController : Controller
         await database.TranslationComments.AddAsync(comment);
         await database.SaveChangesAsync();
 
+        var subscribers = await database.TranslationSubscriptions.AsNoTracking()
+            .Where(subscription => subscription.ProjectId == project.Id &&
+                subscription.LanguageCode == targetLanguage &&
+                subscription.EventType == TranslationSubscriptionEventType.Comment && subscription.UserId != actor.Id)
+            .Select(subscription => subscription.UserId).ToListAsync();
+        foreach (var subscriber in subscribers)
+        {
+            database.UserNotifications.Add(new UserNotification
+            {
+                UserId = subscriber,
+                DeduplicationKey = $"translation-comment:{comment.Id}:subscriber:{subscriber}",
+                Type = UserNotificationType.TranslationComments,
+                Message = $"New comment in {project.Name} ({targetLanguage}) on {request.Key}.",
+                TargetPath = $"/translations/{project.Slug}/{targetLanguage}/edit" +
+                    $"?key={Uri.EscapeDataString(request.Key)}",
+            });
+        }
+
         var names = MentionPattern.Matches(request.RawMarkdown).Select(match => match.Groups[1].Value)
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var users = await database.Users.Where(user => names.Contains(user.UserName))
