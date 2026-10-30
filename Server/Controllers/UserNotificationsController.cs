@@ -26,7 +26,8 @@ public class UserNotificationsController : Controller
     public async Task<ActionResult<UnreadNotificationCountDTO>> CountUnread()
     {
         var userId = HttpContext.AuthenticatedUserOrThrow().Id;
-        var count = await database.UserNotifications.CountAsync(n => n.UserId == userId && n.ReadAt == null);
+        var count = await database.UserNotifications
+            .CountAsync(n => n.UserId == userId && n.ReadAt == null && n.CombinedIntoId == null);
         return new UnreadNotificationCountDTO { Count = count };
     }
 
@@ -37,7 +38,8 @@ public class UserNotificationsController : Controller
             return BadRequest("Offset must be non-negative");
 
         var userId = HttpContext.AuthenticatedUserOrThrow().Id;
-        var rows = await database.UserNotifications.AsNoTracking().Where(n => n.UserId == userId)
+        var rows = await database.UserNotifications.AsNoTracking()
+            .Where(n => n.UserId == userId && n.CombinedIntoId == null)
             .OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id)
             .Skip(offset).Take(50).ToListAsync();
         return rows.Select(notification => notification.GetDTO()).ToArray();
@@ -51,8 +53,38 @@ public class UserNotificationsController : Controller
         if (notification == null)
             return NotFound();
 
-        notification.ReadAt ??= DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        notification.ReadAt ??= now;
+        var children = await database.UserNotifications
+            .Where(n => n.UserId == userId && n.CombinedIntoId == id && n.ReadAt == null).ToListAsync();
+        foreach (var child in children)
+        {
+            child.ReadAt = now;
+        }
+
         await database.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("readAll")]
+    public async Task<IActionResult> MarkAllRead()
+    {
+        var userId = HttpContext.AuthenticatedUserOrThrow().Id;
+        var now = DateTime.UtcNow;
+        var unread = database.UserNotifications
+            .Where(notification => notification.UserId == userId && notification.ReadAt == null);
+        if (database.Database.IsRelational())
+        {
+            await unread.ExecuteUpdateAsync(update => update.SetProperty(notification => notification.ReadAt, now));
+        }
+        else
+        {
+            foreach (var notification in await unread.ToListAsync())
+                notification.ReadAt = now;
+
+            await database.SaveChangesAsync();
+        }
+
         return NoContent();
     }
 }
