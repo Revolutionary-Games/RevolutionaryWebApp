@@ -46,7 +46,7 @@ else
             </label>
             <label class="form-check">
                 <input type="checkbox" class="form-check-input" @bind="subscribeComments"/>
-                <span class="form-check-label">Daily notice of new comments in @LanguageCode</span>
+                <span class="form-check-label">New comments in @LanguageCode (grouped when unread)</span>
             </label>
             <label class="form-check">
                 <input type="checkbox" class="form-check-input" @bind="subscribeSourceChanges"/>
@@ -59,6 +59,7 @@ else
         </div>
     }
 
+    <p><NavLink href="@($"translations/{Slug}/{LanguageCode}/recent")">Recent edits and comments</NavLink></p>
     <div class="mb-3">
         <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!jumping)" Spinner="@jumping"
                 OnPressed="@(() => Jump(null))">First string
