@@ -6,6 +6,8 @@
 
 <h3>Notifications</h3>
 <StatusMessageShower Message="@message" Type="@messageType"/>
+<Button ButtonStyle="outline-secondary" class="mb-3" Enabled="@(!processing && items != null)"
+        Spinner="@processing" OnPressed="MarkAllRead">Mark all as read</Button>
 
 @if (items == null)
 {
@@ -22,7 +24,11 @@ else
     <ul class="list-group">
         @foreach (var item in items)
         {
-            <li class="list-group-item @(item.ReadAt == null ? "list-group-item-info" : string.Empty)">
+            <li @key="item.Id" class="@NotificationClass(item)">
+                @if (item.Priority == NotificationPriority.High)
+                {
+                    <strong class="d-block mb-2">Important</strong>
+                }
                 <a href="@item.TargetPath" @onclick="() => Open(item)" @onclick:preventDefault="true">@item.Message</a>
                 <small class="text-muted ms-2">
                     <RecentTimeShortener Time="@item.CreatedAt" ShortDisplayCutoff="TimeSpan.FromHours(6)"/>
@@ -30,9 +36,11 @@ else
             </li>
         }
     </ul>
-    @if (items.Length >= 50)
+    @if (hasMore)
     {
-        <button type="button" class="btn btn-outline-secondary mt-3" @onclick="LoadMore">Load more</button>
+        <Button ButtonStyle="outline-secondary" class="mt-3" Enabled="@(!processing)" OnPressed="LoadMore">
+            Load more
+        </Button>
     }
 }
 
@@ -43,29 +51,107 @@ else
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
 
+    private bool processing;
+    private bool hasMore;
+
     protected override async Task OnInitializedAsync()
     {
-        items = await Http.GetFromJsonAsync<UserNotificationDTO[]>("api/v1/userNotifications?offset=0") ?? [];
+        await LoadMore();
+    }
+
+    private static string NotificationClass(UserNotificationDTO item)
+    {
+        if (item.Priority == NotificationPriority.High)
+            return "list-group-item alert alert-danger border-danger border-2 p-4 my-2";
+
+        var style = item.ReadAt == null ? "list-group-item list-group-item-info" : "list-group-item";
+        return item.Priority == NotificationPriority.Low ? style + " small" : style;
     }
 
     private async Task LoadMore()
     {
-        var next = await Http.GetFromJsonAsync<UserNotificationDTO[]>($"api/v1/userNotifications?offset={items?.Length ?? 0}") ?? [];
-        items = [.. items ?? [], .. next];
+        processing = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var next = await Http.GetFromJsonAsync<UserNotificationDTO[]>(
+                $"api/v1/userNotifications?offset={items?.Length ?? 0}") ?? [];
+            items = [.. items ?? [], .. next];
+            hasMore = next.Length == 50;
+        }
+        catch (Exception e)
+        {
+            message = "Could not load notifications: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        processing = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/userNotifications/readAll", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                message = "Could not mark notifications as read.";
+                messageType = SiteNoticeType.Warning;
+                return;
+            }
+
+            foreach (var item in items ?? [])
+                item.ReadAt ??= DateTime.UtcNow;
+        }
+        catch (Exception e)
+        {
+            message = "Could not mark notifications as read: " + e.Message;
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task Open(UserNotificationDTO item)
     {
-        using var response = await Http.PostAsync($"api/v1/userNotifications/{item.Id}/read", null);
-        if (response.IsSuccessStatusCode)
+        if (processing)
+            return;
+
+        processing = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
         {
-            NavManager.NavigateTo(item.TargetPath);
+            using var response = await Http.PostAsync($"api/v1/userNotifications/{item.Id}/read", null);
+            if (response.IsSuccessStatusCode)
+            {
+                NavManager.NavigateTo(item.TargetPath);
+            }
+            else
+            {
+                message = "Could not open the notification.";
+                messageType = SiteNoticeType.Warning;
+            }
         }
-        else
+        catch (Exception e)
         {
-            message = "Could not open the notification.";
+            message = "Could not open the notification: " + e.Message;
             messageType = SiteNoticeType.Danger;
         }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
-
 }
