@@ -68,7 +68,7 @@ public class TranslationEditorController : Controller
             return BadRequest("Invalid state format");
         }
 
-        return await values.OrderBy(item => item.unit.Key).Skip(offset).Take(50)
+        return await values.OrderBy(item => item.unit.Position).ThenBy(item => item.unit.Key).Skip(offset).Take(50)
             .Select(item => new TranslationListItemDTO
             {
                 Key = item.unit.Key,
@@ -85,20 +85,27 @@ public class TranslationEditorController : Controller
         if (direction is not (-1 or 1))
             return BadRequest("Direction must be -1 or 1");
 
-        var keys = database.TranslationUnits.AsNoTracking()
-            .Join(database.TranslationValues.AsNoTracking(), unit => new { unit.ProjectId, unit.Key }, value => new
-            {
-                value.ProjectId,
-                value.Key,
-            }, (unit, value) => new { unit, value })
-            .Where(t => t.unit.ProjectId == projectId && t.unit.Active && t.value.LanguageCode == language)
-            .Select(t => t.unit.Key);
+        var current = await database.TranslationUnits.AsNoTracking()
+            .FirstOrDefaultAsync(unit => unit.ProjectId == projectId && unit.Key == key);
+        if (current == null)
+            return NotFound();
 
+        var candidates = database.TranslationUnits.AsNoTracking()
+            .Where(unit => unit.ProjectId == projectId && unit.Active &&
+                database.TranslationValues.Any(value => value.ProjectId == projectId &&
+                    value.Key == unit.Key && value.LanguageCode == language));
+
+        // We unfortunately didn't have unique positions in the data model initially, so we also need to check for
+        // equality of them.
         var neighbor = direction > 0 ?
-            await keys.Where(candidate => string.Compare(candidate, key) > 0)
-                .OrderBy(candidate => candidate).FirstOrDefaultAsync() :
-            await keys.Where(candidate => string.Compare(candidate, key) < 0)
-                .OrderByDescending(candidate => candidate).FirstOrDefaultAsync();
+            await candidates.Where(unit => unit.Position > current.Position ||
+                    (unit.Position == current.Position && string.Compare(unit.Key, key) > 0))
+                .OrderBy(unit => unit.Position).ThenBy(unit => unit.Key).Select(unit => unit.Key)
+                .FirstOrDefaultAsync() :
+            await candidates.Where(unit => unit.Position < current.Position ||
+                    (unit.Position == current.Position && string.Compare(unit.Key, key) < 0))
+                .OrderByDescending(unit => unit.Position).ThenByDescending(unit => unit.Key)
+                .Select(unit => unit.Key).FirstOrDefaultAsync();
         return neighbor == null ? NoContent() : Json(neighbor);
     }
 
@@ -142,7 +149,7 @@ public class TranslationEditorController : Controller
             return NotFound();
 
         var unit = await database.TranslationUnits.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.ProjectId == projectId && u.Key == key && u.Active, cancellationToken);
+            .FirstOrDefaultAsync(u => u.ProjectId == projectId && u.Key == key, cancellationToken);
         var value = await database.TranslationValues.AsNoTracking()
             .FirstOrDefaultAsync(v => v.ProjectId == projectId && v.Key == key && v.LanguageCode == language,
                 cancellationToken);
@@ -176,6 +183,7 @@ public class TranslationEditorController : Controller
             Version = value.Version,
             Description = unit.Description,
             SourceLocations = unit.SourceLocations,
+            Active = unit.Active,
             CanVerify = canVerify,
             CanEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true),
             CommentCount = comments,
