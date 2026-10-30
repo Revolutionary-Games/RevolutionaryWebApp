@@ -64,6 +64,11 @@ public sealed class ManualTranslationKeysController : Controller
             CreatedAt = createdAt,
             SourceUpdatedAt = createdAt,
         };
+
+        var position = (await database.TranslationUnits.Where(existing => existing.ProjectId == project.Id)
+            .Select(existing => (int?)existing.Position).MaxAsync() ?? -1) + 1;
+        unit.Position = position;
+
         await database.TranslationUnits.AddAsync(unit);
 
         var languages = await database.TranslationProjectLanguages.AsNoTracking()
