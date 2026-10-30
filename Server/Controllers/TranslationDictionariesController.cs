@@ -278,6 +278,13 @@ public class TranslationDictionariesController : Controller
             return Conflict("Dictionary term already exists for this context");
         }
 
+        database.ActionLogEntries.Add(new ActionLogEntry(
+            $"Updated source dictionary term in dictionary {request.DictionaryId}",
+            $"{request.Word} ({request.Context}) -> {word} ({context}); explanation: {request.Explanation}")
+        {
+            PerformedById = actor.Id,
+        });
+
         var translations = await database.DictionaryTermTranslations.Where(t =>
                 t.DictionaryId == request.DictionaryId && t.Word == request.Word && t.Context == request.Context)
             .ToListAsync();
