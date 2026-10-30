@@ -56,11 +56,16 @@ public class TranslationWorkflowTests
         {
             var template = Catalog(format, string.Empty, string.Empty, string.Empty);
             var english = Catalog(format, "Confirm", "Cancel", "Help");
+            var german = Catalog(format, "Bestätigen", "Abbrechen", "Hilfe");
+            var swedish = Catalog(format, "Bekräfta", "Avbryt", "Hjälp");
             var finnish = Catalog(format, "Vahvista", string.Empty, string.Empty);
             if (format == TranslationFormat.Gettext)
                 await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "template.pot"), template);
             await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "en." + extension), english);
             await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension), finnish);
+
+            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "de." + extension), german);
+            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "sv." + extension), swedish);
 
             var locks = Substitute.For<ILocalTempFileLocks>();
             locks.GetTempFilePath($"translationRepos/{project.Id}").Returns(checkout.FullName);
@@ -78,13 +83,15 @@ public class TranslationWorkflowTests
             Assert.Empty(await database.TranslationProjectLanguages.ToListAsync());
             await import.Execute(project.Id, CancellationToken.None);
             Assert.Equal("initial-sha", project.LastImportedSha);
-            Assert.Equal(new[] { "en", "fi" }, await database.TranslationProjectLanguages
+            Assert.Equal(new[] { "de", "en", "fi", "sv" }, await database.TranslationProjectLanguages
                 .OrderBy(language => language.LanguageCode).Select(language => language.LanguageCode).ToArrayAsync());
             Assert.Equal(3, await database.TranslationUnits.CountAsync());
-            Assert.Equal(6, await database.TranslationValues.CountAsync());
+            Assert.Equal(12, await database.TranslationValues.CountAsync());
             var confirm = await database.TranslationUnits.FindAsync(project.Id, "CONFIRM_BUTTON");
             Assert.NotNull(confirm);
             Assert.Equal("Confirm", confirm.SourceText);
+            Assert.Equal(new[] { "CONFIRM_BUTTON", "CANCEL_BUTTON", "HELP_BUTTON" },
+                await database.TranslationUnits.OrderBy(unit => unit.Position).Select(unit => unit.Key).ToArrayAsync());
             var source = await Value(database, project.Id, "CONFIRM_BUTTON", "en");
             var target = await Value(database, project.Id, "CONFIRM_BUTTON", "fi");
             Assert.Equal("Confirm", source.Text);
@@ -192,7 +199,7 @@ public class TranslationWorkflowTests
             }
             else
             {
-                Assert.Equal(new[] { "en.resx", "fi.resx" }, checkout.GetFiles()
+                Assert.Equal(new[] { "de.resx", "en.resx", "fi.resx", "sv.resx" }, checkout.GetFiles()
                     .Select(file => file.Name).OrderBy(name => name).ToArray());
             }
 
@@ -219,6 +226,16 @@ public class TranslationWorkflowTests
             await repository.Received(1).CommitFile(checkout.FullName, "fi." + extension, "Update fi translations",
                 Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.UserName),
                 CancellationToken.None);
+            if (format == TranslationFormat.Gettext)
+            {
+                await repository.Received(1).CommitFile(checkout.FullName, ".", "Update automated translation states",
+                    Arg.Any<Dictionary<string, string>>(), CancellationToken.None);
+                await repository.DidNotReceive().CommitFile(checkout.FullName, "de.po", Arg.Any<string>(),
+                    Arg.Any<Dictionary<string, string>>(), CancellationToken.None);
+                await repository.DidNotReceive().CommitFile(checkout.FullName, "sv.po", Arg.Any<string>(),
+                    Arg.Any<Dictionary<string, string>>(), CancellationToken.None);
+            }
+
             await repository.Received(1).PushBranch(checkout.FullName,
                 "https://github.com/translation-bot/translations.git", pr.HeadBranch, string.Empty,
                 Arg.Any<Dictionary<string, string>>(), CancellationToken.None);

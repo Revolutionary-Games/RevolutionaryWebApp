@@ -8,6 +8,42 @@ using Xunit;
 
 public class TranslationRemoteImportTests
 {
+    [Theory]
+    [InlineData(false, true, TranslationState.Translated, TranslationState.NeedsTranslation)]
+    [InlineData(true, false, TranslationState.NeedsTranslation, TranslationState.Translated)]
+    public void FuzzyOnlyChangesUpdateStateAndVersion(bool oldFuzzy, bool fuzzy, TranslationState oldState,
+        TranslationState newState)
+    {
+        var value = new TranslationValue
+        {
+            Text = "Current", LastImportedText = "Current", LastImportedFuzzy = oldFuzzy,
+            State = oldState, LastEditedByUserId = 42,
+        };
+        var version = value.Version;
+
+        Assert.Equal(TranslationRemoteImportResult.StateChanged,
+            TranslationRemoteImport.Apply(value, "Current", fuzzy));
+        Assert.Equal(newState, value.State);
+        Assert.NotEqual(version, value.Version);
+        Assert.Equal(42, value.LastEditedByUserId);
+        Assert.Equal(TranslationRemoteImportResult.Unchanged,
+            TranslationRemoteImport.Apply(value, "Current", fuzzy));
+    }
+
+    [Fact]
+    public void FuzzyOnlyChangesPreservePendingLocalState()
+    {
+        var value = new TranslationValue
+        {
+            Text = "Current", LastImportedText = "Current", State = TranslationState.Verified,
+            PendingRevision = 5,
+        };
+        Assert.Equal(TranslationRemoteImportResult.Unchanged,
+            TranslationRemoteImport.Apply(value, "Current", true));
+        Assert.Equal(TranslationState.Verified, value.State);
+        Assert.True(value.LastImportedFuzzy);
+    }
+
     [Fact]
     public void IdenticalRemoteTextPreservesHumanAttribution()
     {
