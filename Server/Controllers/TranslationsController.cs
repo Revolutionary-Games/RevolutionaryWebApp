@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Services;
 using Shared;
 using Shared.Models;
 
@@ -55,7 +56,7 @@ public class TranslationsController : Controller
 
     [HttpGet("projects/{slug}/recent")]
     public async Task<ActionResult<PagedResult<TranslationActivityDTO>>> Recent(string slug, string language,
-        [FromQuery] TranslationActivityView view = TranslationActivityView.Edits, [FromQuery] int page = 1,
+        [FromQuery] TranslationActivityView view = TranslationActivityView.All, [FromQuery] int page = 1,
         CancellationToken cancellationToken = default)
     {
         if (page < 1 || !Enum.IsDefined(view))
@@ -69,45 +70,7 @@ public class TranslationsController : Controller
             return NotFound();
         }
 
-        IQueryable<TranslationActivityDTO> activity;
-        if (view == TranslationActivityView.Comments)
-        {
-            activity = database.TranslationComments.AsNoTracking().Where(comment => comment.ProjectId == project.Id &&
-                    !comment.Deleted && (comment.LanguageCode == language ||
-                        comment.LanguageCode == project.SourceLanguage))
-                .Select(comment => new TranslationActivityDTO
-                {
-                    Id = comment.Id, Key = comment.Key, LanguageCode = comment.LanguageCode,
-                    UserId = comment.AuthorUserId, CreatedAt = comment.CreatedAt,
-                    Description = "Comment", Text = comment.RawMarkdown,
-                });
-        }
-        else if (view == TranslationActivityView.Keys)
-        {
-            activity = database.TranslationUnits.AsNoTracking()
-                .Where(unit => unit.ProjectId == project.Id && unit.Active)
-                .Select(unit => new TranslationActivityDTO
-                {
-                    Key = unit.Key, LanguageCode = language, CreatedAt = unit.CreatedAt,
-                    Description = "New key", Text = unit.SourceText,
-                });
-        }
-        else
-        {
-            activity = database.TranslationChanges.AsNoTracking().Where(change => change.ProjectId == project.Id &&
-                    (view == TranslationActivityView.Source ? change.LanguageCode == project.SourceLanguage :
-                        change.LanguageCode == language || change.LanguageCode == project.SourceLanguage))
-                .Select(change => new TranslationActivityDTO
-                {
-                    Id = change.Id, Key = change.Key, LanguageCode = change.LanguageCode,
-                    UserId = change.ActorUserId, CreatedAt = change.CreatedAt,
-                    Description = "Translation edit", Text = change.NewText, PreviousText = change.OldText,
-                    State = change.NewState, PreviousState = change.OldState,
-                });
-        }
-
-        return await activity.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id)
-            .ThenBy(item => item.Key).ToPagedResultAsync(page, 50);
+        return await TranslationActivityQuery.Create(database, project, language, view).ToPagedResultAsync(page, 50);
     }
 
     [HttpGet("projects/{slug}/languages")]

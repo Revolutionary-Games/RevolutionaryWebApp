@@ -70,6 +70,16 @@ blockquote {
     text-decoration: none;
 }
 
+/* Active pills keep white text against their blue background in every interaction state. */
+.nav-pills .nav-link.active,
+.nav-pills .nav-link.active:hover,
+.nav-pills .nav-link.active:focus,
+.main-site .nav-pills .nav-link.active,
+.main-site .nav-pills .nav-link.active:hover,
+.main-site .nav-pills .nav-link.active:focus {
+    color: #fff;
+}
+
 /* fix for sidebar navlinks */
 .nav-sidebar .nav-link {
     text-decoration: none;

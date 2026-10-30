@@ -8,12 +8,13 @@
 <p>
     <NavLink href="@($"translations/{Slug}/{LanguageCode}")">← Language overview</NavLink>
 </p>
-<div class="mb-3 d-flex gap-3">
-    @foreach (var view in Enum.GetValues<TranslationActivityView>())
+<nav class="nav nav-pills mb-3" aria-label="Activity filters">
+    @foreach (var view in Enum.GetValues<TranslationActivityView>().OrderBy(item => item != TranslationActivityView.All))
     {
-        <NavLink href="@($"translations/{Slug}/{LanguageCode}/recent?view={view}")">@ViewLabel(view)</NavLink>
+        <a class="nav-link @(view == activityView ? "active" : null)" href="@ViewPath(view)"
+           aria-current="@(view == activityView ? "page" : null)">@ViewLabel(view)</a>
     }
-</div>
+</nav>
 <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
 <Button Small="true" ButtonStyle="outline-secondary" Enabled="@(!loading)" Spinner="@loading"
         OnPressed="Load">Refresh
@@ -28,7 +29,7 @@
         {
             @foreach (var item in data.Results)
             {
-                <tr @key="@($"{item.Id}:{item.Key}:{item.LanguageCode}")">
+                <tr @key="@($"{item.Description}:{item.Id}:{item.Key}:{item.LanguageCode}")">
                     <td>
                         <RecentTimeShortener Time="@item.CreatedAt"/>
                     </td>
@@ -95,7 +96,7 @@
     protected override Task OnParametersSetAsync()
     {
         // Blazor query parameters are strings at the URL boundary; use the shared enum throughout the page.
-        if (!Enum.TryParse(ViewQuery ?? nameof(TranslationActivityView.Edits), true, out activityView) ||
+        if (!Enum.TryParse(ViewQuery ?? nameof(TranslationActivityView.All), true, out activityView) ||
             !Enum.IsDefined(activityView))
         {
             data = null;
@@ -111,6 +112,7 @@
     {
         return view switch
         {
+            TranslationActivityView.All => "All activity",
             TranslationActivityView.Comments => "Comments",
             TranslationActivityView.Keys => "New keys",
             TranslationActivityView.Source => "Source edits",
@@ -142,6 +144,12 @@
             loading = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private string ViewPath(TranslationActivityView view)
+    {
+        var path = $"translations/{Slug}/{LanguageCode}/recent";
+        return view == TranslationActivityView.All ? path : $"{path}?view={view}";
     }
 
     private string EditorPath(TranslationActivityDTO item)

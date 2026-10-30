@@ -9,4 +9,5 @@ public enum TranslationActivityView
     Comments,
     Keys,
     Source,
+    All,
 }
