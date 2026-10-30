@@ -5688,6 +5688,21 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("BatchKey")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("batch_key");
+
+                    b.Property<int>("CombinedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("combined_count");
+
+                    b.Property<long?>("CombinedIntoId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("combined_into_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -5708,6 +5723,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("message");
 
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("read_at");
@@ -5722,8 +5741,21 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("type");
 
+                    b.Property<uint>("Xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("UserId", "Id")
                         .HasName("pk_user_notifications");
+
+                    b.HasIndex("CreatedAt", "Type")
+                        .HasDatabaseName("ix_user_notifications_created_at_type")
+                        .HasFilter("read_at IS NULL AND combined_into_id IS NULL AND email_sent_at IS NULL");
+
+                    b.HasIndex("UserId", "CombinedIntoId")
+                        .HasDatabaseName("ix_user_notifications_user_id_combined_into_id");
 
                     b.HasIndex("UserId", "DeduplicationKey")
                         .IsUnique()
@@ -6967,6 +6999,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_notifications_users_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.UserNotification", "CombinedInto")
+                        .WithMany()
+                        .HasForeignKey("UserId", "CombinedIntoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_user_notifications_user_notifications_user_id_combined_into");
+
+                    b.Navigation("CombinedInto");
 
                     b.Navigation("User");
                 });

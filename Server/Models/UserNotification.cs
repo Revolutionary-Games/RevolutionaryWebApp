@@ -18,12 +18,23 @@ public class UserNotification : IDTOCreator<UserNotificationDTO>
     public string DeduplicationKey { get; set; } = string.Empty;
 
     public UserNotificationType Type { get; set; }
+    public NotificationPriority Priority { get; set; } = NotificationPriority.Normal;
+    public int CombinedCount { get; set; } = 1;
 
     [MaxLength(1000)]
     public string Message { get; set; } = string.Empty;
 
     [MaxLength(1000)]
     public string TargetPath { get; set; } = string.Empty;
+
+    [MaxLength(1000)]
+    public string? BatchKey { get; set; }
+
+    public long? CombinedIntoId { get; set; }
+    public UserNotification? CombinedInto { get; set; }
+
+    [Timestamp]
+    public uint Xmin { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
@@ -35,6 +46,8 @@ public class UserNotification : IDTOCreator<UserNotificationDTO>
         {
             Id = Id,
             Type = Type,
+            Priority = Priority,
+            CombinedCount = CombinedCount,
             Message = Message,
             TargetPath = TargetPath,
             CreatedAt = CreatedAt,

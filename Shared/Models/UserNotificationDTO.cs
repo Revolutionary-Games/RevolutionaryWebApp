@@ -11,6 +11,8 @@ public sealed class UserNotificationDTO
     public long Id { get; set; }
 
     public UserNotificationType Type { get; set; }
+    public NotificationPriority Priority { get; set; } = NotificationPriority.Normal;
+    public int CombinedCount { get; set; } = 1;
 
     [MaxLength(1000)]
     public string Message { get; set; } = string.Empty;
