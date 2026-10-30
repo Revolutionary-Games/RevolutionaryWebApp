@@ -217,11 +217,17 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(notification => new { notification.UserId, notification.Id });
             entity.Property(notification => notification.Id).ValueGeneratedOnAdd();
+            entity.Property(notification => notification.CombinedCount).HasDefaultValue(1);
             entity.HasIndex(notification => new { notification.UserId, notification.DeduplicationKey }).IsUnique();
             entity.HasIndex(notification => new
             {
                 notification.UserId, notification.ReadAt, notification.CreatedAt,
             });
+            entity.HasIndex(notification => new { notification.CreatedAt, notification.Type })
+                .HasFilter("read_at IS NULL AND combined_into_id IS NULL AND email_sent_at IS NULL");
+            entity.HasOne(notification => notification.CombinedInto).WithMany()
+                .HasForeignKey(notification => new { notification.UserId, notification.CombinedIntoId })
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(notification => notification.User).WithMany(user => user.Notifications)
                 .HasForeignKey(notification => notification.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
