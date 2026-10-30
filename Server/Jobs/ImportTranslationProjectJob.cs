@@ -210,6 +210,7 @@ public class ImportTranslationProjectJob
 
             language.LastImportedAt = DateTime.UtcNow;
 
+            var position = 0;
             foreach (var entry in parsed)
             {
                 var firstSourceEntry = seenKeys.Add(entry.Key);
@@ -232,6 +233,9 @@ public class ImportTranslationProjectJob
                     await database.TranslationUnits.AddAsync(unit, cancellationToken);
                 }
 
+                if (firstSourceEntry)
+                    unit.Position = position;
+                ++position;
                 unit.Active = true;
                 unit.Description = entry.Description;
                 unit.SourceLocations = entry.SourceLocations;
@@ -326,6 +330,7 @@ public class ImportTranslationProjectJob
                             TranslationState.NeedsTranslation :
                             TranslationState.Translated,
                         SourceRevisionTranslatedFrom = unit.SourceRevision,
+                        LastImportedFuzzy = entry.Fuzzy,
                         SourceTextTranslatedFrom = entry.SourceText,
                     }, cancellationToken);
                     continue;
@@ -352,7 +357,8 @@ public class ImportTranslationProjectJob
                             "An admin needs to resolve it in the translation UI.");
                     }
                 }
-                else if (result == TranslationRemoteImportResult.TextChanged)
+                else if (result is TranslationRemoteImportResult.TextChanged or
+                         TranslationRemoteImportResult.StateChanged)
                 {
                     await database.TranslationChanges.AddAsync(new TranslationChange
                     {
