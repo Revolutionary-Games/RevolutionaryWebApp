@@ -32,6 +32,8 @@ public class DigestUnreadNotificationsJob : IJob
 
     public async Task Execute(CancellationToken cancellationToken)
     {
+        await UserNotificationBatching.Combine(database, configuration, cancellationToken);
+
         if (!mailQueue.Configured)
             return;
 
