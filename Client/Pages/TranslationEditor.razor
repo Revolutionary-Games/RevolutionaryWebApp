@@ -57,6 +57,13 @@ else
                 </div>
             </div>
 
+            @if (!data.Active)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <strong>This source text has been removed from the repository.</strong>
+                    It is unused and does not need to be translated.
+                </div>
+            }
             <small class="text-muted">Translation key: @data.Key</small>
             @if (updateWarning)
             {
@@ -332,7 +339,7 @@ else
                         can edit it directly, for that language you may only be able to create suggestions rather
                         than editing directly.
                     </p>
-                    @if (CanUseTranslationDiscussion && UserInfo.AcceptedTranslator)
+                    @if (CanUseTranslationDiscussion && UserInfo.AcceptedTranslator && data.Active)
                     {
                         <label for="new-suggestion" class="form-label">Suggest a translation</label>
                         <textarea id="new-suggestion" class="form-control" rows="3" @bind="newSuggestion"></textarea>
@@ -474,13 +481,13 @@ else
     private bool HasLocalChanges => data != null &&
         (editText != data.Text || editState != data.State);
 
-    private bool CanEditTranslation => UserInfo.AcceptedTranslator && data != null &&
+    private bool CanEditTranslation => UserInfo.AcceptedTranslator && data != null && data.Active &&
         UserInfo.HasAccessLevel(GroupType.User) &&
         (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
 
     private bool CanUseTranslationDiscussion => UserInfo.HasAccessLevel(GroupType.User);
 
-    private bool CanAcceptSuggestions => UserInfo.AcceptedTranslator && CanUseTranslationDiscussion && data != null &&
+    private bool CanAcceptSuggestions => UserInfo.AcceptedTranslator && CanUseTranslationDiscussion && data != null && data.Active &&
         (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
 
     public Task Handle(TranslationValueUpdated notification, CancellationToken cancellationToken)
