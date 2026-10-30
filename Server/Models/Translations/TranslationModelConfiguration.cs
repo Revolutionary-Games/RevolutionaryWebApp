@@ -76,7 +76,7 @@ public static class TranslationModelConfiguration
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(s => s.AuthorUser).WithMany(u => u.AuthoredTranslationSuggestions)
                 .HasForeignKey(s => s.AuthorUserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(s => s.ResolvedByUser).WithMany(u => u.ResolvedTranslationSuggestions)
                 .HasForeignKey(s => s.ResolvedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
@@ -89,7 +89,7 @@ public static class TranslationModelConfiguration
             entity.HasOne(v => v.Suggestion).WithMany(s => s.Votes).HasForeignKey(v => v.SuggestionId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(v => v.User).WithMany(u => u.TranslationSuggestionVotes).HasForeignKey(v => v.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<DictionaryTerm>(entity =>
