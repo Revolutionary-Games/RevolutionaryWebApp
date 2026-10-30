@@ -1,0 +1,162 @@
+@page "/translations/{Slug}/{LanguageCode}/recent"
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<h3>Recent activity in @Slug (@LanguageCode)</h3>
+<p>
+    <NavLink href="@($"translations/{Slug}/{LanguageCode}")">← Language overview</NavLink>
+</p>
+<div class="mb-3 d-flex gap-3">
+    @foreach (var view in Enum.GetValues<TranslationActivityView>())
+    {
+        <NavLink href="@($"translations/{Slug}/{LanguageCode}/recent?view={view}")">@ViewLabel(view)</NavLink>
+    }
+</div>
+<StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+<Button Small="true" ButtonStyle="outline-secondary" Enabled="@(!loading)" Spinner="@loading"
+        OnPressed="Load">Refresh
+</Button>
+@if (data != null || loading)
+{
+    <PaginatedTable Columns="@columns" GetSortClass="@(_ => string.Empty)" ShowPaginator="@(data != null)"
+                    CurrentPage="@data?.CurrentPage"
+                    PageCount="@data?.PageCount" OnPageChanged="ChangePage" ShowContentSpinner="@loading"
+                    ShowNoContent="@(data?.Results.Length == 0)">
+        @if (data != null)
+        {
+            @foreach (var item in data.Results)
+            {
+                <tr @key="@($"{item.Id}:{item.Key}:{item.LanguageCode}")">
+                    <td>
+                        <RecentTimeShortener Time="@item.CreatedAt"/>
+                    </td>
+                    <td>
+                        <NavLink href="@EditorPath(item)">
+                            @item.Key
+                        </NavLink>
+                        <small class="d-block">@item.LanguageCode · @item.Description</small>
+                        @if (item.UserId != null)
+                        {
+                            <UsernameDisplayer UserId="@item.UserId"/>
+                        }
+                    </td>
+                    <td>
+                        @if (item.PreviousText != null && item.PreviousText != item.Text)
+                        {
+                            @* TODO: we need a word-by-word diff viewer for this as most translations are a single line *@
+                            <TextDiffView OldText="@item.PreviousText" NewText="@item.Text"/>
+                        }
+                        else
+                        {
+                            <pre class="text-wrap mb-0">@item.Text</pre>
+                        }
+                        @if (item.State != null)
+                        {
+                            <small>@item.PreviousState → @item.State</small>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+}
+
+<DevCenterTitle>Recent translation activity</DevCenterTitle>
+
+@code {
+
+    private readonly List<TableColumn> columns =
+    [
+        new("When", false),
+        new("String", false),
+        new("Text", false),
+    ];
+
+    private PagedResult<TranslationActivityDTO>? data;
+    private bool loading;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+    private TranslationActivityView activityView;
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    [Parameter]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? ViewQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int? Page { get; set; }
+
+    protected override Task OnParametersSetAsync()
+    {
+        // Blazor query parameters are strings at the URL boundary; use the shared enum throughout the page.
+        if (!Enum.TryParse(ViewQuery ?? nameof(TranslationActivityView.Edits), true, out activityView) ||
+            !Enum.IsDefined(activityView))
+        {
+            data = null;
+            message = "Invalid activity view.";
+            messageType = SiteNoticeType.Danger;
+            return Task.CompletedTask;
+        }
+
+        return Load();
+    }
+
+    private static string ViewLabel(TranslationActivityView view)
+    {
+        return view switch
+        {
+            TranslationActivityView.Comments => "Comments",
+            TranslationActivityView.Keys => "New keys",
+            TranslationActivityView.Source => "Source edits",
+            TranslationActivityView.Edits => "Edits",
+            _ => throw new ArgumentException("Invalid activity view"),
+        };
+    }
+
+    private async Task Load()
+    {
+        loading = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            data = await Http.GetFromJsonAsync<PagedResult<TranslationActivityDTO>>($"api/v1/translations/" +
+                $"projects/{Uri.EscapeDataString(Slug)}/recent?" +
+                $"language={Uri.EscapeDataString(LanguageCode)}&view={activityView}" +
+                $"&page={Page ?? 1}");
+        }
+        catch (Exception e)
+        {
+            data = null;
+            message = "Could not load recent activity: " + e.Message;
+        }
+        finally
+        {
+            loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string EditorPath(TranslationActivityDTO item)
+    {
+        return $"translations/{Slug}/{item.LanguageCode}/edit?key={Uri.EscapeDataString(item.Key)}";
+    }
+
+    private void ChangePage(int page)
+    {
+        Navigation.NavigateTo($"translations/{Slug}/{LanguageCode}/recent?view={activityView}&page={page}");
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+
+}
