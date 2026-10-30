@@ -14,25 +14,25 @@ public static class TranslationActivityQuery
     public static IOrderedQueryable<TranslationActivityDTO> Create(ApplicationDbContext database,
         TranslationProject project, string language, TranslationActivityView view)
     {
-        // All projections use the same fields so the combined view can be paged as a SQL UNION ALL.
+        // All projections use the same fields, so the combined view can be paged as a SQL UNION ALL.
         var comments = database.TranslationComments.AsNoTracking().Where(comment => comment.ProjectId == project.Id &&
                 !comment.Deleted &&
                 (comment.LanguageCode == language || comment.LanguageCode == project.SourceLanguage))
             .Select(comment => new TranslationActivityDTO
             {
                 Id = comment.Id, Key = comment.Key, LanguageCode = comment.LanguageCode,
-                UserId = (long?)comment.AuthorUserId, CreatedAt = comment.CreatedAt,
-                Description = "Comment", Text = comment.RawMarkdown, PreviousText = (string?)null,
-                State = (TranslationState?)null, PreviousState = (TranslationState?)null,
+                UserId = comment.AuthorUserId, CreatedAt = comment.CreatedAt,
+                Description = "Comment", Text = comment.RawMarkdown, PreviousText = null,
+                State = null, PreviousState = null,
             });
         var keys = database.TranslationUnits.AsNoTracking()
             .Where(unit => unit.ProjectId == project.Id && unit.Active)
             .Select(unit => new TranslationActivityDTO
             {
                 Id = 0L, Key = unit.Key, LanguageCode = language,
-                UserId = (long?)null, CreatedAt = unit.CreatedAt,
-                Description = "New key", Text = unit.SourceText, PreviousText = (string?)null,
-                State = (TranslationState?)null, PreviousState = (TranslationState?)null,
+                UserId = null, CreatedAt = unit.CreatedAt,
+                Description = "New key", Text = unit.SourceText, PreviousText = null,
+                State = null, PreviousState = null,
             });
         var edits = database.TranslationChanges.AsNoTracking().Where(change => change.ProjectId == project.Id &&
                 (view == TranslationActivityView.Source ? change.LanguageCode == project.SourceLanguage :
@@ -42,7 +42,7 @@ public static class TranslationActivityQuery
                 Id = change.Id, Key = change.Key, LanguageCode = change.LanguageCode,
                 UserId = change.ActorUserId, CreatedAt = change.CreatedAt,
                 Description = "Translation edit", Text = change.NewText, PreviousText = change.OldText,
-                State = (TranslationState?)change.NewState, PreviousState = (TranslationState?)change.OldState,
+                State = change.NewState, PreviousState = change.OldState,
             });
 
         var activity = view switch
