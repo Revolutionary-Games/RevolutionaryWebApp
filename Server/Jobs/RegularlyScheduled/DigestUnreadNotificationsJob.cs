@@ -38,7 +38,7 @@ public class DigestUnreadNotificationsJob : IJob
         var quietHours = Math.Clamp(configuration.GetValue("Notifications:UnreadEmailQuietHours", 4), 1, 168);
         var cutoff = DateTime.UtcNow.AddHours(-quietHours);
         var waiting = await database.UserNotifications
-            .Where(n => n.ReadAt == null && n.EmailSentAt == null && n.CreatedAt <= cutoff)
+            .Where(n => n.ReadAt == null && n.CombinedIntoId == null && n.EmailSentAt == null && n.CreatedAt <= cutoff)
             .OrderBy(n => n.CreatedAt).Take(1000).ToListAsync(cancellationToken);
 
         foreach (var group in waiting.GroupBy(n => n.UserId))
