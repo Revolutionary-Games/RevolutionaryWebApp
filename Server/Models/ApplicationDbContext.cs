@@ -160,6 +160,11 @@ public class ApplicationDbContext : DbContext
             if (entry.State != EntityState.Added && entry.State != EntityState.Modified)
                 continue;
 
+            // This is here as otherwise we would need a helper method for creating notices that does the custom
+            // handling for the batchable types.
+            if (entry.State == EntityState.Added && entry.Entity is UserNotification notification)
+                UserNotificationBatching.Prepare(notification);
+
             if (entry.Entity is IContainsHashedLookUps containsHashedLookUps)
             {
                 containsHashedLookUps.ComputeHashedLookUpValues();
