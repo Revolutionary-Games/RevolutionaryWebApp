@@ -275,7 +275,7 @@ else
                             Add a comment (Markdown; mention users with @@name)
                         </label>
                         <textarea id="new-comment" class="form-control mb-1" rows="3" @bind="newComment"
-                                  placeholder="Comment text (for comments on source language, please write in English)">
+                                  placeholder="Comment text (user Markdown formatting)">
                         </textarea>
 
                         @if (data.LanguageCode != project?.SourceLanguage)
@@ -286,6 +286,12 @@ else
                                 <option value="everyone">Everyone, including @project?.SourceLanguage contributors
                                 </option>
                             </select>
+                        }
+
+                        @if (commentScope == "everyone" || data.LanguageCode == project?.SourceLanguage)
+                        {
+                            <p class="alert alert-info">Please comment in English so translators of other languages
+                                and developers can understand your comment.</p>
                         }
 
                         <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
