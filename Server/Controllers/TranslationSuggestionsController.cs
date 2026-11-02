@@ -76,13 +76,21 @@ public class TranslationSuggestionsController : Controller
         if (string.IsNullOrWhiteSpace(request.Text))
             return BadRequest("Suggestion cannot be empty");
 
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, request.ProjectId,
+            HttpContext.RequestAborted);
+
         var value = await database.TranslationValues.AsNoTracking().FirstOrDefaultAsync(v =>
             v.ProjectId == request.ProjectId && v.Key == request.Key && v.LanguageCode == request.LanguageCode &&
             v.Unit.Active);
         if (value == null)
             return NotFound();
 
-        // TODO: should this check if the exact suggestion text is already suggested?
+        if (await database.TranslationSuggestions.AnyAsync(s => s.ProjectId == request.ProjectId &&
+                    s.Key == request.Key && s.LanguageCode == request.LanguageCode && s.Text == request.Text,
+                HttpContext.RequestAborted))
+        {
+            return Conflict("This translation has already been suggested for this key");
+        }
 
         var suggestion = new TranslationSuggestion
         {
@@ -92,12 +100,14 @@ public class TranslationSuggestionsController : Controller
         };
         await database.TranslationSuggestions.AddAsync(suggestion);
         await database.SaveChangesAsync();
+
         var project = await database.TranslationProjects.AsNoTracking()
             .FirstAsync(project => project.Id == request.ProjectId);
         var subscribers = await database.TranslationSubscriptions.AsNoTracking()
             .Where(subscription => subscription.ProjectId == request.ProjectId &&
                 subscription.LanguageCode == request.LanguageCode &&
-                subscription.EventType == TranslationSubscriptionEventType.Suggestion && subscription.UserId != actor.Id)
+                subscription.EventType == TranslationSubscriptionEventType.Suggestion &&
+                subscription.UserId != actor.Id)
             .Select(subscription => subscription.UserId).ToListAsync();
         foreach (var subscriber in subscribers)
         {

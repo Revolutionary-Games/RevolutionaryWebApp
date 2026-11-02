@@ -18,6 +18,86 @@ using Xunit;
 
 public class TranslationSuggestionsControllerTests
 {
+    [Theory]
+    [InlineData(1, "key", "fi", "Suggestion", TranslationSuggestionStatus.Open, true)]
+    [InlineData(1, "key", "fi", "Suggestion", TranslationSuggestionStatus.Accepted, true)]
+    [InlineData(1, "key", "fi", "Suggestion", TranslationSuggestionStatus.Rejected, true)]
+    [InlineData(2, "key", "fi", "Suggestion", TranslationSuggestionStatus.Open, false)]
+    [InlineData(1, "other", "fi", "Suggestion", TranslationSuggestionStatus.Open, false)]
+    [InlineData(1, "key", "sv", "Suggestion", TranslationSuggestionStatus.Open, false)]
+    [InlineData(1, "key", "fi", "suggestion", TranslationSuggestionStatus.Open, false)]
+    [InlineData(1, "key", "fi", "Suggestion ", TranslationSuggestionStatus.Open, false)]
+    public async Task CreatingSuggestionRejectsExactDuplicatesForSameProjectKeyAndLanguage(
+        long existingProjectId, string existingKey, string existingLanguage, string existingText,
+        TranslationSuggestionStatus existingStatus, bool duplicate)
+    {
+        await using var database = CreateDatabase();
+        var actor = new User("author@example.com", "Author");
+        actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
+        database.Users.Add(actor);
+        database.TranslationProjects.Add(new TranslationProject { Id = 1, Name = "Test", Slug = "test" });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
+        database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "key", Active = true });
+        database.TranslationValues.Add(new TranslationValue { ProjectId = 1, Key = "key", LanguageCode = "fi" });
+        if (existingProjectId != 1)
+            database.TranslationProjects.Add(new TranslationProject { Id = existingProjectId });
+        if (existingProjectId != 1 || existingLanguage != "fi")
+        {
+            database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+            {
+                ProjectId = existingProjectId, LanguageCode = existingLanguage,
+            });
+        }
+
+        if (existingProjectId != 1 || existingKey != "key")
+            database.TranslationUnits.Add(new TranslationUnit { ProjectId = existingProjectId, Key = existingKey });
+
+        if (existingProjectId != 1 || existingKey != "key" || existingLanguage != "fi")
+        {
+            database.TranslationValues.Add(new TranslationValue
+            {
+                ProjectId = existingProjectId, Key = existingKey, LanguageCode = existingLanguage,
+            });
+        }
+
+        database.TranslationSuggestions.Add(new TranslationSuggestion
+        {
+            ProjectId = existingProjectId, Key = existingKey, LanguageCode = existingLanguage,
+            Text = existingText, Status = existingStatus, AuthorUserId = 100,
+        });
+        database.TranslationSubscriptions.Add(new TranslationSubscription
+        {
+            ProjectId = 1, LanguageCode = "fi", UserId = 100,
+            EventType = TranslationSubscriptionEventType.Suggestion,
+        });
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var controller = new TranslationSuggestionsController(NullLogger<TranslationSuggestionsController>.Instance,
+            database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+
+        var result = await controller.Create(new CreateTranslationSuggestionRequest
+        {
+            ProjectId = 1, Key = "key", LanguageCode = "fi", Text = "Suggestion",
+        });
+
+        if (duplicate)
+        {
+            Assert.IsType<ConflictObjectResult>(result.Result);
+            Assert.Equal(1, await database.TranslationSuggestions.CountAsync());
+            Assert.Empty(await database.UserNotifications.ToListAsync());
+        }
+        else
+        {
+            Assert.IsType<CreatedAtActionResult>(result.Result);
+            Assert.Equal(2, await database.TranslationSuggestions.CountAsync());
+            Assert.Single(await database.UserNotifications.ToListAsync());
+        }
+    }
+
     [Fact]
     public async Task CreatingSuggestionNotifiesOnlyOtherSubscribersForItsLanguageAndProject()
     {
