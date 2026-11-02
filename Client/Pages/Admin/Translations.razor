@@ -20,6 +20,8 @@
     <h3>Translation Projects</h3>
     <p>Configure public GitHub repositories, import translations, and publish pending edits.</p>
 
+
+
     @if (projects == null)
     {
         <p>Loading projects...</p>
@@ -213,6 +215,22 @@
         }
 
         <StatusMessageShower Message="@message" Type="@messageType" ExtraCSS="mt-3"/>
+
+        <details class="mb-3">
+            <summary>Delete or restore translation resources</summary>
+            <p>Deleted resources are retained for 180 days. Restore parent resources to make their children
+                accessible.</p>
+            @foreach (var kind in new[] { "projects", "languages", "dictionaries", "terms", "languageTerms" })
+            {
+                <h5>@kind</h5>
+                <DeletedResourceViewer FetchListEndpoint="@($"api/v1/admin/TranslationResources/{kind}?deleted=false")"
+                                       RestoreEndpoint="@($"api/v1/admin/TranslationResources/{kind}/{{0}}/delete")"
+                                       ActionLabel="Delete" ActionButtonStyle="danger btn-sm" AutoVisible="true"
+                                       ShowHideButtonWhenVisible="false"/>
+                <DeletedResourceViewer FetchListEndpoint="@($"api/v1/admin/TranslationResources/{kind}?deleted=true")"
+                                       RestoreEndpoint="@($"api/v1/admin/TranslationResources/{kind}/{{0}}/restore")"/>
+            }
+        </details>
     }
 
     <DevCenterTitle>Translation Projects</DevCenterTitle>

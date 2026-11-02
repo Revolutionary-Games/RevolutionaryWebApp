@@ -32,7 +32,7 @@
                 {
                     @foreach (var item in Data.Results)
                     {
-                        if (IsRestored(item.Id))
+                        if (IsRestored(item))
                             continue;
 
                         <tr @key="item.Id">
@@ -40,10 +40,10 @@
                             <td>@item.Name</td>
                             <td><RecentTimeShortener Time="@item.UpdatedAt"/></td>
                             <td>
-                                <Button ButtonStyle="success btn-sm" Enabled="@(!IsProcessing(item.Id))"
-                                        Spinner="@IsProcessing(item.Id)"
-                                        OnPressed="@(async () => await RestorePressed(item.Id))">
-                                    Restore
+                                <Button ButtonStyle="@ActionButtonStyle" Enabled="@(!IsProcessing(item))"
+                                        Spinner="@IsProcessing(item)"
+                                        OnPressed="@(async () => await RestorePressed(item))">
+                                    @ActionLabel
                                 </Button>
                             </td>
                         </tr>
@@ -63,9 +63,14 @@
         new("Actions", false),
     };
 
-    private readonly Dictionary<long, ResourceStatus> statuses = new();
+    private readonly Dictionary<string, ResourceStatus> statuses = new();
 
     private bool visible;
+
+    public DeletedResourceViewer() : base(new SortHelper("UpdatedAt", SortDirection.Descending))
+    {
+        AutoFetchDataOnInit = false;
+    }
 
     [Parameter]
     [EditorRequired]
@@ -76,6 +81,12 @@
     public string RestoreEndpoint { get; set; } = null!;
 
     [Parameter]
+    public string ActionLabel { get; set; } = "Restore";
+
+    [Parameter]
+    public string ActionButtonStyle { get; set; } = "success btn-sm";
+
+    [Parameter]
     public bool AutoVisible { get; set; }
 
     [Parameter]
@@ -83,11 +94,6 @@
 
     [Parameter]
     public string? ButtonClass { get; set; }
-
-    public DeletedResourceViewer() : base(new SortHelper("UpdatedAt", SortDirection.Descending))
-    {
-        AutoFetchDataOnInit = false;
-    }
 
     public override Task SetParametersAsync(ParameterView parameters)
     {
@@ -99,6 +105,9 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        if (AutoVisible)
+            visible = true;
+
         await base.OnParametersSetAsync();
 
         if (visible && Data == null)
@@ -125,15 +134,16 @@
         }
     }
 
-    private async Task RestorePressed(long resourceId)
+    private async Task RestorePressed(SoftDeletedResource item)
     {
+        var resourceId = StatusKey(item);
         statuses.TryAdd(resourceId, new ResourceStatus());
 
         statuses[resourceId].Processing = true;
         Error = null;
         await InvokeAsync(StateHasChanged);
 
-        var restoreUrl = string.Format(RestoreEndpoint, resourceId);
+        var restoreUrl = string.Format(RestoreEndpoint, (object?)item.ResourceKey ?? item.Id);
 
         HttpResponseMessage result;
 
@@ -141,7 +151,7 @@
         {
             result = await Http.PostAsJsonAsync(restoreUrl, new Dictionary<string, long>
             {
-                { "Id", resourceId },
+                { "Id", item.Id },
             });
         }
         catch (HttpRequestException e)
@@ -168,27 +178,27 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private bool IsProcessing(long resourceId)
+    private bool IsProcessing(SoftDeletedResource item)
     {
+        var resourceId = StatusKey(item);
         if (!statuses.ContainsKey(resourceId))
             return false;
 
         return statuses[resourceId].Processing;
     }
 
-    private bool IsRestored(long resourceId)
+    private bool IsRestored(SoftDeletedResource item)
     {
+        var resourceId = StatusKey(item);
         if (!statuses.ContainsKey(resourceId))
             return false;
 
         return statuses[resourceId].Restored;
     }
 
-    private void OnSuccessfulRestore(long resourceId)
+    private static string StatusKey(SoftDeletedResource item)
     {
-        statuses[resourceId].Processing = false;
-        statuses[resourceId].Restored = true;
-        StateHasChanged();
+        return item.ResourceKey ?? item.Id.ToString();
     }
 
     private class ResourceStatus
