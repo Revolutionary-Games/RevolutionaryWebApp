@@ -220,7 +220,7 @@
             <summary>Delete or restore translation resources</summary>
             <p>Deleted resources are retained for 180 days. Restore parent resources to make their children
                 accessible.</p>
-            @foreach (var kind in new[] { "projects", "languages", "dictionaries", "terms", "languageTerms" })
+            @foreach (var kind in Enum.GetValues<TranslationResourceKind>())
             {
                 <h5>@kind</h5>
                 <DeletedResourceViewer FetchListEndpoint="@($"api/v1/admin/TranslationResources/{kind}?deleted=false")"
