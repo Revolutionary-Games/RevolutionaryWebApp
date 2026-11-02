@@ -25,6 +25,7 @@ public class TranslationDictionariesControllerTests
         var actor = new User("manager@example.com", "Manager");
         actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.DictionaryManager));
         database.Users.Add(actor);
+        database.TranslationDictionaries.Add(new TranslationDictionary { Id = 1, Name = "Test" });
         database.DictionaryTerms.Add(new DictionaryTerm { DictionaryId = 1, Word = "term", Context = string.Empty });
         await database.SaveChangesAsync();
         var context = new DefaultHttpContext();

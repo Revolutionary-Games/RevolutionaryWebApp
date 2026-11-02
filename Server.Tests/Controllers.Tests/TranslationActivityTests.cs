@@ -20,6 +20,14 @@ public class TranslationActivityTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
         database.TranslationProjects.Add(new TranslationProject { Id = 1, Name = "Test", Slug = "test" });
         database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
+        foreach (var code in new[] { "en", "sv" })
+        {
+            database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+            {
+                ProjectId = 1, LanguageCode = code,
+            });
+        }
+
         for (var index = 0; index < 60; ++index)
         {
             database.TranslationChanges.Add(new TranslationChange
@@ -46,6 +54,14 @@ public class TranslationActivityTests
         });
         database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "active" });
         database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "removed", Active = false });
+        foreach (var key in database.TranslationChanges.Local.Select(item => item.Key)
+                     .Concat(database.TranslationComments.Local.Select(item => item.Key)).Distinct().ToArray())
+        {
+            database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = key, Active = false });
+            foreach (var code in new[] { "fi", "en", "sv" })
+                database.TranslationValues.Add(new TranslationValue { ProjectId = 1, Key = key, LanguageCode = code });
+        }
+
         await database.SaveChangesAsync();
         var controller = new TranslationsController(database);
         var first = (await controller.Recent("test", "fi")).Value!;

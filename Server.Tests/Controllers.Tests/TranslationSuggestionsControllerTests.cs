@@ -26,6 +26,14 @@ public class TranslationSuggestionsControllerTests
         actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.SourceTextTranslator));
         database.Users.Add(actor);
         database.TranslationProjects.Add(new TranslationProject { Id = 1, Name = "Test", Slug = "test" });
+        foreach (var code in new[] { "en", "fi" })
+        {
+            database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+            {
+                ProjectId = 1, LanguageCode = code,
+            });
+        }
+
         var unit = new TranslationUnit { ProjectId = 1, Key = "key", SourceText = "Old", SourceRevision = 1 };
         database.TranslationUnits.Add(unit);
         database.TranslationValues.Add(new TranslationValue

@@ -19,6 +19,14 @@ public class TranslationSourceChangeHelperTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
         var project = new TranslationProject { Id = 1, Name = "Test", Slug = "test" };
         database.TranslationProjects.Add(project);
+        foreach (var code in new[] { "fi", "sv" })
+        {
+            database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+            {
+                ProjectId = 1, LanguageCode = code,
+            });
+        }
+
         database.TranslationSubscriptions.Add(new TranslationSubscription
         {
             UserId = 1, ProjectId = 1, LanguageCode = "fi",

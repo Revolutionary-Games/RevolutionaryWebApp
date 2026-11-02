@@ -30,8 +30,13 @@ public class TranslationDiscussionControllerTests
         actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
         database.Users.Add(actor);
         database.TranslationProjects.Add(new TranslationProject { Id = 1, Name = "Test", Slug = "test" });
+        database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "key" });
         foreach (var code in new[] { "en", "fi" })
         {
+            database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+            {
+                ProjectId = 1, LanguageCode = code,
+            });
             database.TranslationValues.Add(new TranslationValue { ProjectId = 1, Key = "key", LanguageCode = code });
             database.TranslationSubscriptions.Add(new TranslationSubscription
             {

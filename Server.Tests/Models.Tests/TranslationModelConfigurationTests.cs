@@ -18,6 +18,8 @@ public class TranslationModelConfigurationTests
         await using var database = CreateDatabase();
         var author = new User("translator@example.com", "Translator");
         database.Users.Add(author);
+        database.TranslationProjects.Add(new TranslationProject { Id = 1 });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
         var unit = new TranslationUnit { ProjectId = 1, Key = "key" };
         var value = new TranslationValue
         {

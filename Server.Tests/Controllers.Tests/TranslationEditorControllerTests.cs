@@ -22,6 +22,7 @@ public class TranslationEditorControllerTests
     {
         await using var database = CreateDatabase();
         database.TranslationProjects.Add(new TranslationProject { Id = 1, Slug = "test", Name = "Test" });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
         var keys = new[] { "Z", "A", "M", "removed" };
         for (var index = 0; index < keys.Length; ++index)
         {

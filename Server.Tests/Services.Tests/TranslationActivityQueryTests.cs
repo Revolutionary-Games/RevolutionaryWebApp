@@ -38,6 +38,7 @@ public class TranslationActivityQueryTests
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
         var project = new TranslationProject { Id = 1, SourceLanguage = "en" };
+        database.TranslationProjects.Add(project);
         var createdAt = DateTime.UtcNow;
         for (var index = 60; index >= 0; --index)
         {
