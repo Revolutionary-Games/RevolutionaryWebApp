@@ -3,12 +3,12 @@ namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 using System.Net.Http;
 using Bunit;
 using Client.Pages;
+using Client.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using RevolutionaryWebApp.Shared.Models;
 using RevolutionaryWebApp.Shared.Models.Enums;
 using RichardSzalay.MockHttp;
 using Services;
-using Shared;
 using Xunit;
 
 public class TranslationAgreementTests : BunitContext
