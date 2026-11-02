@@ -204,7 +204,13 @@ else
                             ← Newer history
                         </Button>
                         <small class="text-muted">
-                            @if (history.Length > 0)
+                            @if (loadingHistory)
+                            {
+                                <span class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading history...</span>
+                                </span>
+                            }
+                            else if (history.Length > 0)
                             {
                                 <span>Entries @(historyOffset + 1)–@(historyOffset + history.Length)</span>
                             }
@@ -370,6 +376,12 @@ else
                 }
                 else if (tab == "nearby")
                 {
+                    @if (loadingNearby)
+                    {
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading nearby languages...</span>
+                        </div>
+                    }
                     @foreach (var nearbyItem in nearby)
                     {
                         <p>
@@ -462,6 +474,7 @@ else
     private bool hasOlderHistory;
     private TranslationCommentDTO[] comments = [];
     private NearbyTranslationDTO[] nearby = [];
+    private bool loadingNearby;
     private TranslationSuggestionDTO[] suggestions = [];
     private DictionaryTermDTO[] dictionaryMatches = [];
     private string editText = string.Empty;
@@ -592,6 +605,7 @@ else
         historyOffset = 0;
         history = [];
         hasOlderHistory = false;
+        nearby = [];
         try
         {
             project = await Http.GetFromJsonAsync<TranslationProjectDTO>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}");
@@ -678,7 +692,7 @@ else
 
     private async Task LoadHistory(int offset)
     {
-        if (project == null || loadingHistory)
+        if (project == null || tab != "history" || loadingHistory)
             return;
 
         loadingHistory = true;
@@ -723,6 +737,31 @@ else
             return;
 
         await LoadHistory(newOffset);
+    }
+
+    private async Task RefreshNearby()
+    {
+        if (project == null || tab != "nearby" || loadingNearby)
+            return;
+
+        loadingNearby = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var result = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>($"api/v1/translationEditor/nearby?{QuerySuffix()}");
+            if (result != null)
+                nearby = result;
+        }
+        catch (Exception e)
+        {
+            message = $"Failed to load nearby translations: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            loadingNearby = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task RefreshComments()
@@ -829,13 +868,9 @@ else
                 editState = draft.State;
             }
 
-            await RefreshHistory();
             var loadedComments = await Http.GetFromJsonAsync<TranslationCommentDTO[]>($"api/v1/translationDiscussion/comments?{suffix}");
             if (loadedComments != null)
                 comments = loadedComments;
-            var loadedNearby = await Http.GetFromJsonAsync<NearbyTranslationDTO[]>($"api/v1/translationEditor/nearby?{suffix}");
-            if (loadedNearby != null)
-                nearby = loadedNearby;
             var loadedSuggestions = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{suffix}");
             if (loadedSuggestions != null)
                 suggestions = loadedSuggestions;
@@ -844,6 +879,8 @@ else
             if (loadedDictionaryMatches != null)
                 dictionaryMatches = loadedDictionaryMatches;
             tab ??= comments.Length > 0 ? "comments" : "history";
+            await RefreshHistory();
+            await RefreshNearby();
         }
         catch (Exception e)
         {
@@ -876,9 +913,10 @@ else
         tab = selected;
     }
 
-    private void ShowHistory()
+    private async Task ShowHistory()
     {
         SelectTab("history");
+        await RefreshHistory();
     }
 
     private void ShowComments()
@@ -891,9 +929,10 @@ else
         SelectTab("suggestions");
     }
 
-    private void ShowNearby()
+    private async Task ShowNearby()
     {
         SelectTab("nearby");
+        await RefreshNearby();
     }
 
     private async Task Save()
