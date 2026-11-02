@@ -444,6 +444,8 @@ public class TranslationSuggestion : IUpdateNotifications
     public string Text { get; set; } = string.Empty;
 
     public long SourceRevision { get; set; }
+    public int Score { get; set; }
+
     public TranslationSuggestionStatus Status { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; set; }
@@ -454,14 +456,14 @@ public class TranslationSuggestion : IUpdateNotifications
     public User? ResolvedByUser { get; set; }
     public ICollection<TranslationSuggestionVote> Votes { get; set; } = new HashSet<TranslationSuggestionVote>();
 
-    public TranslationSuggestionDTO GetDTO(int score)
+    public TranslationSuggestionDTO GetDTO()
     {
         return new TranslationSuggestionDTO
         {
             Id = Id,
             AuthorUserId = AuthorUserId,
             Text = Text,
-            Score = score,
+            Score = Score,
             Status = Status,
             CreatedAt = CreatedAt,
         };

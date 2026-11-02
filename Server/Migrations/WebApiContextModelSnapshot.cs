@@ -5049,6 +5049,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("resolved_by_user_id");
 
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
                     b.Property<long>("SourceRevision")
                         .HasColumnType("bigint")
                         .HasColumnName("source_revision");

@@ -54,10 +54,7 @@ public class TranslationSuggestionsController : Controller
                 Id = s.Id,
                 AuthorUserId = s.AuthorUserId,
                 Text = s.Text,
-
-                // TODO: put the score directly into the suggestions table
-                Score = database.TranslationSuggestionVotes.Where(v => v.SuggestionId == s.Id)
-                    .Sum(v => (int?)v.Value) ?? 0,
+                Score = s.Score,
                 Status = s.Status,
                 CreatedAt = s.CreatedAt,
             })
@@ -103,7 +100,7 @@ public class TranslationSuggestionsController : Controller
             request.ProjectId,
             request.Key,
             language = request.LanguageCode,
-        }, suggestion.GetDTO(0));
+        }, suggestion.GetDTO());
     }
 
     [CountContribution(1)]
@@ -133,6 +130,11 @@ public class TranslationSuggestionsController : Controller
             return BadRequest("Cannot vote on your own suggestion");
 
         var existing = await database.TranslationSuggestionVotes.FindAsync(id, actor.Id);
+
+        // Full refresh the vote count. If this is too slow, we couldn't just increment it
+        suggestion.Score = (await database.TranslationSuggestionVotes.Where(vote => vote.SuggestionId == id)
+            .SumAsync(vote => (int?)vote.Value) ?? 0) + request.Value - (existing?.Value ?? 0);
+
         if (request.Value == 0)
         {
             if (existing != null)
@@ -180,10 +182,7 @@ public class TranslationSuggestionsController : Controller
         var suggestion = await database.TranslationSuggestions.FirstOrDefaultAsync(item => item.Id == id);
         if (suggestion == null || suggestion.Status != TranslationSuggestionStatus.Open)
             return NotFound();
-
-        var score = await database.TranslationSuggestionVotes.Where(v => v.SuggestionId == id)
-            .SumAsync(v => (int?)v.Value) ?? 0;
-        if (score < 0)
+        if (suggestion.Score < 0)
             return BadRequest("Cannot accept a suggestion with a negative score");
 
         var value = await database.TranslationValues.FirstOrDefaultAsync(item =>

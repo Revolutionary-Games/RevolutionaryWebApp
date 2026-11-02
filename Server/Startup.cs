@@ -624,6 +624,7 @@ public class Startup
         AddJobHelper<MaintainGitHubIssueStatusJob>(configurationSection["MaintainGitHubIssueStatus"]);
         AddJobHelper<DeleteOldPendingSignupsJob>(configurationSection["DeleteOldPendingSignups"]);
         AddJobHelper<DigestUnreadNotificationsJob>(configurationSection["DigestUnreadNotifications"]);
+        AddJobHelper<RecountTranslationSuggestionScoresJob>(configurationSection["RecountTranslationSuggestionScores"]);
         AddJobHelper<PurgeDeletedTranslationResourcesJob>(configurationSection["PurgeDeletedTranslationResources"]);
         AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);
         AddJobHelper<ReportPendingDictionaryRequestsJob>(configurationSection["ReportPendingDictionaryRequests"]);
@@ -632,6 +633,7 @@ public class Startup
         AddJobHelper<ReconcileTranslationRepositoriesJob>(configurationSection["ReconcileTranslationRepositories"]);
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
+        BackgroundJob.Enqueue<RecountTranslationSuggestionScoresJob>(x => x.Execute(CancellationToken.None));
 
         // This is kept here if in the future more hashed fields are needed to be added, so this might be needed
         // in the future as well to update info in the db
