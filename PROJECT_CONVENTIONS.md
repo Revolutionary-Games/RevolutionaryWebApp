@@ -116,6 +116,10 @@ controllers. Keep the controller class name aligned with its route. Use a
 custom route only when the public API intentionally has a different shape, and
 preserve existing route shapes when refactoring a controller.
 
+Instead of using random string keys to denote operation type or category,
+use Enum values put in the Shared project to share between client and server
+for easy verification what values API calls accept.
+
 For resources with reversible deletion, derive from
 `BaseSoftDeletedResourceController<TModel,TInfo,TDTO>`. It already provides:
 
