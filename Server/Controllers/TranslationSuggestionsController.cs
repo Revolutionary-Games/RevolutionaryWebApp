@@ -192,6 +192,51 @@ public class TranslationSuggestionsController : Controller
         return NoContent();
     }
 
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var actor = HttpContext.AuthenticatedUser();
+        if (actor == null)
+            return Unauthorized();
+
+        var groups = actor.AccessCachedGroupsOrThrow();
+        if (!groups.HasAccessLevel(GroupType.Admin) && !groups.HasGroup(GroupType.ContentModerator))
+            return this.WorkingForbid("You don't have permission to delete translation suggestions");
+
+        var projectId = await database.TranslationSuggestions.IgnoreQueryFilters().AsNoTracking().Where(s => s.Id == id)
+            .Select(s => (long?)s.ProjectId).FirstOrDefaultAsync(HttpContext.RequestAborted);
+        if (projectId == null)
+            return NotFound();
+
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId.Value,
+            HttpContext.RequestAborted);
+        var suggestion = await database.TranslationSuggestions.FirstOrDefaultAsync(s => s.Id == id);
+        if (suggestion == null)
+            return NotFound();
+
+        var project = await database.TranslationProjects.AsNoTracking()
+            .FirstAsync(p => p.Id == suggestion.ProjectId);
+        database.TranslationSuggestions.Remove(suggestion);
+        await database.UserNotifications.AddAsync(new UserNotification
+        {
+            UserId = suggestion.AuthorUserId,
+            DeduplicationKey = $"translation-suggestion:{id}:deleted",
+            Type = UserNotificationType.TranslationSuggestionDeleted,
+            Message = $"A moderator deleted your translation suggestion in {project.Name} " +
+                $"({suggestion.LanguageCode}) on {suggestion.Key}.",
+            TargetPath = $"/translations/{project.Slug}/{suggestion.LanguageCode}/edit" +
+                $"?key={Uri.EscapeDataString(suggestion.Key)}",
+        });
+        await database.AdminActions.AddAsync(new AdminAction($"Translation suggestion {id} deleted")
+        {
+            PerformedById = actor.Id,
+        });
+
+        await database.SaveChangesAsync();
+        logger.LogInformation("Translation suggestion {SuggestionId} deleted by {Email}", id, actor.Email);
+        return NoContent();
+    }
+
     [CountContribution(10)]
     [HttpPost("{id:long}/accept")]
     [RequireTranslatorAgreement]

@@ -365,6 +365,14 @@ else
                                         OnPressed="@(() => Accept(suggestion.Id))">Accept
                                 </Button>
                             }
+                            <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator"
+                                           AutoRedirectIfNotLoggedIn="false">
+                                <Button Small="true" class="ms-1" ButtonStyle="danger"
+                                        Enabled="@(processingAction == null)"
+                                        Spinner="@(processingAction == $"delete-suggestion-{suggestion.Id}")"
+                                        OnPressed="@(() => DeleteSuggestion(suggestion.Id))">Delete
+                                </Button>
+                            </AccessLimited>
                         </div>
                     }
 
@@ -1309,6 +1317,45 @@ else
         catch (Exception e)
         {
             message = $"Could not vote on the suggestion: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteSuggestion(long id)
+    {
+        if (processingAction != null ||
+            (!UserInfo.IsAdmin && !UserInfo.HasGroup(GroupType.ContentModerator)))
+        {
+            return;
+        }
+
+        processingAction = $"delete-suggestion-{id}";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.DeleteAsync($"api/v1/translationSuggestions/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await RefreshSuggestions();
+                message = "Suggestion deleted.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                message = $"Could not delete the suggestion: {await response.Content.ReadAsStringAsync()} " +
+                    $"({response.StatusCode}).";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not delete the suggestion: {e.Message}";
             messageType = SiteNoticeType.Danger;
         }
         finally

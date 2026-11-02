@@ -249,6 +249,63 @@ public class TranslationSuggestionsControllerTests
         }
     }
 
+    [Theory]
+    [InlineData(GroupType.Admin, true)]
+    [InlineData(GroupType.ContentModerator, true)]
+    [InlineData(GroupType.User, false)]
+    public async Task DeletingSuggestionRequiresModerationAccessAndNotifiesAuthor(GroupType group, bool allowed)
+    {
+        await using var database = CreateDatabase();
+        var actor = new User("moderator@example.com", "Moderator");
+        actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, group));
+        database.Users.Add(actor);
+        database.TranslationProjects.Add(new TranslationProject { Id = 1, Name = "Test", Slug = "test" });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
+        database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "a key" });
+        database.TranslationValues.Add(new TranslationValue { ProjectId = 1, Key = "a key", LanguageCode = "fi" });
+        var suggestion = new TranslationSuggestion
+        {
+            ProjectId = 1, Key = "a key", LanguageCode = "fi", AuthorUserId = 100, Text = "Inappropriate",
+        };
+        database.TranslationSuggestions.Add(suggestion);
+        database.TranslationSuggestionVotes.Add(new TranslationSuggestionVote
+        {
+            Suggestion = suggestion, UserId = 101, Value = 1,
+        });
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        var controller = new TranslationSuggestionsController(NullLogger<TranslationSuggestionsController>.Instance,
+            database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+
+        Assert.IsType<UnauthorizedResult>(await controller.Delete(suggestion.Id));
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var result = await controller.Delete(suggestion.Id);
+        if (!allowed)
+        {
+            Assert.IsType<ForbidResult>(result);
+            Assert.Single(await database.TranslationSuggestions.ToListAsync());
+            Assert.Single(await database.TranslationSuggestionVotes.ToListAsync());
+            Assert.Empty(await database.UserNotifications.ToListAsync());
+            Assert.Empty(await database.AdminActions.ToListAsync());
+            return;
+        }
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Empty(await database.TranslationSuggestions.ToListAsync());
+        Assert.Empty(await database.TranslationSuggestionVotes.ToListAsync());
+        var notice = Assert.Single(await database.UserNotifications.ToListAsync());
+        Assert.Equal(100, notice.UserId);
+        Assert.Equal(UserNotificationType.TranslationSuggestionDeleted, notice.Type);
+        Assert.Contains("A moderator deleted your translation suggestion", notice.Message);
+        Assert.Equal("/translations/test/fi/edit?key=a%20key", notice.TargetPath);
+        Assert.Equal(actor.Id, Assert.Single(await database.AdminActions.ToListAsync()).PerformedById);
+        Assert.IsType<NotFoundResult>(await controller.Delete(suggestion.Id));
+        Assert.Single(await database.UserNotifications.ToListAsync());
+    }
+
     private static NotificationsEnabledDb CreateDatabase()
     {
         return new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
