@@ -4802,6 +4802,19 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("AnnouncementEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("announcement_ends_at");
+
+                    b.Property<string>("AnnouncementMessage")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("announcement_message");
+
+                    b.Property<int>("AnnouncementSeverity")
+                        .HasColumnType("integer")
+                        .HasColumnName("announcement_severity");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

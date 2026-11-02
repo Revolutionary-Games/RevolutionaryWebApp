@@ -42,6 +42,7 @@ public class TranslationSubscriptionsController : Controller
         {
             ProjectId = projectId,
             LanguageCode = language,
+            Announcements = types.Contains(TranslationSubscriptionEventType.Announcement),
             Suggestions = types.Contains(TranslationSubscriptionEventType.Suggestion),
             Comments = types.Contains(TranslationSubscriptionEventType.Comment),
             SourceChanges = types.Contains(TranslationSubscriptionEventType.SourceChange),
@@ -61,7 +62,7 @@ public class TranslationSubscriptionsController : Controller
         }
 
         var hasSubscription = request.NewKeys || request.TranslationUpdates || request.Comments ||
-            request.SourceChanges || request.Suggestions;
+            request.SourceChanges || request.Suggestions || request.Announcements;
         if (hasSubscription)
         {
             // Upon subscribing, mark the user as having seen the prompt so we avoid extra DB count queries
@@ -76,6 +77,7 @@ public class TranslationSubscriptionsController : Controller
         var existing = await database.TranslationSubscriptions.Where(s => s.UserId == userId &&
                 s.ProjectId == request.ProjectId && s.LanguageCode == request.LanguageCode)
             .ToListAsync();
+        SetSubscription(TranslationSubscriptionEventType.Announcement, request.Announcements);
         SetSubscription(TranslationSubscriptionEventType.Suggestion, request.Suggestions);
         SetSubscription(TranslationSubscriptionEventType.Comment, request.Comments);
         SetSubscription(TranslationSubscriptionEventType.SourceChange, request.SourceChanges);

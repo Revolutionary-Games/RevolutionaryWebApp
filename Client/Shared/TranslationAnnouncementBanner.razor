@@ -1,0 +1,106 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Notifications
+@using RevolutionaryWebApp.Client.Services
+@using System.Threading
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@implements INotificationHandler<TranslationProjectUpdated>
+@implements IAsyncDisposable
+
+@if (announcement?.EndsAt > DateTime.UtcNow)
+{
+    <div class="alert @announcement.Severity.AlertClass()" role="alert">
+        <MarkdownRenderer MarkdownText="@announcement.Message"/>
+    </div>
+}
+
+@if (loadError != null)
+{
+    <StatusMessageShower Message="@loadError" Type="SiteNoticeType.Warning"/>
+}
+
+@code {
+    private TranslationAnnouncementDTO? announcement;
+    private string? loadError;
+    private Timer? expiryTimer;
+    private bool disposed;
+    private bool registered;
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + ProjectId);
+    }
+
+    public async Task Handle(TranslationProjectUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId == ProjectId)
+            await InvokeAsync(Load);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        expiryTimer?.Dispose();
+        if (registered)
+            await NotificationHandler.Unregister(this);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Load();
+        if (!registered && !disposed)
+        {
+            await NotificationHandler.Register(this);
+            registered = true;
+        }
+    }
+
+    private async Task Load()
+    {
+        loadError = null;
+        try
+        {
+            var project = await Http.GetFromJsonAsync<TranslationProjectDTO>($"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}");
+            if (disposed)
+                return;
+
+            announcement = project?.Announcement;
+            ScheduleExpiry();
+        }
+        catch (Exception e)
+        {
+            announcement = null;
+            loadError = $"Could not load the translation announcement: {e.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private void ScheduleExpiry()
+    {
+        expiryTimer?.Dispose();
+        if (announcement?.EndsAt is not { } end || end <= DateTime.UtcNow || disposed)
+            return;
+
+        expiryTimer = new Timer(state =>
+            {
+                if (!disposed)
+                {
+                    _ = InvokeAsync(() =>
+                    {
+                        ScheduleExpiry();
+                        StateHasChanged();
+                    });
+                }
+            }, null, TimeSpan.FromSeconds(Math.Clamp((end - DateTime.UtcNow).TotalSeconds, 0.01, 86400)),
+            Timeout.InfiniteTimeSpan);
+    }
+
+}

@@ -14,6 +14,10 @@
 @implements IAsyncDisposable
 
 <TranslationAgreementWarning/>
+@if (project != null)
+{
+    <TranslationAnnouncementBanner ProjectId="@project.Id" Slug="@Slug" @key="project.Id"/>
+}
 <h3>@LanguageCode translations for @Slug</h3>
 <div class="mb-3">
     <NavLink href="@($"translations/{Slug}")">← Languages</NavLink>
@@ -36,6 +40,11 @@ else
     {
         <div class="border rounded p-3 mb-3">
             <strong>Language notifications</strong>
+            <label class="form-check">
+                <input id="subscribe-announcements" type="checkbox" class="form-check-input" @bind="subscribeAnnouncements"/>
+                <span class="form-check-label">Translation announcements (for example, an upcoming release with a
+                    translation deadline). Credited translators receive these announcements automatically.</span>
+            </label>
             <label class="form-check">
                 <input type="checkbox" class="form-check-input" @bind="subscribeNewKeys"/>
                 <span class="form-check-label">New translation keys</span>
@@ -143,6 +152,7 @@ else
 @code {
     private TranslationProjectDTO? project;
     private TranslationSubscriptionDTO? subscription;
+    private bool subscribeAnnouncements;
     private bool subscribeSuggestions;
     private bool subscribeComments;
     private bool subscribeSourceChanges;
@@ -223,6 +233,7 @@ else
             {
                 subscription = await Http.GetFromJsonAsync<TranslationSubscriptionDTO>($"api/v1/translationSubscriptions?" +
                     $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}");
+                subscribeAnnouncements = subscription?.Announcements ?? false;
                 subscribeSuggestions = subscription?.Suggestions ?? false;
                 subscribeComments = subscription?.Comments ?? false;
                 subscribeSourceChanges = subscription?.SourceChanges ?? false;
@@ -444,6 +455,7 @@ else
                 {
                     ProjectId = project.Id,
                     LanguageCode = LanguageCode,
+                    Announcements = subscribeAnnouncements,
                     Suggestions = subscribeSuggestions,
                     Comments = subscribeComments,
                     SourceChanges = subscribeSourceChanges,

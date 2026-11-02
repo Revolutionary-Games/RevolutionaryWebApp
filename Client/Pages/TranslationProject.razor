@@ -14,6 +14,10 @@
 @implements IAsyncDisposable
 
 <TranslationAgreementWarning/>
+@if (project != null)
+{
+    <TranslationAnnouncementBanner ProjectId="@project.Id" Slug="@Slug" @key="project.Id"/>
+}
 <h3>@Slug translations</h3>
 <p><NavLink href="@($"translations/{Slug}/recent")">Project history</NavLink></p>
 

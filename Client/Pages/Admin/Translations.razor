@@ -143,6 +143,11 @@
                 <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CloseForm">Close</button>
             </EditForm>
 
+            @if (form.Id > 0)
+            {
+                <TranslationAnnouncementControls ProjectId="@form.Id" Slug="@form.Slug" @key="form.Id"/>
+            }
+
             @if (form.Id > 0 && form.Format == TranslationFormat.Manual)
             {
                 <div class="mt-3">

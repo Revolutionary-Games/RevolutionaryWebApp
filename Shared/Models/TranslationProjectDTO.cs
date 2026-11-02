@@ -10,6 +10,8 @@ public sealed class TranslationProjectDTO : IIdentifiable
 {
     public long Id { get; set; }
 
+    public TranslationAnnouncementDTO? Announcement { get; set; }
+
     [MaxLength(120)]
     public string Slug { get; set; } = string.Empty;
 

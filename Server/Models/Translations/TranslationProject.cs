@@ -9,6 +9,7 @@ using DevCenterCommunication.Models;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Shared;
 using Shared.Models;
 using Shared.Notifications;
 
@@ -17,6 +18,8 @@ using Shared.Notifications;
 public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoftDeletable, IHasUpdatedAt
 {
     public long Id { get; set; }
+
+
 
     [MaxLength(120)]
     public string Slug { get; set; } = string.Empty;
@@ -55,6 +58,13 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Announcement feature
+    [MaxLength(2000)]
+    public string? AnnouncementMessage { get; set; }
+
+    public SiteNoticeType AnnouncementSeverity { get; set; }
+    public DateTime? AnnouncementEndsAt { get; set; }
+
     [NotMapped]
     public bool UsesSoftDelete => true;
 
@@ -88,6 +98,17 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
 
     public TranslationProjectDTO GetDTO(bool canAddSourceKeys)
     {
+        TranslationAnnouncementDTO? announcement = null;
+        if (AnnouncementMessage != null && AnnouncementEndsAt > DateTime.UtcNow)
+        {
+            announcement = new TranslationAnnouncementDTO
+            {
+                Message = AnnouncementMessage,
+                Severity = AnnouncementSeverity,
+                EndsAt = AnnouncementEndsAt,
+            };
+        }
+
         return new TranslationProjectDTO
         {
             Id = Id,
@@ -96,6 +117,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             SourceLanguage = SourceLanguage,
             Format = Format,
             DictionaryId = DictionaryId,
+            Announcement = announcement,
             CanAddSourceKeys = canAddSourceKeys && Format == TranslationFormat.Manual,
         };
     }
@@ -119,6 +141,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
         [
             nameof(Slug), nameof(Name), nameof(Deleted), nameof(Enabled), nameof(SourceLanguage),
             nameof(Format), nameof(DictionaryId),
+            nameof(AnnouncementMessage), nameof(AnnouncementSeverity), nameof(AnnouncementEndsAt),
             nameof(RepositoryFullName), nameof(SourceBranch), nameof(SourceFilePattern),
             nameof(TranslationFilePattern),
         ];
