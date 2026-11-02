@@ -147,7 +147,7 @@ public class TranslationResourceDeletionTests
         var locks = Substitute.For<ILocalTempFileLocks>();
         var tokens = Substitute.For<ITranslationGithubTokenProvider>();
         var import = new ImportTranslationProjectJob(NullLogger<ImportTranslationProjectJob>.Instance,
-            database, locks, Substitute.For<IBackgroundJobClient>());
+            database, locks, Substitute.For<IBackgroundJobClient>(), Substitute.For<IModelUpdateNotificationSender>());
         var publish = new PublishTranslationProjectJob(database, locks, tokens,
             new ConfigurationBuilder().Build(), NullLogger<PublishTranslationProjectJob>.Instance);
 

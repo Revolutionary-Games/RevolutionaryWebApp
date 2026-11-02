@@ -75,7 +75,8 @@ public class TranslationWorkflowTests
             repository.PrepareCheckout(project.RepositoryFullName, project.SourceBranch, checkout.FullName,
                 CancellationToken.None).Returns("initial-sha");
             var import = new ImportTranslationProjectJob(NullLogger<ImportTranslationProjectJob>.Instance, database,
-                locks, Substitute.For<IBackgroundJobClient>(), repository);
+                locks, Substitute.For<IBackgroundJobClient>(), Substitute.For<IModelUpdateNotificationSender>(),
+                repository);
 
             // Start with configuration only: the actual import must discover both languages and all values.
             Assert.Empty(await database.TranslationUnits.ToListAsync());
@@ -281,8 +282,8 @@ public class TranslationWorkflowTests
                 """;
     }
 
-    private static Dictionary<string, (string SourceText, string TargetText)> ParseCatalog(
-        TranslationFormat format, string template, string source, string target)
+    private static Dictionary<string, (string SourceText, string TargetText)> ParseCatalog(TranslationFormat format,
+        string template, string source, string target)
     {
         return format == TranslationFormat.Gettext ?
             GettextTranslationParser.Parse(template, source, target)

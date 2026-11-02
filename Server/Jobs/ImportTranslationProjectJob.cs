@@ -22,6 +22,7 @@ using Shared.Models;
 [DisableConcurrentExecution(600)]
 public class ImportTranslationProjectJob
 {
+    private readonly IModelUpdateNotificationSender notificationSender;
     private readonly ILogger<ImportTranslationProjectJob> logger;
     private readonly ApplicationDbContext database;
     private readonly ILocalTempFileLocks fileLocks;
@@ -29,7 +30,8 @@ public class ImportTranslationProjectJob
     private readonly TranslationRepositoryOperations repository;
 
     public ImportTranslationProjectJob(ILogger<ImportTranslationProjectJob> logger, ApplicationDbContext database,
-        ILocalTempFileLocks fileLocks, IBackgroundJobClient jobs, TranslationRepositoryOperations? repository = null)
+        ILocalTempFileLocks fileLocks, IBackgroundJobClient jobs, IModelUpdateNotificationSender notificationSender,
+        TranslationRepositoryOperations? repository = null)
     {
         this.notificationSender = notificationSender;
         this.logger = logger;
@@ -442,7 +444,7 @@ public class ImportTranslationProjectJob
 
         await database.SaveChangesAsync(cancellationToken);
 
-        if (conflictWarnings.Count > 0 && notificationSender != null)
+        if (conflictWarnings.Count > 0)
         {
             await notificationSender.SendNotifications([
                 TranslationNotificationHelper.ProjectUpdated(project.Id),

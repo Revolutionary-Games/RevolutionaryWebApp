@@ -23,6 +23,32 @@ public class TranslationSubscriptionsController : Controller
         this.database = database;
     }
 
+    [HttpPost("{projectId:long}/reopened")]
+    public async Task<IActionResult> SubscribeToReopening(long projectId)
+    {
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item =>
+            item.Id == projectId && item.Enabled);
+        if (project == null)
+            return NotFound();
+
+        if (!project.ClosedForMaintenance)
+            return Conflict("The project is already available for translation");
+
+        var userId = HttpContext.AuthenticatedUserOrThrow().Id;
+        if (!await database.TranslationSubscriptions.AnyAsync(item => item.ProjectId == projectId &&
+                item.UserId == userId && item.EventType == TranslationSubscriptionEventType.ProjectReopened))
+        {
+            database.TranslationSubscriptions.Add(new TranslationSubscription
+            {
+                UserId = userId, ProjectId = projectId, LanguageCode = project.SourceLanguage,
+                EventType = TranslationSubscriptionEventType.ProjectReopened,
+            });
+            await database.SaveChangesAsync();
+        }
+
+        return NoContent();
+    }
+
     [HttpGet]
     public async Task<ActionResult<TranslationSubscriptionDTO>> Get(long projectId, string language)
     {

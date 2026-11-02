@@ -57,6 +57,7 @@ public static class TranslationMaintenance
             });
         }
 
+        // Opening subscriptions trigger just once
         database.TranslationSubscriptions.RemoveRange(subscriptions);
     }
 }

@@ -4,8 +4,11 @@
 
 <h4 class="mt-3">Project maintenance</h4>
 <p>Closing blocks translation submissions. Resolve all conflicts before reopening.</p>
-<Button ButtonStyle="warning" Enabled="@(!processing)" OnPressed="@(() => SetMaintenance(true))">Close for maintenance</Button>
-<Button ButtonStyle="success" class="ms-2" Enabled="@(!processing)" OnPressed="@(() => SetMaintenance(false))">Reopen project</Button>
+<Button ButtonStyle="warning" Enabled="@(!processing)" OnPressed="@(() => SetMaintenance(true))">Close for maintenance
+</Button>
+<Button ButtonStyle="success" class="ms-2" Enabled="@(!processing)" OnPressed="@(() => SetMaintenance(false))">Reopen
+    project
+</Button>
 
 <h4 class="mt-3">Translation announcement</h4>
 <p>Publish a project notice, for example an upcoming release with a translation deadline.
@@ -56,9 +59,15 @@
         {
             using var response = await Http.PutAsJsonAsync($"api/v1/admin/TranslationProjects/{ProjectId}/maintenance", closed);
             messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
-            message = response.IsSuccessStatusCode ?
-                (closed ? "Project closed for maintenance." : "Project reopened and subscribers notified.") :
-                $"Could not update maintenance: {await response.Content.ReadAsStringAsync()}";
+            if (response.IsSuccessStatusCode)
+            {
+                message = closed ? "Project closed for maintenance." : "Project reopened and subscribers notified.";
+            }
+            else
+            {
+                message = $"Could not update maintenance: {await response.Content.ReadAsStringAsync()}";
+            }
+
             ++revision;
         }
         catch (Exception e)

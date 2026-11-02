@@ -25,8 +25,8 @@ public class ImportTranslationProjectJobTests
     [InlineData(TranslationFormat.Gettext, true)]
     [InlineData(TranslationFormat.Resx, false)]
     [InlineData(TranslationFormat.Resx, true)]
-    public async Task DivergentSourceEditCreatesOneConflictAcrossLanguagesAndRepeatedImports(
-        TranslationFormat format, bool published)
+    public async Task DivergentSourceEditCreatesOneConflictAcrossLanguagesAndRepeatedImports(TranslationFormat format,
+        bool published)
     {
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
@@ -63,7 +63,7 @@ public class ImportTranslationProjectJobTests
 
         var jobs = Substitute.For<IBackgroundJobClient>();
         var job = new ImportTranslationProjectJob(NullLogger<ImportTranslationProjectJob>.Instance, database,
-            Substitute.For<ILocalTempFileLocks>(), jobs);
+            Substitute.For<ILocalTempFileLocks>(), jobs, Substitute.For<IModelUpdateNotificationSender>());
         var checkout = Directory.CreateTempSubdirectory("translation-import-test-");
         try
         {
