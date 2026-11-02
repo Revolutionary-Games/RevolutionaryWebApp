@@ -1,0 +1,174 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+
+<div class="mt-2">
+    <label class="form-check">
+        <input type="checkbox" class="form-check-input" checked="@subscribed"
+               disabled="@(loading || saving || !loaded || Disabled)" @onchange="ChangeSubscription"/>
+        <span class="form-check-label">
+            Notify me of all comments in
+            @LanguageCode@(ForEveryone && LanguageCode != SourceLanguage ? $" and {SourceLanguage}" : string.Empty)
+            for this project
+        </span>
+    </label>
+    <div class="small text-muted">
+        Your notification choice is saved after posting a comment. Applies to discussions across all strings.
+    </div>
+    @if (loading || saving)
+    {
+        <span class="small"
+              role="status">@(loading ? "Loading notification choice..." : "Saving notification choice...")</span>
+    }
+    <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+    @if (!loading && !loaded)
+    {
+        <Button Small="true" ButtonStyle="outline-secondary" OnPressed="LoadSubscription">
+            Retry loading notification choice
+        </Button>
+    }
+</div>
+
+@code {
+    private readonly Dictionary<string, TranslationSubscriptionDTO> subscriptions = new();
+
+    private bool subscribed;
+    private bool changed;
+    private bool? previousForEveryone;
+    private bool loading;
+    private bool loaded;
+    private bool saving;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    [Parameter]
+    public string SourceLanguage { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool ForEveryone { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    public async Task SaveAfterComment()
+    {
+        if (!loaded || loading || saving || (!subscribed && !changed))
+            return;
+
+        saving = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var languages = ForEveryone ? new[] { LanguageCode, SourceLanguage }.Distinct() : [LanguageCode];
+            foreach (var language in languages)
+            {
+                // Preserve the latest choices for other notification types.
+                var subscription = await FetchSubscription(language);
+                subscription.Comments = subscribed;
+                using var response = await Http.PutAsJsonAsync("api/v1/translationSubscriptions", subscription);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    throw new InvalidOperationException($"{content}, {response.StatusCode}");
+                }
+
+                subscriptions[language] = subscription;
+            }
+
+            changed = false;
+
+            // This puts a bit of extra "noise" in the GUI so we don't show successes.
+            // message = "Comment notification choice saved.";
+            message = null;
+            messageType = SiteNoticeType.Success;
+        }
+        catch (Exception e)
+        {
+            message = $"Your comment was posted, but the notification choice could not be saved: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (previousForEveryone == ForEveryone)
+            return;
+
+        previousForEveryone = ForEveryone;
+        UpdateDisplayedChoice();
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        return LoadSubscription();
+    }
+
+    private async Task LoadSubscription()
+    {
+        loading = true;
+        loaded = false;
+        subscribed = false;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            foreach (var language in new[] { LanguageCode, SourceLanguage }.Distinct())
+                subscriptions[language] = await FetchSubscription(language);
+            UpdateDisplayedChoice();
+            loaded = true;
+        }
+        catch (Exception e)
+        {
+            message = $"Could not load comment notification choice: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ChangeSubscription(ChangeEventArgs args)
+    {
+        if (args.Value is not bool enabled)
+            return;
+
+        subscribed = enabled;
+        changed = true;
+    }
+
+    private void UpdateDisplayedChoice()
+    {
+        var language = ForEveryone ? SourceLanguage : LanguageCode;
+        subscribed = subscriptions.TryGetValue(language, out var subscription) && subscription.Comments;
+        changed = false;
+    }
+
+    private async Task<TranslationSubscriptionDTO> FetchSubscription(string language)
+    {
+        return await Http.GetFromJsonAsync<TranslationSubscriptionDTO>("api/v1/translationSubscriptions?" +
+                $"projectId={ProjectId}&language={Uri.EscapeDataString(language)}") ??
+            throw new InvalidOperationException("The server returned no subscription details.");
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+
+}

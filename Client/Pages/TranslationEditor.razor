@@ -281,7 +281,7 @@ else
                         @if (data.LanguageCode != project?.SourceLanguage)
                         {
                             <label for="comment-scope" class="form-label">Who should see this discussion?</label>
-                            <select id="comment-scope" class="form-select mb-2" @bind="commentScope">
+                            <select id="comment-scope" class="form-select mb-2" disabled="@(processingAction != null)" @bind="commentScope">
                                 <option value="language">Only @data.LanguageCode translators</option>
                                 <option value="everyone">Everyone, including @project?.SourceLanguage contributors
                                 </option>
@@ -293,6 +293,12 @@ else
                             <p class="alert alert-info">Please comment in English so translators of other languages
                                 and developers can understand your comment.</p>
                         }
+
+                        <TranslationCommentSubscription @ref="commentSubscription" @key="(data.ProjectId, data.LanguageCode)"
+                                                        ProjectId="@data.ProjectId" LanguageCode="@data.LanguageCode"
+                                                        SourceLanguage="@project!.SourceLanguage"
+                                                        ForEveryone="@(commentScope == "everyone")"
+                                                        Disabled="@(processingAction != null)"/>
 
                         <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(processingAction == null)"
                                 Spinner="@(processingAction == "comment")" OnPressed="@PostComment">
@@ -462,6 +468,7 @@ else
     private TranslationState editState = TranslationState.NeedsTranslation;
     private string newComment = string.Empty;
     private string commentScope = "language";
+    private TranslationCommentSubscription? commentSubscription;
     private string newSuggestion = string.Empty;
     private string? tab;
     private string? message;
@@ -1012,12 +1019,19 @@ else
 
     private async Task PostComment()
     {
-        if (!CanUseTranslationDiscussion || data == null || string.IsNullOrWhiteSpace(newComment) ||
-            processingAction == "comment")
+        if (!CanUseTranslationDiscussion || data == null || processingAction != null)
         {
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(newComment))
+        {
+            message = "Please write a comment before submitting.";
+            messageType = SiteNoticeType.Warning;
+            return;
+        }
+
+        var subscriptionForComment = commentSubscription;
         processingAction = "comment";
         message = null;
         await InvokeAsync(StateHasChanged);
@@ -1035,6 +1049,14 @@ else
                 newComment = string.Empty;
                 message = "Comment posted.";
                 messageType = SiteNoticeType.Success;
+                if (subscriptionForComment != null)
+                {
+                    await subscriptionForComment.SaveAfterComment();
+                }
+                else
+                {
+                    message += " Couldn't update subscription status!";
+                }
             }
             else
             {
