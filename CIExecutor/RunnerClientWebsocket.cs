@@ -119,6 +119,8 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
         }
         catch (WebSocketProtocolException e)
         {
+            // We pass different exception types to the logger
+            // ReSharper disable once ExceptionPassedAsTemplateArgumentProblem
             logger.LogWarning(e, "Socket write exception, inner: {Inner}", e.InnerException);
             ++LatestErrorCount;
             IsConnected = false;
@@ -154,6 +156,8 @@ public sealed class RunnerClientWebsocket : IRunnerClientCommunication, IDisposa
         }
         catch (WebSocketProtocolException e)
         {
+            // We pass different exception types to the logger
+            // ReSharper disable once ExceptionPassedAsTemplateArgumentProblem
             logger.LogWarning(e, "Socket read exception, inner: {Inner}", e.InnerException);
             ++LatestErrorCount;
             IsConnected = false;

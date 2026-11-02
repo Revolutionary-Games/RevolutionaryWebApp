@@ -855,7 +855,7 @@ public class RunnerService : IDisposable
                         if (tooLongMessage != null)
                         {
                             logger.LogWarning("Dropped a message of type {Type} from incoming message queue",
-                                tooLongMessage);
+                                tooLongMessage.GetType());
                         }
 
                         if (++dropped > 100)
@@ -1001,8 +1001,8 @@ public class RunnerService : IDisposable
                             j.RequiredRunnerTags != null && j.RequiredRunnerTags.Split(';').Contains("safe")).ToList();
 
                         var newCount = jobs.Jobs.Count;
-                        logger.LogInformation(
-                            $"Filtered {oldCount - newCount} jobs to safe only mode. {newCount} left to consider.");
+                        logger.LogInformation("Filtered {Delta} jobs to safe only mode. {NewCount} left to consider",
+                            oldCount - newCount, newCount);
                         jobs.FilteredCount += oldCount - newCount;
                     }
                 }

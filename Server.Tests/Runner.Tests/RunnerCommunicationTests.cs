@@ -1000,7 +1000,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             }
             catch (Exception e)
             {
-                logger.LogInformation("Ignoring intermittent test failure here: {E}", e);
+                logger.LogInformation(e, "Ignoring intermittent test failure here");
             }
         }
 

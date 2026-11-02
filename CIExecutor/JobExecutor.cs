@@ -261,7 +261,7 @@ public class JobExecutor : IJobExecutor, IDisposable
 
                 foreach (var cachePath in cacheCopyFromFolders)
                 {
-                    logger.LogInformation($"Checking cache copy from folder: {cachePath}");
+                    logger.LogInformation("Checking cache copy from folder: {CachePath}", cachePath);
                     if (!Directory.Exists(cachePath))
                         continue;
 
@@ -865,7 +865,7 @@ public class JobExecutor : IJobExecutor, IDisposable
         logger.LogInformation("Build commands:");
         foreach (var command in commands)
         {
-            logger.LogInformation(command);
+            logger.LogInformation(" {Command}", command);
         }
 
         logger.LogInformation("end of build commands");
