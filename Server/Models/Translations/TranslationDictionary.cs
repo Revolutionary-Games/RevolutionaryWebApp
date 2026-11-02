@@ -3,19 +3,30 @@ namespace RevolutionaryWebApp.Server.Models.Translations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Models;
 using Shared.Models;
 using Shared.Notifications;
 
 [Index(nameof(Name), IsUnique = true)]
-public class TranslationDictionary : IUpdateNotifications
+public class TranslationDictionary : ISoftDeletable, IUpdateNotifications, IHasUpdatedAt
 {
     [Key]
     public long Id { get; set; }
 
     [MaxLength(120)]
     public string Name { get; set; } = string.Empty;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public bool Deleted { get; set; }
+
+    [NotMapped]
+    public bool UsesSoftDelete => true;
+
+    [NotMapped]
+    public bool IsSoftDeleted => Deleted;
 
     public ICollection<TranslationProject> Projects { get; set; } = new HashSet<TranslationProject>();
     public ICollection<DictionaryTerm> Terms { get; set; } = new HashSet<DictionaryTerm>();
@@ -39,7 +50,7 @@ public class TranslationDictionary : IUpdateNotifications
     }
 }
 
-public class DictionaryTerm : IUpdateNotifications, IHasUpdatedAt
+public class DictionaryTerm : ISoftDeletable, IUpdateNotifications, IHasUpdatedAt
 {
     public long DictionaryId { get; set; }
 
@@ -58,6 +69,15 @@ public class DictionaryTerm : IUpdateNotifications, IHasUpdatedAt
 
     public TranslationDictionary Dictionary { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
+
+    public bool Deleted { get; set; }
+
+    [NotMapped]
+    public bool UsesSoftDelete => true;
+
+    [NotMapped]
+    public bool IsSoftDeleted => Deleted;
+
     public ICollection<DictionaryTermTranslation> Translations { get; set; } = new HashSet<DictionaryTermTranslation>();
 
     public DictionaryTermDTO GetDTO(DictionaryTermTranslation? translation = null)
@@ -133,7 +153,7 @@ public class DictionaryTermTranslation : IUpdateNotifications, IHasUpdatedAt
 ///   (they need to request it). So instead if there are some not very important words, but still useful in a
 ///   language people can add language-specific dictionary entries that don't go into other languages (and English).
 /// </summary>
-public class DictionaryLanguageTerm : IUpdateNotifications, IHasUpdatedAt
+public class DictionaryLanguageTerm : ISoftDeletable, IUpdateNotifications, IHasUpdatedAt
 {
     public long DictionaryId { get; set; }
 
@@ -158,6 +178,14 @@ public class DictionaryLanguageTerm : IUpdateNotifications, IHasUpdatedAt
 
     public TranslationDictionary Dictionary { get; set; } = null!;
     public User? LastEditedByUser { get; set; }
+
+    public bool Deleted { get; set; }
+
+    [NotMapped]
+    public bool UsesSoftDelete => true;
+
+    [NotMapped]
+    public bool IsSoftDeleted => Deleted;
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {

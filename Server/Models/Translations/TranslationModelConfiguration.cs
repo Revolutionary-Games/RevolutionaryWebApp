@@ -6,6 +6,34 @@ public static class TranslationModelConfiguration
 {
     public static void Configure(ModelBuilder modelBuilder)
     {
+        // Soft deletion configuration to hide deleted items
+        // TODO: some of these can probably be relaxed
+        modelBuilder.Entity<TranslationProject>().HasQueryFilter(e => !e.Deleted);
+        modelBuilder.Entity<TranslationProjectLanguage>().HasQueryFilter(e => !e.Deleted && !e.Project.Deleted);
+        modelBuilder.Entity<TranslationUnit>().HasQueryFilter(e => !e.Project.Deleted);
+        modelBuilder.Entity<TranslationValue>().HasQueryFilter(e => !e.Unit.Project.Deleted && !e.Language.Deleted);
+        modelBuilder.Entity<TranslationSuggestion>().HasQueryFilter(e =>
+            !e.Value.Unit.Project.Deleted && !e.Value.Language.Deleted);
+        modelBuilder.Entity<TranslationSuggestionVote>().HasQueryFilter(e =>
+            !e.Suggestion.Value.Unit.Project.Deleted && !e.Suggestion.Value.Language.Deleted);
+        modelBuilder.Entity<TranslationComment>().HasQueryFilter(e =>
+            !e.Value.Unit.Project.Deleted && !e.Value.Language.Deleted);
+        modelBuilder.Entity<TranslationChange>().HasQueryFilter(e =>
+            !e.Value.Unit.Project.Deleted && !e.Value.Language.Deleted);
+        modelBuilder.Entity<TranslationImportConflict>().HasQueryFilter(e =>
+            !e.Value.Unit.Project.Deleted && !e.Value.Language.Deleted);
+        modelBuilder.Entity<TranslationSyncRun>().HasQueryFilter(e => !e.Project.Deleted);
+        modelBuilder.Entity<TranslationPullRequest>().HasQueryFilter(e => !e.Project.Deleted);
+        modelBuilder.Entity<TranslationDictionary>().HasQueryFilter(e => !e.Deleted);
+        modelBuilder.Entity<DictionaryTerm>().HasQueryFilter(e => !e.Deleted && !e.Dictionary.Deleted);
+        modelBuilder.Entity<DictionaryLanguageTerm>().HasQueryFilter(e => !e.Deleted && !e.Dictionary.Deleted);
+        modelBuilder.Entity<DictionaryTermTranslation>().HasQueryFilter(e =>
+            !e.Term.Deleted && !e.Term.Dictionary.Deleted);
+        modelBuilder.Entity<DictionaryTermRequest>().HasQueryFilter(e => !e.Dictionary.Deleted);
+        modelBuilder.Entity<TranslationSubscription>().HasQueryFilter(e =>
+            !e.ProjectLanguage.Deleted && !e.ProjectLanguage.Project.Deleted);
+
+        // Other configuration
         modelBuilder.Entity<TranslationProject>(entity =>
         {
             entity.HasOne(p => p.Dictionary).WithMany(d => d.Projects).HasForeignKey(p => p.DictionaryId)

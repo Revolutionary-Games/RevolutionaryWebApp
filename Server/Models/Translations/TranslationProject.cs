@@ -3,18 +3,18 @@ namespace RevolutionaryWebApp.Server.Models.Translations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using DevCenterCommunication.Models;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Models;
 using Shared.Models;
 using Shared.Notifications;
 
 [Index(nameof(Slug), IsUnique = true)]
 [Index(nameof(RepositoryFullName), nameof(SourceBranch))]
-public class TranslationProject : IUpdateNotifications, ITimestampedModel
+public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoftDeletable, IHasUpdatedAt
 {
     public long Id { get; set; }
 
@@ -23,6 +23,8 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel
 
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
+
+    public bool Deleted { get; set; }
 
     public bool Enabled { get; set; } = true;
 
@@ -52,6 +54,12 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel
     public long CurrentRevision { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    [NotMapped]
+    public bool UsesSoftDelete => true;
+
+    [NotMapped]
+    public bool IsSoftDeleted => Deleted;
 
     public ICollection<TranslationProjectLanguage> Languages { get; set; } = new HashSet<TranslationProjectLanguage>();
     public ICollection<TranslationUnit> Units { get; set; } = new HashSet<TranslationUnit>();
@@ -109,7 +117,8 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel
 
         string[] configurationProperties =
         [
-            nameof(Slug), nameof(Name), nameof(Enabled), nameof(SourceLanguage), nameof(Format), nameof(DictionaryId),
+            nameof(Slug), nameof(Name), nameof(Deleted), nameof(Enabled), nameof(SourceLanguage),
+            nameof(Format), nameof(DictionaryId),
             nameof(RepositoryFullName), nameof(SourceBranch), nameof(SourceFilePattern),
             nameof(TranslationFilePattern),
         ];
@@ -142,7 +151,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel
     }
 }
 
-public class TranslationProjectLanguage : IUpdateNotifications
+public class TranslationProjectLanguage : IUpdateNotifications, ISoftDeletable, IHasUpdatedAt
 {
     public long ProjectId { get; set; }
 
@@ -155,10 +164,21 @@ public class TranslationProjectLanguage : IUpdateNotifications
     [MaxLength(500)]
     public string? FilePath { get; set; }
 
+    public bool Deleted { get; set; }
+
     public bool Enabled { get; set; } = true;
+
     public DateTime? LastImportedAt { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public TranslationProject Project { get; set; } = null!;
+
+    [NotMapped]
+    public bool UsesSoftDelete => true;
+
+    [NotMapped]
+    public bool IsSoftDeleted => Deleted;
+
     public ICollection<TranslationValue> Values { get; set; } = new HashSet<TranslationValue>();
     public ICollection<TranslationSubscription> Subscriptions { get; set; } = new HashSet<TranslationSubscription>();
 

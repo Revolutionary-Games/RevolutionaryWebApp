@@ -50,8 +50,7 @@ public class TranslationProjectsController : Controller
     {
         if (!TryValidate(request, out var format, out var error))
             return BadRequest(error);
-
-        if (await database.TranslationProjects.AnyAsync(p => p.Slug == request.Slug))
+        if (await database.TranslationProjects.IgnoreQueryFilters().AnyAsync(p => p.Slug == request.Slug))
             return Conflict("Project slug already exists");
 
         var project = new TranslationProject();
@@ -83,15 +82,14 @@ public class TranslationProjectsController : Controller
 
         await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
             HttpContext.RequestAborted);
-
-        var project = await database.TranslationProjects.FindAsync(id);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == id);
         if (project == null)
             return NotFound();
 
         if (project.Format != format || project.SourceLanguage != request.SourceLanguage)
             return BadRequest("Changing an existing project's format or source language is not supported");
 
-        if (await database.TranslationProjects.AnyAsync(p => p.Slug == request.Slug && p.Id != id))
+        if (await database.TranslationProjects.IgnoreQueryFilters().AnyAsync(p => p.Slug == request.Slug && p.Id != id))
         {
             return Conflict("Project slug already exists");
         }
@@ -166,8 +164,7 @@ public class TranslationProjectsController : Controller
     {
         await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
             HttpContext.RequestAborted);
-
-        var project = await database.TranslationProjects.FindAsync(id);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == id);
         if (project == null)
             return NotFound();
 
@@ -178,7 +175,7 @@ public class TranslationProjectsController : Controller
         if (code.Length == 0 || code.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch is not '-' and not '_'))
             return BadRequest("Invalid language code");
 
-        if (await database.TranslationProjectLanguages.AnyAsync(l => l.ProjectId == id &&
+        if (await database.TranslationProjectLanguages.IgnoreQueryFilters().AnyAsync(l => l.ProjectId == id &&
                 l.LanguageCode == code))
         {
             return Conflict("Language already exists");
@@ -229,6 +226,9 @@ public class TranslationProjectsController : Controller
     public async Task<ActionResult<TranslationImportConflictDTO[]>> Conflicts(long id,
         CancellationToken cancellationToken)
     {
+        if (!await database.TranslationProjects.AnyAsync(item => item.Id == id, cancellationToken))
+            return NotFound();
+
         return await database.TranslationImportConflicts.AsNoTracking()
             .Where(conflict => conflict.ProjectId == id && conflict.ResolvedAt == null)
             .OrderBy(conflict => conflict.CreatedAt)
@@ -252,20 +252,22 @@ public class TranslationProjectsController : Controller
         await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
             HttpContext.RequestAborted);
 
-        var conflict = await database.TranslationImportConflicts.FindAsync(conflictId);
+        var conflict = await database.TranslationImportConflicts.FirstOrDefaultAsync(item => item.Id == conflictId);
         if (conflict == null || conflict.ProjectId != id)
             return NotFound();
 
         if (conflict.ResolvedAt != null)
             return BadRequest("Conflict already resolved");
 
-        var value = await database.TranslationValues.FindAsync(id, conflict.Key, conflict.LanguageCode);
-        var project = await database.TranslationProjects.FindAsync(id);
+        var value = await database.TranslationValues.FirstOrDefaultAsync(item =>
+            item.ProjectId == id && item.Key == conflict.Key && item.LanguageCode == conflict.LanguageCode);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == id);
         if (value == null || project == null)
             return NotFound();
 
         var sourceUnit = conflict.LanguageCode == project.SourceLanguage ?
-            await database.TranslationUnits.FindAsync(id, conflict.Key) :
+            await database.TranslationUnits.FirstOrDefaultAsync(item =>
+                item.ProjectId == id && item.Key == conflict.Key) :
             null;
         if (conflict.LanguageCode == project.SourceLanguage && sourceUnit == null)
             return NotFound();
@@ -275,8 +277,8 @@ public class TranslationProjectsController : Controller
             value.LastImportedText = conflict.IncomingText;
             value.PendingSince ??= DateTime.UtcNow;
             value.PendingRevision = ++project.CurrentRevision;
-            sourceUnit?.SourceHash = Convert.ToHexString(SHA256.HashData(
-                Encoding.UTF8.GetBytes(conflict.IncomingText)));
+            sourceUnit?.SourceHash =
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(conflict.IncomingText)));
         }
         else
         {

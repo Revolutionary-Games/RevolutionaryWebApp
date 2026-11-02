@@ -44,6 +44,13 @@ public class TranslationEditorController : Controller
         if (project == null)
             return NotFound();
 
+        // This is a check against a deleted project
+        if (!await database.TranslationProjectLanguages.AnyAsync(item => item.ProjectId == projectId &&
+                item.LanguageCode == language && item.Enabled, cancellationToken: cancellationToken))
+        {
+            return NotFound();
+        }
+
         var values = database.TranslationUnits.AsNoTracking()
             .Join(database.TranslationValues.AsNoTracking(), unit => new { unit.ProjectId, unit.Key }, value => new
             {
@@ -86,6 +93,13 @@ public class TranslationEditorController : Controller
         if (direction is not (-1 or 1))
             return BadRequest("Direction must be -1 or 1");
 
+        // Navigation doesn't have to be blocked for deleted projects
+        /*if (!await database.TranslationProjectLanguages.AnyAsync(item => item.ProjectId == projectId &&
+                item.LanguageCode == language && item.Enabled))
+        {
+            return NotFound();
+        }*/
+
         var current = await database.TranslationUnits.AsNoTracking()
             .FirstOrDefaultAsync(unit => unit.ProjectId == projectId && unit.Key == key);
         if (current == null)
@@ -117,6 +131,12 @@ public class TranslationEditorController : Controller
         if (offset < 0)
             return BadRequest("Offset must be non-negative");
 
+        if (!await database.TranslationProjectLanguages.AnyAsync(item => item.ProjectId == projectId &&
+                item.LanguageCode == language && item.Enabled))
+        {
+            return NotFound();
+        }
+
         var rows = await database.TranslationChanges.AsNoTracking().Where(change =>
                 change.ProjectId == projectId && change.Key == key && change.LanguageCode == language)
             .OrderByDescending(change => change.CreatedAt).ThenByDescending(change => change.Id)
@@ -127,6 +147,12 @@ public class TranslationEditorController : Controller
     [HttpGet("nearby")]
     public async Task<ActionResult<NearbyTranslationDTO[]>> Nearby(long projectId, string key, string language)
     {
+        if (!await database.TranslationProjectLanguages.AnyAsync(item => item.ProjectId == projectId &&
+                item.LanguageCode == language && item.Enabled))
+        {
+            return NotFound();
+        }
+
         return await database.TranslationValues.AsNoTracking().Where(value =>
                 value.ProjectId == projectId && value.Key == key && value.LanguageCode != language &&
                 value.Text != string.Empty)

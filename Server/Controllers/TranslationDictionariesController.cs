@@ -46,6 +46,10 @@ public class TranslationDictionariesController : Controller
     [HttpGet("{id:long}/languages")]
     public async Task<ActionResult<string[]>> Languages(long id)
     {
+        // This acts as a "is deleted" filter thanks to default query filters
+        if (!await database.TranslationDictionaries.AnyAsync(item => item.Id == id))
+            return NotFound();
+
         // TODO: should ordering be the same as for languages which use the name of a language for sorting?
         var languages = await database.TranslationProjects.Where(p => p.DictionaryId == id)
             .Join(database.TranslationProjectLanguages, p => p.Id, l => l.ProjectId,
@@ -59,7 +63,7 @@ public class TranslationDictionariesController : Controller
     public async Task<ActionResult<TranslationDictionaryDTO>> Create([FromBody] CreateDictionaryRequest request)
     {
         var dictionary = new TranslationDictionary { Name = request.Name.Trim() };
-        if (await database.TranslationDictionaries.AnyAsync(d => d.Name == dictionary.Name))
+        if (await database.TranslationDictionaries.IgnoreQueryFilters().AnyAsync(d => d.Name == dictionary.Name))
             return Conflict("Dictionary name already exists");
 
         await database.TranslationDictionaries.AddAsync(dictionary);
@@ -76,6 +80,9 @@ public class TranslationDictionariesController : Controller
         [Required] [Range(1, int.MaxValue)] int page = 1,
         [Required] [Range(1, 100)] int pageSize = 100)
     {
+        if (!await database.TranslationDictionaries.AnyAsync(item => item.Id == id))
+            return NotFound();
+
         var sourceTerms = database.DictionaryTerms.AsNoTracking().Where(t => t.DictionaryId == id)
             .Select(term => new DictionaryTermDTO
             {
@@ -147,8 +154,18 @@ public class TranslationDictionariesController : Controller
             .FirstOrDefaultAsync(p => p.Id == projectId && p.Enabled, cancellationToken);
         var unit = await database.TranslationUnits.AsNoTracking()
             .FirstOrDefaultAsync(u => u.ProjectId == projectId && u.Key == key, cancellationToken);
-        if (project?.DictionaryId == null || unit == null)
+        if (project == null || unit == null)
+            return NotFound();
+
+        if (project.DictionaryId == null)
             return Array.Empty<DictionaryTermDTO>();
+
+        // This is just a "is deleted" check, not absolutely mandatory here
+        if (!await database.TranslationDictionaries.AnyAsync(item => item.Id == project.DictionaryId,
+                cancellationToken))
+        {
+            return NotFound();
+        }
 
         // TODO: If this scan becomes expensive as dictionaries grow, cache matching terms or computed matches in
         // Redis and invalidate the cache when a dictionary entry or the source translation text changes.
@@ -218,10 +235,10 @@ public class TranslationDictionariesController : Controller
             return NotFound();
         }
 
-        if (await database.DictionaryTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+        if (await database.DictionaryTerms.IgnoreQueryFilters().AnyAsync(t => t.DictionaryId == request.DictionaryId &&
                 t.Word == word && t.Context == context))
         {
-            return Conflict("Dictionary term already exists for this context");
+            return Conflict("Dictionary term already exists for this context (but might be deleted if not visible)");
         }
 
         var term = new DictionaryTerm
@@ -267,7 +284,8 @@ public class TranslationDictionariesController : Controller
         if (word.Length == 0)
             return BadRequest("Dictionary word cannot be empty");
 
-        var term = await database.DictionaryTerms.FindAsync(request.DictionaryId, request.Word, request.Context);
+        var term = await database.DictionaryTerms.FirstOrDefaultAsync(item =>
+            item.DictionaryId == request.DictionaryId && item.Word == request.Word && item.Context == request.Context);
         if (term == null)
             return NotFound();
 
@@ -276,7 +294,7 @@ public class TranslationDictionariesController : Controller
             return NoContent();
 
         if ((term.Word != word || term.Context != context) &&
-            await database.DictionaryTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+            await database.DictionaryTerms.IgnoreQueryFilters().AnyAsync(t => t.DictionaryId == request.DictionaryId &&
                 t.Word == word && t.Context == context))
         {
             return Conflict("Dictionary term already exists for this context");
@@ -390,10 +408,11 @@ public class TranslationDictionariesController : Controller
         if (!languageIsConfigured)
             return BadRequest("Language is not configured for this dictionary");
 
-        if (await database.DictionaryLanguageTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
-                t.LanguageCode == request.LanguageCode && t.Word == word && t.Context == context))
+        if (await database.DictionaryLanguageTerms.IgnoreQueryFilters()
+                .AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+                    t.LanguageCode == request.LanguageCode && t.Word == word && t.Context == context))
         {
-            return Conflict("Dictionary term already exists for this language and context");
+            return Conflict("Dictionary term already exists for this language and context (but might be deleted)");
         }
 
         await database.DictionaryLanguageTerms.AddAsync(new DictionaryLanguageTerm
@@ -434,8 +453,9 @@ public class TranslationDictionariesController : Controller
         if (sourceWord.Length == 0)
             return BadRequest("Source language word cannot be empty");
 
-        var term = await database.DictionaryLanguageTerms.FindAsync(request.DictionaryId, request.LanguageCode,
-            request.Word, request.Context);
+        var term = await database.DictionaryLanguageTerms.FirstOrDefaultAsync(item =>
+            item.DictionaryId == request.DictionaryId && item.LanguageCode == request.LanguageCode &&
+            item.Word == request.Word && item.Context == request.Context);
         if (term == null)
             return NotFound();
 
@@ -445,8 +465,9 @@ public class TranslationDictionariesController : Controller
             return NoContent();
 
         if ((term.Word != word || term.Context != context) &&
-            await database.DictionaryLanguageTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
-                t.LanguageCode == request.LanguageCode && t.Word == word && t.Context == context))
+            await database.DictionaryLanguageTerms.IgnoreQueryFilters()
+                .AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+                    t.LanguageCode == request.LanguageCode && t.Word == word && t.Context == context))
         {
             return Conflict("Dictionary term already exists for this language and context");
         }
@@ -508,8 +529,9 @@ public class TranslationDictionariesController : Controller
         if (state != TranslationState.NeedsTranslation && string.IsNullOrWhiteSpace(request.Text))
             return BadRequest("Empty dictionary translations need translation");
 
-        var value = await database.DictionaryTermTranslations.FindAsync(request.DictionaryId, request.Word,
-            request.Context, request.LanguageCode);
+        var value = await database.DictionaryTermTranslations.FirstOrDefaultAsync(item =>
+            item.DictionaryId == request.DictionaryId && item.Word == request.Word &&
+            item.Context == request.Context && item.LanguageCode == request.LanguageCode);
         if (value == null)
             return NotFound();
 
@@ -561,7 +583,7 @@ public class TranslationDictionariesController : Controller
             return NotFound();
         }
 
-        if (await database.DictionaryTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+        if (await database.DictionaryTerms.IgnoreQueryFilters().AnyAsync(t => t.DictionaryId == request.DictionaryId &&
                 t.Word == word && t.Context == context))
         {
             return Conflict("The dictionary term already exists for this context");
@@ -609,17 +631,17 @@ public class TranslationDictionariesController : Controller
     public async Task<IActionResult> ApproveRequest(long id)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
-        var request = await database.DictionaryTermRequests.FindAsync(id);
+        var request = await database.DictionaryTermRequests.FirstOrDefaultAsync(item => item.Id == id);
         if (request == null)
             return NotFound();
 
         if (request.Approved != null)
             return Conflict("Request already approved");
 
-        if (await database.DictionaryTerms.AnyAsync(t => t.DictionaryId == request.DictionaryId &&
+        if (await database.DictionaryTerms.IgnoreQueryFilters().AnyAsync(t => t.DictionaryId == request.DictionaryId &&
                 t.Word == request.Word && t.Context == request.Context))
         {
-            return Conflict("Term already exists");
+            return Conflict("Term already exists (but could be deleted if not visible)");
         }
 
         await database.DictionaryTerms.AddAsync(new DictionaryTerm
@@ -671,7 +693,7 @@ public class TranslationDictionariesController : Controller
     public async Task<IActionResult> RejectRequest(long id)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
-        var request = await database.DictionaryTermRequests.FindAsync(id);
+        var request = await database.DictionaryTermRequests.FirstOrDefaultAsync(item => item.Id == id);
         if (request == null || request.Approved != null)
             return NotFound();
 

@@ -9,5 +9,7 @@ public class SoftDeletedResource : ClientSideModel
     [Required]
     public string Name { get; set; } = string.Empty;
 
+    public string? ResourceKey { get; set; }
+
     public DateTime UpdatedAt { get; set; }
 }

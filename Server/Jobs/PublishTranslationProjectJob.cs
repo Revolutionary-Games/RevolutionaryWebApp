@@ -44,7 +44,7 @@ public sealed class PublishTranslationProjectJob
     public async Task Execute(long projectId, CancellationToken cancellationToken)
     {
         var project = await database.TranslationProjects.FindAsync([projectId], cancellationToken);
-        if (project == null || !project.Enabled || project.Format == TranslationFormat.Manual)
+        if (project == null || project.Deleted || !project.Enabled || project.Format == TranslationFormat.Manual)
             return;
 
         var token = await tokenProvider.GetToken(cancellationToken) ??
@@ -52,6 +52,12 @@ public sealed class PublishTranslationProjectJob
         var checkout = fileLocks.GetTempFilePath($"translationRepos/{project.Id}");
         using (await fileLocks.LockAsync(checkout, cancellationToken))
         {
+            await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId,
+                cancellationToken);
+            await database.Entry(project).ReloadAsync(cancellationToken);
+            if (database.Entry(project).State == EntityState.Detached || project.Deleted || !project.Enabled)
+                return;
+
             var run = new TranslationSyncRun { ProjectId = project.Id, Type = "Publish", Status = "Running" };
             database.TranslationSyncRuns.Add(run);
             await database.SaveChangesAsync(cancellationToken);

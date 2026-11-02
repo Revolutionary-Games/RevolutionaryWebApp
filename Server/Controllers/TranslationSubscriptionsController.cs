@@ -27,6 +27,14 @@ public class TranslationSubscriptionsController : Controller
     public async Task<ActionResult<TranslationSubscriptionDTO>> Get(long projectId, string language)
     {
         var userId = HttpContext.AuthenticatedUserOrThrow().Id;
+
+        // Disallow editing subscriptions for deleted projects
+        if (!await database.TranslationProjectLanguages.AnyAsync(item => item.ProjectId == projectId &&
+                item.LanguageCode == language && item.Enabled))
+        {
+            return NotFound();
+        }
+
         var types = await database.TranslationSubscriptions.AsNoTracking().Where(s => s.UserId == userId &&
                 s.ProjectId == projectId && s.LanguageCode == language).Select(s => s.EventType)
             .ToListAsync();

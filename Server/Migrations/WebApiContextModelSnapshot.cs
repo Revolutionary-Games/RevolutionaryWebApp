@@ -4345,6 +4345,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("timezone('utc', now())");
 
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
                     b.Property<string>("Explanation")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -4394,6 +4398,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("timezone('utc', now())");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
 
                     b.Property<string>("Explanation")
                         .HasMaxLength(500)
@@ -4707,11 +4715,19 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("name");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Id")
                         .HasName("pk_translation_dictionaries");
@@ -4793,6 +4809,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<long>("CurrentRevision")
                         .HasColumnType("bigint")
                         .HasColumnName("current_revision");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
 
                     b.Property<long?>("DictionaryId")
                         .HasColumnType("bigint")
@@ -4884,6 +4904,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(35)")
                         .HasColumnName("language_code");
 
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("deleted");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -4902,6 +4926,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<DateTime?>("LastImportedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_imported_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
                     b.HasKey("ProjectId", "LanguageCode")
                         .HasName("pk_translation_project_languages");

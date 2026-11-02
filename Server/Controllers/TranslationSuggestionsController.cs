@@ -36,6 +36,13 @@ public class TranslationSuggestionsController : Controller
     public async Task<ActionResult<TranslationSuggestionDTO[]>> List(long projectId, string key, string language,
         CancellationToken cancellationToken)
     {
+        // Filter out deleted project's suggestions
+        if (!await database.TranslationValues.AnyAsync(value => value.ProjectId == projectId &&
+                value.Key == key && value.LanguageCode == language, cancellationToken))
+        {
+            return NotFound();
+        }
+
         // We assume no text ever gets more than 100 open suggestions at once. Even if something gets 100 suggestions,
         // we probably should just disallow opening more before old ones are closed.
         return await database.TranslationSuggestions.AsNoTracking()
@@ -119,8 +126,7 @@ public class TranslationSuggestionsController : Controller
         // This lock is mostly here to be consistent with Accept which needs to actually lock to make changes
         await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId.Value,
             HttpContext.RequestAborted);
-
-        var suggestion = await database.TranslationSuggestions.FindAsync(id);
+        var suggestion = await database.TranslationSuggestions.FirstOrDefaultAsync(item => item.Id == id);
         if (suggestion == null || suggestion.Status != TranslationSuggestionStatus.Open)
             return NotFound();
         if (suggestion.AuthorUserId == actor.Id)
@@ -171,8 +177,7 @@ public class TranslationSuggestionsController : Controller
 
         await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId.Value,
             HttpContext.RequestAborted);
-
-        var suggestion = await database.TranslationSuggestions.FindAsync(id);
+        var suggestion = await database.TranslationSuggestions.FirstOrDefaultAsync(item => item.Id == id);
         if (suggestion == null || suggestion.Status != TranslationSuggestionStatus.Open)
             return NotFound();
 
@@ -181,10 +186,12 @@ public class TranslationSuggestionsController : Controller
         if (score < 0)
             return BadRequest("Cannot accept a suggestion with a negative score");
 
-        var value = await database.TranslationValues.FindAsync(suggestion.ProjectId, suggestion.Key,
-            suggestion.LanguageCode);
-        var unit = await database.TranslationUnits.FindAsync(suggestion.ProjectId, suggestion.Key);
-        var project = await database.TranslationProjects.FindAsync(suggestion.ProjectId);
+        var value = await database.TranslationValues.FirstOrDefaultAsync(item =>
+            item.ProjectId == suggestion.ProjectId && item.Key == suggestion.Key &&
+            item.LanguageCode == suggestion.LanguageCode);
+        var unit = await database.TranslationUnits.FirstOrDefaultAsync(item =>
+            item.ProjectId == suggestion.ProjectId && item.Key == suggestion.Key);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == suggestion.ProjectId);
         if (value == null || unit == null || project == null ||
             suggestion.SourceRevision != unit.SourceRevision)
         {

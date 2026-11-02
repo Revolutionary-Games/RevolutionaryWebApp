@@ -41,7 +41,7 @@ public class ImportTranslationProjectJob
     public async Task Execute(long projectId, CancellationToken cancellationToken)
     {
         var project = await database.TranslationProjects.FindAsync([projectId], cancellationToken);
-        if (project == null || !project.Enabled || string.IsNullOrEmpty(project.RepositoryFullName))
+        if (project == null || project.Deleted || !project.Enabled || string.IsNullOrEmpty(project.RepositoryFullName))
             return;
 
         ValidateConfiguration(project);
@@ -70,7 +70,8 @@ public class ImportTranslationProjectJob
                     if (database.Entry(project).State == EntityState.Detached)
                         throw new InvalidOperationException("Translation project was removed during import");
 
-                    if (!project.Enabled || project.RepositoryFullName != importConfiguration.RepositoryFullName ||
+                    if (project.Deleted || !project.Enabled ||
+                        project.RepositoryFullName != importConfiguration.RepositoryFullName ||
                         project.SourceBranch != importConfiguration.SourceBranch ||
                         project.SourceFilePattern != importConfiguration.SourceFilePattern ||
                         project.TranslationFilePattern != importConfiguration.TranslationFilePattern ||
@@ -162,8 +163,11 @@ public class ImportTranslationProjectJob
         foreach (var discovered in DiscoverLanguages(checkout, project.TranslationFilePattern!,
                      project.SourceLanguage))
         {
-            if (languages.Any(l => l.LanguageCode == discovered))
+            if (await database.TranslationProjectLanguages.IgnoreQueryFilters().AnyAsync(l =>
+                    l.ProjectId == project.Id && l.LanguageCode == discovered, cancellationToken))
+            {
                 continue;
+            }
 
             var language = new TranslationProjectLanguage
             {

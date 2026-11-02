@@ -39,6 +39,8 @@ public class TranslationDiscussionController : Controller
             .Select(project => project.SourceLanguage)
             .FirstOrDefaultAsync();
 
+        // We could check for deleted status here, but it isn't absolutely required that deleted items can't have
+        // their comments read
         if (sourceLanguage == null)
             return NotFound();
 
