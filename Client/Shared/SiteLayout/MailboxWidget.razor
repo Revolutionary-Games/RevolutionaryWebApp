@@ -3,6 +3,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @inject HttpClient Http
 @inject CurrentUserInfo UserInfo
+@inject InboxNotificationState InboxState
 @implements IDisposable
 
 @if (UserInfo.LoggedIn)
@@ -19,10 +20,12 @@
 @code {
     private readonly CancellationTokenSource shutdown = new();
     private int unread;
+    private int readVersion;
 
     public void Dispose()
     {
         UserInfo.OnUserInfoChanged -= UserChanged;
+        InboxState.OnAllMarkedRead -= AllMarkedRead;
 
         try
         {
@@ -37,6 +40,7 @@
     protected override async Task OnInitializedAsync()
     {
         UserInfo.OnUserInfoChanged += UserChanged;
+        InboxState.OnAllMarkedRead += AllMarkedRead;
         await Refresh();
         _ = Poll();
     }
@@ -61,8 +65,15 @@
 
         try
         {
-            unread = (await Http.GetFromJsonAsync<UnreadNotificationCountDTO>("api/v1/userNotifications/" +
+            var version = readVersion;
+            var count = (await Http.GetFromJsonAsync<UnreadNotificationCountDTO>("api/v1/userNotifications/" +
                 "unreadCount", shutdown.Token))?.Count ?? 0;
+
+            // A request started before marking everything read may still contain the old count.
+            if (version != readVersion)
+                return;
+
+            unread = count;
             await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException)
@@ -82,6 +93,13 @@
     private async void UserChanged(object? sender, UserDTO? newInfo)
     {
         await Refresh();
+    }
+
+    private void AllMarkedRead(object? sender, EventArgs args)
+    {
+        ++readVersion;
+        unread = 0;
+        _ = InvokeAsync(StateHasChanged);
     }
 
 }

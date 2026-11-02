@@ -63,6 +63,7 @@ public class Program
                 sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<ICSRFTokenReader>()));
 
         builder.Services.AddSingleton<StaticHomePageNotice>();
+        builder.Services.AddSingleton<InboxNotificationState>();
 
         builder.Services.AddBlazoredModal();
         builder.Services.InjectClipboard();
