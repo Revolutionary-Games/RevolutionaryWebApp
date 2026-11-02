@@ -49,6 +49,7 @@ public class TranslationEditorControllerTests
         Assert.Equal("A", Assert.IsType<JsonResult>(previous.Result).Value);
         var inactive = await controller.Get(1, "removed", "fi", CancellationToken.None);
         Assert.False(inactive.Value!.Active);
+        Assert.Equal(3, inactive.Value.Position);
     }
 
     private static NotificationsEnabledDb CreateDatabase()

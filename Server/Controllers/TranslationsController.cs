@@ -1,6 +1,5 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
-using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,7 +32,8 @@ public class TranslationsController : Controller
         [FromQuery] SortDirection sortDirection = SortDirection.Ascending)
     {
         var query = database.TranslationProjects.AsNoTracking().Where(p => p.Enabled);
-        query = sortDirection == SortDirection.Descending ? query.OrderByDescending(p => p.Name) :
+        query = sortDirection == SortDirection.Descending ?
+            query.OrderByDescending(p => p.Name) :
             query.OrderBy(p => p.Name);
         var projects = await query.ToListAsync();
         var groups = HttpContext.AuthenticatedUser()?.AccessCachedGroupsOrThrow();
@@ -55,22 +55,31 @@ public class TranslationsController : Controller
     }
 
     [HttpGet("projects/{slug}/recent")]
-    public async Task<ActionResult<PagedResult<TranslationActivityDTO>>> Recent(string slug, string language,
+    public async Task<ActionResult<PagedResult<TranslationActivityDTO>>> Recent(string slug, string? language = null,
         [FromQuery] TranslationActivityView view = TranslationActivityView.All, [FromQuery] int page = 1,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, [FromQuery] string? types = null,
+        [FromQuery] string? username = null)
     {
-        if (page < 1 || !Enum.IsDefined(view))
+        if (page < 1 || !TranslationActivityFilter.TryParse(types, view, out var selected))
             return BadRequest("Invalid activity view or page");
 
         var project = await database.TranslationProjects.AsNoTracking()
             .FirstOrDefaultAsync(item => item.Slug == slug && item.Enabled, cancellationToken);
-        if (project == null || !await database.TranslationProjectLanguages.AnyAsync(item =>
-                item.ProjectId == project.Id && item.LanguageCode == language && item.Enabled, cancellationToken))
+        if (project == null || (language != null && !await database.TranslationProjectLanguages.AnyAsync(item =>
+                item.ProjectId == project.Id && item.LanguageCode == language && item.Enabled, cancellationToken)))
         {
             return NotFound();
         }
 
-        return await TranslationActivityQuery.Create(database, project, language, view).ToPagedResultAsync(page, 50);
+        long? userId = null;
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            userId = await database.Users.Where(user => user.UserName.ToLower() == username.Trim().ToLower())
+                .Select(user => (long?)user.Id).FirstOrDefaultAsync(cancellationToken) ?? -1;
+        }
+
+        return await TranslationActivityQuery.Create(database, project, language, selected, userId)
+            .ToPagedResultAsync(page, 50);
     }
 
     [HttpGet("projects/{slug}/languages")]

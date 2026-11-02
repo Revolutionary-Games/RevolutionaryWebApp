@@ -18,6 +18,7 @@ public class TranslationActivityTests
     {
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        database.Users.Add(new User("translator@example.com", "Translator") { Id = 42 });
         database.TranslationProjects.Add(new TranslationProject { Id = 1, Name = "Test", Slug = "test" });
         database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
         foreach (var code in new[] { "en", "sv" })
@@ -33,7 +34,7 @@ public class TranslationActivityTests
             database.TranslationChanges.Add(new TranslationChange
             {
                 ProjectId = 1, Key = $"key{index}", LanguageCode = "fi", NewText = $"Text {index}",
-                CreatedAt = DateTime.UtcNow.AddMinutes(-index),
+                CreatedAt = DateTime.UtcNow.AddMinutes(-index), ActorUserId = index == 0 ? 42 : null,
             });
         }
 
@@ -76,6 +77,18 @@ public class TranslationActivityTests
         Assert.Equal("active", Assert.Single(allActivity, item => item.Description == "New key").Key);
         Assert.All(allActivity, item =>
             Assert.Contains(item.LanguageCode, new[] { "fi", "en" }));
+        var projectFirst = (await controller.Recent("test")).Value!;
+        var projectSecond = (await controller.Recent("test", page: 2)).Value!;
+        Assert.Equal(66, projectFirst.Results.Length + projectSecond.Results.Length);
+        Assert.Contains(projectFirst.Results.Concat(projectSecond.Results), item => item.LanguageCode == "sv");
+        var mixed = (await controller.Recent("test", types: "Comments,Source")).Value!;
+        Assert.Equal(4, mixed.Results.Length);
+        Assert.All(mixed.Results, item => Assert.True(item.Description == "Comment" || item.Key == "source"));
+        Assert.Empty((await controller.Recent("test", types: "None")).Value!.Results);
+        Assert.Empty((await controller.Recent("test", username: "missing-user")).Value!.Results);
+        var userActivity = (await controller.Recent("test", username: "translator")).Value!;
+        Assert.Equal(42, Assert.Single(userActivity.Results).UserId);
+        Assert.IsType<BadRequestObjectResult>((await controller.Recent("test", types: "invalid")).Result);
         var source = (await controller.Recent("test", "fi", TranslationActivityView.Source)).Value!;
         var comments = (await controller.Recent("test", "fi", TranslationActivityView.Comments)).Value!;
         var keys = (await controller.Recent("test", "fi", TranslationActivityView.Keys)).Value!;

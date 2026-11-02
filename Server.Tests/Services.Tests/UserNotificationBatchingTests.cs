@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Server.Models;
+using Server.Models.Translations;
 using Server.Services;
 using Shared.Models;
 using Xunit;
@@ -23,6 +24,7 @@ public class UserNotificationBatchingTests
         TranslationActivityView view)
     {
         await using var database = CreateDatabase();
+        database.TranslationProjects.Add(new TranslationProject { Id = 1, Slug = "test", SourceLanguage = "en" });
         for (var index = 0; index < 50; ++index)
             database.UserNotifications.Add(Notice(type, index));
         await database.SaveChangesAsync();
@@ -33,7 +35,8 @@ public class UserNotificationBatchingTests
         var summary = Assert.Single(visible);
         Assert.Equal(50, summary.CombinedCount);
         Assert.Equal(NotificationPriority.Low, summary.Priority);
-        Assert.Equal($"/translations/test/fi/recent?view={view}", summary.TargetPath);
+        var language = type == UserNotificationType.TranslationSourceChanged ? "en" : "fi";
+        Assert.Equal($"/translations/test/{language}/recent?types={view}", summary.TargetPath);
         Assert.Contains("50", summary.Message);
         Assert.Equal(50, await database.UserNotifications.CountAsync());
         Assert.Equal(50, await database.UserNotifications.Select(notice => notice.DeduplicationKey).Distinct()
@@ -44,6 +47,25 @@ public class UserNotificationBatchingTests
         await Combine(database);
         Assert.Equal(51, summary.CombinedCount);
         Assert.Single(await database.UserNotifications.Where(notice => notice.CombinedIntoId == null).ToListAsync());
+    }
+
+    [Fact]
+    public async Task CommentsAcrossLanguagesOpenProjectCommentHistory()
+    {
+        await using var database = CreateDatabase();
+        var first = Notice(UserNotificationType.TranslationComments, 1);
+        var second = Notice(UserNotificationType.TranslationComments, 2);
+        second.TargetPath = "/translations/test/sv/edit?key=other";
+        database.UserNotifications.AddRange(first, second);
+        await database.SaveChangesAsync();
+        await Combine(database);
+        var parent = await database.UserNotifications.SingleAsync(notice => notice.CombinedIntoId == null);
+        Assert.Equal("/translations/test/recent?types=Comments", parent.TargetPath);
+        database.UserNotifications.Add(Notice(UserNotificationType.TranslationComments, 3));
+        await database.SaveChangesAsync();
+        await Combine(database);
+        Assert.Equal(3, parent.CombinedCount);
+        Assert.Equal("/translations/test/recent?types=Comments", parent.TargetPath);
     }
 
     [Fact]

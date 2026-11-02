@@ -33,6 +33,19 @@ public class TranslationActivityQueryTests
     }
 
     [Fact]
+    public void MixedProjectActivityWithActorFilterTranslatesToPostgres()
+    {
+        using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql("Host=localhost;Database=unused").Options);
+        var project = new TranslationProject { Id = 1, SourceLanguage = "en" };
+        var sql = TranslationActivityQuery.Create(database, project, null,
+                [TranslationActivityView.Comments, TranslationActivityView.Source], 42)
+            .Skip(50).Take(50).ToQueryString();
+        Assert.Contains("UNION ALL", sql);
+        Assert.Contains("LIMIT", sql);
+    }
+
+    [Fact]
     public async Task NewKeysWithTheSameCreationTimeHaveStablePagesWithoutNumericIds()
     {
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()

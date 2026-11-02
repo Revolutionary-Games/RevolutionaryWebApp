@@ -14,10 +14,18 @@ public static class TranslationActivityQuery
     public static IOrderedQueryable<TranslationActivityDTO> Create(ApplicationDbContext database,
         TranslationProject project, string language, TranslationActivityView view)
     {
+        TranslationActivityFilter.TryParse(null, view, out var selected);
+        return Create(database, project, language, selected);
+    }
+
+    public static IOrderedQueryable<TranslationActivityDTO> Create(ApplicationDbContext database,
+        TranslationProject project, string? language, TranslationActivityView[] selected, long? userId = null)
+    {
         // All projections use the same fields, so the combined view can be paged as a SQL UNION ALL.
         var comments = database.TranslationComments.AsNoTracking().Where(comment => comment.ProjectId == project.Id &&
                 !comment.Deleted &&
-                (comment.LanguageCode == language || comment.LanguageCode == project.SourceLanguage))
+                (language == null || comment.LanguageCode == language ||
+                    comment.LanguageCode == project.SourceLanguage))
             .Select(comment => new TranslationActivityDTO
             {
                 Id = comment.Id, Key = comment.Key, LanguageCode = comment.LanguageCode,
@@ -29,14 +37,17 @@ public static class TranslationActivityQuery
             .Where(unit => unit.ProjectId == project.Id && unit.Active)
             .Select(unit => new TranslationActivityDTO
             {
-                Id = 0L, Key = unit.Key, LanguageCode = language,
+                Id = 0L, Key = unit.Key, LanguageCode = project.SourceLanguage,
                 UserId = null, CreatedAt = unit.CreatedAt,
                 Description = "New key", Text = unit.SourceText, PreviousText = null,
                 State = null, PreviousState = null,
             });
         var edits = database.TranslationChanges.AsNoTracking().Where(change => change.ProjectId == project.Id &&
-                (view == TranslationActivityView.Source ? change.LanguageCode == project.SourceLanguage :
-                    change.LanguageCode == language || change.LanguageCode == project.SourceLanguage))
+                (language == null || change.LanguageCode == language ||
+                    change.LanguageCode == project.SourceLanguage) &&
+                (change.LanguageCode == project.SourceLanguage ?
+                    selected.Contains(TranslationActivityView.Source) :
+                    selected.Contains(TranslationActivityView.Edits)))
             .Select(change => new TranslationActivityDTO
             {
                 Id = change.Id, Key = change.Key, LanguageCode = change.LanguageCode,
@@ -45,18 +56,12 @@ public static class TranslationActivityQuery
                 State = change.NewState, PreviousState = change.OldState,
             });
 
-        var activity = view switch
-        {
-            TranslationActivityView.All => edits.Concat(comments).Concat(keys),
-            TranslationActivityView.Comments => comments,
-            TranslationActivityView.Keys => keys,
-            _ => edits,
-        };
-        var ordered = activity.OrderByDescending(item => item.CreatedAt);
+        var activity = edits.Concat(comments.Where(_ => selected.Contains(TranslationActivityView.Comments)))
+            .Concat(keys.Where(_ => selected.Contains(TranslationActivityView.Keys)));
+        if (userId != null)
+            activity = activity.Where(item => item.UserId == userId);
 
-        // Translation units have a project/key primary key, so the new-key view has no numeric ID to sort by.
-        if (view != TranslationActivityView.Keys)
-            ordered = ordered.ThenByDescending(item => item.Id);
+        var ordered = activity.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.Id);
 
         return ordered.ThenBy(item => item.Key).ThenBy(item => item.Description).ThenBy(item => item.LanguageCode);
     }

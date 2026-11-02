@@ -31,7 +31,15 @@ public static class UserNotificationBatching
         if (parts.Length < 3 || parts[0] != "translations")
             return;
 
-        notification.BatchKey = $"/translations/{parts[1]}/{parts[2]}";
+        if (notification.Type == UserNotificationType.TranslationComments)
+        {
+            notification.BatchKey = $"/translations/{parts[1]}";
+        }
+        else
+        {
+            notification.BatchKey ??= $"/translations/{parts[1]}/{parts[2]}";
+        }
+
         notification.Priority = NotificationPriority.Low;
     }
 
@@ -84,7 +92,7 @@ public static class UserNotificationBatching
                 _ => throw new InvalidOperationException("Unsupported combined notification type"),
             };
             var scope = parent.BatchKey!.Split('/');
-            parent.Message = $"{parent.CombinedCount} {action} in {scope[2]} ({scope[3]}).";
+            parent.Message = $"{parent.CombinedCount} {action} in {scope[2]}.";
             var view = parent.Type switch
             {
                 UserNotificationType.TranslationComments => TranslationActivityView.Comments,
@@ -92,7 +100,26 @@ public static class UserNotificationBatching
                 UserNotificationType.TranslationSourceChanged => TranslationActivityView.Source,
                 _ => TranslationActivityView.Edits,
             };
-            parent.TargetPath = parent.BatchKey + "/recent?view=" + view;
+
+            var targetScope = parent.BatchKey;
+            if (parent.Type == UserNotificationType.TranslationComments)
+            {
+                var paths = ordered.Select(notification => notification.TargetPath.Split('?', 2)[0]
+                    .Split('/', StringSplitOptions.RemoveEmptyEntries)).ToArray();
+                var languages = paths.Where(parts => parts.Length >= 3 && parts[2] != "recent")
+                    .Select(parts => parts[2]).Distinct().ToArray();
+                if (languages.Length == 1 && paths.All(parts => parts.Length >= 3 && parts[2] != "recent"))
+                    targetScope += "/" + languages[0];
+            }
+            else if (parent.Type == UserNotificationType.TranslationSourceChanged)
+            {
+                var slug = Uri.UnescapeDataString(scope[2]);
+                var source = await database.TranslationProjects.Where(project => project.Slug == slug)
+                    .Select(project => project.SourceLanguage).FirstOrDefaultAsync(cancellationToken);
+                targetScope = $"/translations/{scope[2]}/{source ?? scope[3]}";
+            }
+
+            parent.TargetPath = targetScope + "/recent?types=" + view;
         }
 
         await database.SaveChangesAsync(cancellationToken);
