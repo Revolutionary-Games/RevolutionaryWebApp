@@ -136,6 +136,23 @@ public class TranslationResourcesController : Controller
         }
     }
 
+    private Task<T?> FindResourceIncludingDeleted<T>(object?[] values)
+        where T : class
+    {
+        var properties = database.Model.FindEntityType(typeof(T))!.FindPrimaryKey()!.Properties;
+        var parameter = Expression.Parameter(typeof(T), "item");
+        Expression predicate = Expression.Constant(true);
+        for (var index = 0; index < properties.Count; ++index)
+        {
+            var property = Expression.Property(parameter, properties[index].Name);
+            var value = Expression.Constant(values[index], properties[index].ClrType);
+            predicate = Expression.AndAlso(predicate, Expression.Equal(property, value));
+        }
+
+        return database.Set<T>().IgnoreQueryFilters()
+            .SingleOrDefaultAsync(Expression.Lambda<Func<T, bool>>(predicate, parameter), HttpContext.RequestAborted);
+    }
+
     private async Task<IActionResult> SetDeleted(TranslationResourceKind kind, string key, bool deleted)
     {
         var type = kind switch
@@ -156,7 +173,7 @@ public class TranslationResourcesController : Controller
             var elements =
                 JsonSerializer.Deserialize<JsonElement[]>(Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(key)))!;
             var properties = database.Model.FindEntityType(type)!.FindPrimaryKey()!.Properties;
-            if (elements.Length != properties.Count)
+            if (elements == null! || elements.Length != properties.Count)
                 return BadRequest("Invalid resource key");
 
             // This line is slightly suspicious, but only usable by admins
@@ -173,8 +190,19 @@ public class TranslationResourcesController : Controller
             await TranslationProjectAdvisoryLock.AcquireAsync(database, (long)values[0]!, HttpContext.RequestAborted) :
             null;
 
-        // Find bypasses query filters intentionally: recovery must also find deleted resources.
-        var resource = await database.FindAsync(type, values);
+        // Recovery must query the database without the normal deleted-resource filters.
+        object? resource = kind switch
+        {
+            TranslationResourceKind.Projects => await FindResourceIncludingDeleted<TranslationProject>(values),
+            TranslationResourceKind.Languages => await FindResourceIncludingDeleted<TranslationProjectLanguage>(values),
+            TranslationResourceKind.Dictionaries => await FindResourceIncludingDeleted<TranslationDictionary>(values),
+            TranslationResourceKind.Terms => await FindResourceIncludingDeleted<DictionaryTerm>(values),
+            TranslationResourceKind.LanguageTerms => await FindResourceIncludingDeleted<DictionaryLanguageTerm>(values),
+            _ => null,
+        };
+        if (resource == null)
+            return NotFound();
+
         if (resource is not ISoftDeletable item)
             throw new InvalidOperationException("Found resource is not soft-deletable");
 

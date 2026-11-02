@@ -53,6 +53,63 @@ public class TranslationResourceDeletionTests
         Assert.Equal(2, await database.AdminActions.CountAsync());
     }
 
+    [Theory]
+    [InlineData(TranslationResourceKind.Projects)]
+    [InlineData(TranslationResourceKind.Languages)]
+    [InlineData(TranslationResourceKind.Dictionaries)]
+    [InlineData(TranslationResourceKind.Terms)]
+    [InlineData(TranslationResourceKind.LanguageTerms)]
+    public async Task RestoresDeletedResourceInFreshContext(TranslationResourceKind kind)
+    {
+        await using var database = CreateDatabase();
+        SeedProject(database);
+        var dictionary = new TranslationDictionary { Id = 1, Name = "Dictionary", Deleted = true };
+        database.TranslationDictionaries.Add(dictionary);
+        database.DictionaryTerms.Add(new DictionaryTerm { DictionaryId = 1, Word = "Shovel", Deleted = true });
+        database.DictionaryLanguageTerms.Add(new DictionaryLanguageTerm
+        {
+            DictionaryId = 1, LanguageCode = "fi", Word = "Lapio", Deleted = true,
+        });
+        var project = await database.TranslationProjects.FindAsync(1L);
+        project!.Deleted = true;
+        var language = await database.TranslationProjectLanguages.FindAsync(1L, "fi");
+        language!.Deleted = true;
+        var actor = new User("admin@example.com", "Admin");
+        actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.Admin));
+        database.Users.Add(actor);
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var controller = new TranslationResourcesController(database,
+            NullLogger<TranslationResourcesController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+        var listed = (await controller.List(kind, deleted: true)).Value!;
+        var key = Assert.Single(listed.Results).ResourceKey!;
+
+        // A separate HTTP request has no tracked entity to satisfy FindAsync's identity-map lookup.
+        database.ChangeTracker.Clear();
+        Assert.IsType<OkResult>(await controller.Restore(kind, key));
+        Assert.Empty((await controller.List(kind, deleted: true)).Value!.Results);
+        Assert.Single((await controller.List(kind)).Value!.Results);
+        Assert.Single(await database.AdminActions.ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task RestoringMissingResourceReturnsNotFound()
+    {
+        await using var database = CreateDatabase();
+        var controller = new TranslationResourcesController(database,
+            NullLogger<TranslationResourcesController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+        var key = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+            System.Text.Encoding.UTF8.GetBytes("[999]"));
+        Assert.IsType<NotFoundResult>(await controller.Restore(TranslationResourceKind.Projects, key));
+    }
+
     [Fact]
     public async Task DeletedLanguageHidesItsDataAndDeletedDictionaryHidesTerms()
     {
