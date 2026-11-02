@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using DevCenterCommunication.Models;
+using Filters;
 using Hangfire;
 using Jobs;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +35,83 @@ public class TranslationProjectsController : Controller
         this.logger = logger;
         this.database = database;
         this.jobs = jobs;
+    }
+
+    [HttpPut("{id:long}/announcement")]
+    [CountContribution(100)]
+    public async Task<IActionResult> PublishAnnouncement(long id, [FromBody] TranslationAnnouncementDTO request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Message) || request.EndsAt == null ||
+            request.EndsAt.Value.Kind != DateTimeKind.Utc || request.EndsAt <= DateTime.UtcNow ||
+            !Enum.IsDefined(request.Severity))
+        {
+            return BadRequest("A message, valid severity, and future UTC end date are required");
+        }
+
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
+            HttpContext.RequestAborted);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == id);
+        if (project == null)
+            return NotFound();
+
+        project.AnnouncementMessage = request.Message.Trim();
+        project.AnnouncementSeverity = request.Severity;
+        project.AnnouncementEndsAt = request.EndsAt;
+        project.UpdatedAt = DateTime.UtcNow;
+        var recipients = await database.TranslationSubscriptions.Where(item => item.ProjectId == id &&
+                item.EventType == TranslationSubscriptionEventType.Announcement).Select(item => item.UserId)
+            .Union(database.TranslationValues.Where(item => item.ProjectId == id && item.LastEditedByUserId != null)
+                .Select(item => item.LastEditedByUserId!.Value)).ToListAsync();
+        var announcementId = Guid.NewGuid();
+        foreach (var recipient in recipients)
+        {
+            await database.UserNotifications.AddAsync(new UserNotification
+            {
+                UserId = recipient,
+                DeduplicationKey = $"translation-announcement:{announcementId}:{recipient}",
+                Type = UserNotificationType.TranslationAnnouncement,
+                Message = $"Translation announcement for {project.Name}. Translation notice ends " +
+                    $"{request.EndsAt:yyyy-MM-dd HH:mm} UTC. Visit the project to read the announcement.",
+                TargetPath = $"/translations/{Uri.EscapeDataString(project.Slug)}",
+            });
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction($"Translation announcement published for project {id}",
+            "Announcement: " + project.AnnouncementMessage)
+        {
+            PerformedById = user.Id,
+        });
+
+        await database.SaveChangesAsync();
+        logger.LogInformation("Translation announcement published for project {ProjectId} by {Email}", id, user.Email);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:long}/announcement")]
+    public async Task<IActionResult> DeleteAnnouncement(long id)
+    {
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
+            HttpContext.RequestAborted);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == id);
+        if (project == null)
+            return NotFound();
+
+        if (project.AnnouncementMessage == null)
+            return Ok("No announcement set");
+
+        project.AnnouncementMessage = null;
+        project.AnnouncementEndsAt = null;
+        project.BumpUpdatedAt();
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        database.AdminActions.Add(new AdminAction($"Translation announcement deleted for project {id}")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+        logger.LogInformation("Translation announcement deleted for project {ProjectId} by {Email}", id, user.Email);
+        return NoContent();
     }
 
     [HttpGet]

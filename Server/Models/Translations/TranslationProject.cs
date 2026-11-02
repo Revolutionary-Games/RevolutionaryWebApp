@@ -19,8 +19,6 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
 {
     public long Id { get; set; }
 
-
-
     [MaxLength(120)]
     public string Slug { get; set; } = string.Empty;
 

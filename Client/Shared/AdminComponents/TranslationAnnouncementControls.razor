@@ -1,0 +1,93 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+
+<h4 class="mt-3">Translation announcement</h4>
+<p>Publish a project notice, for example an upcoming release with a translation deadline.
+    Subscribers and credited translators will be notified. Publishing replaces the current notice.</p>
+
+<TranslationAnnouncementBanner ProjectId="@ProjectId" Slug="@Slug" @key="revision"/>
+<EditForm Model="request" OnValidSubmit="Publish">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    <label for="announcement-severity" class="form-label">Severity / colour</label>
+    <InputSelect id="announcement-severity" class="form-select mb-2" @bind-Value="request.Severity">
+        @foreach (var severity in Enum.GetValues<SiteNoticeType>())
+        {
+            <option value="@severity">@severity</option>
+        }
+    </InputSelect>
+    <label for="announcement-message" class="form-label">Message (Markdown supported)</label>
+    <InputTextArea id="announcement-message" class="form-control mb-2" @bind-Value="request.Message"/>
+    <label for="announcement-end" class="form-label">End date and time (local time, required)</label>
+    <InputDate id="announcement-end" class="form-control mb-2" Type="InputDateType.DateTimeLocal"
+               @bind-Value="request.EndsAt"/>
+    <Button type="submit" ButtonStyle="primary" Enabled="@(!processing)" Spinner="@processing">Publish announcement
+    </Button>
+    <Button ButtonStyle="danger" class="ms-2" Enabled="@(!processing)" OnPressed="Delete">Delete current announcement
+    </Button>
+</EditForm>
+<StatusMessageShower Message="@message" Type="@messageType"/>
+
+@code {
+    private TranslationAnnouncementDTO request = new();
+    private bool processing;
+    private string? message;
+    private SiteNoticeType messageType;
+    private int revision;
+
+    [Parameter]
+    public long ProjectId { get; set; }
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private Task Publish()
+    {
+        return Send(false);
+    }
+
+    private Task Delete()
+    {
+        return Send(true);
+    }
+
+    private async Task Send(bool delete)
+    {
+        processing = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var payload = new TranslationAnnouncementDTO
+            {
+                Message = request.Message,
+                Severity = request.Severity,
+                EndsAt = request.EndsAt?.ToUniversalTime(),
+            };
+            var url = $"api/v1/admin/TranslationProjects/{ProjectId}/announcement";
+            using var response = delete ? await Http.DeleteAsync(url) : await Http.PutAsJsonAsync(url, payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not save announcement: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+                return;
+            }
+
+            message = delete ? "Announcement deleted." : "Announcement published and notifications sent.";
+            messageType = SiteNoticeType.Success;
+            ++revision;
+        }
+        catch (Exception e)
+        {
+            message = $"Announcement request failed: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+}

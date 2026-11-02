@@ -4807,8 +4807,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("announcement_ends_at");
 
                     b.Property<string>("AnnouncementMessage")
-                        .HasMaxLength(20000)
-                        .HasColumnType("character varying(20000)")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
                         .HasColumnName("announcement_message");
 
                     b.Property<int>("AnnouncementSeverity")
