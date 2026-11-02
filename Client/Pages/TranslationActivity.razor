@@ -1,6 +1,8 @@
 @page "/translations/{Slug}/recent"
 @page "/translations/{Slug}/{LanguageCode}/recent"
 @using RevolutionaryWebApp.Shared
+@using System.Threading
+@implements IDisposable
 @using RevolutionaryWebApp.Shared.Models
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -13,35 +15,37 @@
         <NavLink class="ms-3" href="@($"translations/{Slug}/{LanguageCode}")">Language overview</NavLink>
     }
 </p>
-<fieldset class="mb-3">
-    <legend class="fs-6">Show activity</legend>
-    @foreach (var type in TranslationActivityFilter.Types)
-    {
-        <label class="me-3" for="@($"activity-{type}")">
-            <input id="@($"activity-{type}")" type="checkbox" checked="@selected.Contains(type)"
-                   @onchange="@(args => ToggleType(type, args.Value is true))"/>
-            @ViewLabel(type)
-        </label>
-    }
-</fieldset>
-@if (string.IsNullOrEmpty(LanguageCode))
-{
-    <label for="activity-language">Language</label>
-    <select id="activity-language" class="form-select mb-2" @bind="languageFilter">
-        <option value="">All languages</option>
-        @foreach (var language in languages)
+<div class="row mb-3">
+    <fieldset class="col-12 col-md-6">
+        <legend class="fs-6">Show activity</legend>
+        @foreach (var type in TranslationActivityFilter.Types)
         {
-            <option value="@language.LanguageCode">@language.DisplayName (@language.LanguageCode)</option>
+            <label class="me-3" for="@($"activity-{type}")">
+                <input id="@($"activity-{type}")" type="checkbox" checked="@selected.Contains(type)"
+                       @onchange="@(args => ToggleType(type, args.Value is true))"/>
+                @ViewLabel(type)
+            </label>
         }
-    </select>
-}
-<label for="activity-user">Username</label>
-<input id="activity-user" class="form-control mb-2" @bind="usernameFilter"/>
-<Button Small="true" ButtonStyle="primary" Enabled="@(!loading)" OnPressed="ApplyFilters">Apply filters</Button>
+    </fieldset>
+    <div class="col-12 col-md-6">
+        @if (string.IsNullOrEmpty(LanguageCode))
+        {
+            <label for="activity-language">Language</label>
+            <select id="activity-language" class="form-select mb-2" @bind="languageFilter" @bind:after="ApplyFilters">
+                <option value="">All languages</option>
+                @foreach (var language in languages)
+                {
+                    <option value="@language.LanguageCode">@language.DisplayName (@language.LanguageCode)</option>
+                }
+            </select>
+        }
+        <label for="activity-user">Username</label>
+        <input id="activity-user" class="form-control mb-2" @bind="usernameFilter" @bind:event="oninput"
+               @bind:after="TriggerUsernameDebounce"/>
+        <Button Small="true" ButtonStyle="primary" Enabled="@(!loading)" OnPressed="ApplyFilters">Apply filters</Button>
+    </div>
+</div>
 <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
-<Button Small="true" ButtonStyle="outline-secondary" Enabled="@(!loading)" Spinner="@loading"
-        OnPressed="Load">Refresh
-</Button>
 @if (data != null || loading)
 {
     <PaginatedTable Columns="@columns" GetSortClass="@(_ => string.Empty)" ShowPaginator="@(data != null)"
@@ -98,6 +102,8 @@
         new("Text", false),
     ];
 
+    private CancellationTokenSource? usernameDebounce;
+    private int loadVersion;
     private PagedResult<TranslationActivityDTO>? data;
     private bool loading;
     private string? message;
@@ -135,8 +141,15 @@
         return base.SetParametersAsync(parameters);
     }
 
+    public void Dispose()
+    {
+        CancelUsernameDebounce();
+        ++loadVersion;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
+        CancelUsernameDebounce();
         if (!Enum.TryParse(ViewQuery ?? nameof(TranslationActivityView.All), true, out TranslationActivityView view) ||
             !TranslationActivityFilter.TryParse(TypesQuery, view, out selected))
         {
@@ -165,6 +178,8 @@
 
     private async Task Load()
     {
+        var version = ++loadVersion;
+        var query = FilterQuery(Page ?? 1);
         loading = true;
         message = null;
         messageType = SiteNoticeType.Danger;
@@ -173,23 +188,31 @@
         {
             if (string.IsNullOrEmpty(LanguageCode))
             {
-                languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>(
-                    $"api/v1/translations/projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
+                languages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"api/v1/translations/" +
+                    $"projects/{Uri.EscapeDataString(Slug)}/languages") ?? [];
             }
 
-            data = await Http.GetFromJsonAsync<PagedResult<TranslationActivityDTO>>($"api/v1/translations/" +
+            var result = await Http.GetFromJsonAsync<PagedResult<TranslationActivityDTO>>($"api/v1/translations/" +
                 $"projects/{Uri.EscapeDataString(Slug)}/recent?" +
-                FilterQuery(Page ?? 1));
+                query);
+            if (version == loadVersion)
+                data = result;
         }
         catch (Exception e)
         {
-            data = null;
-            message = "Could not load recent activity: " + e.Message;
+            if (version == loadVersion)
+            {
+                data = null;
+                message = "Could not load recent activity: " + e.Message;
+            }
         }
         finally
         {
-            loading = false;
-            await InvokeAsync(StateHasChanged);
+            if (version == loadVersion)
+            {
+                loading = false;
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
@@ -205,14 +228,51 @@
         return query;
     }
 
-    private void ToggleType(TranslationActivityView type, bool enabled)
+    private Task ToggleType(TranslationActivityView type, bool enabled)
     {
         selected = enabled ? selected.Append(type).Distinct().ToArray() : selected.Where(item => item != type).ToArray();
+        return ApplyFilters();
     }
 
-    private void ApplyFilters()
+    private Task ApplyFilters()
     {
-        ChangePage(1);
+        CancelUsernameDebounce();
+        var path = string.IsNullOrEmpty(LanguageCode) ?
+            $"translations/{Slug}/recent" :
+            $"translations/{Slug}/{LanguageCode}/recent";
+        var target = Navigation.ToAbsoluteUri($"{path}?{FilterQuery(1)}").AbsoluteUri;
+        if (Navigation.Uri == target)
+            return Load();
+
+        Navigation.NavigateTo(target);
+        return Task.CompletedTask;
+    }
+
+    private void TriggerUsernameDebounce()
+    {
+        CancelUsernameDebounce();
+        usernameDebounce = new CancellationTokenSource();
+        _ = ApplyUsernameAfterDelay(usernameDebounce.Token);
+    }
+
+    private async Task ApplyUsernameAfterDelay(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(1000, cancellationToken);
+            await ApplyFilters();
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer input, filter change, or navigation superseded this timer.
+        }
+    }
+
+    private void CancelUsernameDebounce()
+    {
+        usernameDebounce?.Cancel();
+        usernameDebounce?.Dispose();
+        usernameDebounce = null;
     }
 
     private string EditorPath(TranslationActivityDTO item)
@@ -222,7 +282,8 @@
 
     private void ChangePage(int page)
     {
-        var path = string.IsNullOrEmpty(LanguageCode) ? $"translations/{Slug}/recent" :
+        var path = string.IsNullOrEmpty(LanguageCode) ?
+            $"translations/{Slug}/recent" :
             $"translations/{Slug}/{LanguageCode}/recent";
         Navigation.NavigateTo($"{path}?{FilterQuery(page)}");
     }
