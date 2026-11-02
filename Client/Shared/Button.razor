@@ -1,6 +1,7 @@
 @if (HasCallback)
 {
-    <button id="@id" class="@OurClass()" aria-disabled="@Disabled" disabled="@Disabled"
+    <button @attributes="AdditionalAttributes" id="@id" class="@OurClass()" aria-disabled="@Disabled"
+            disabled="@Disabled"
             type="@type" @onclick="PressDetected" @onclick:preventDefault="true">
         @if (Spinner)
         {
@@ -11,7 +12,9 @@
 }
 else
 {
-    <button id="@id" class="@OurClass()" aria-disabled="@Disabled" disabled="@Disabled" type="@type">
+    <button @attributes="AdditionalAttributes" id="@id" class="@OurClass()" aria-disabled="@Disabled"
+            disabled="@Disabled"
+            type="@type">
         @if (Spinner)
         {
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -39,8 +42,11 @@ else
 
     // Forwarding normal HTML stuff
 
-    [Parameter]
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
     // ReSharper disable InconsistentNaming
+    [Parameter]
     public string @class { get; set; } = "";
 
     [Parameter]
