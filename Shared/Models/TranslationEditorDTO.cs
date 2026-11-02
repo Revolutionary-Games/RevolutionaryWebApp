@@ -43,6 +43,8 @@ public sealed class TranslationEditorDTO
     [MaxLength(4000)]
     public string? SourceLocations { get; set; }
 
+    public int Position { get; set; }
+
     public bool Active { get; set; } = true;
 
     public bool CanVerify { get; set; }

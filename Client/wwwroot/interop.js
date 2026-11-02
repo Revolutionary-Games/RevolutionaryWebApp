@@ -307,3 +307,13 @@ function prependToLastTextNode(element, textToAppend) {
 
     return null;
 }
+
+// Suppress the textarea newline only for translation editor shortcuts.
+function configureTranslationShortcuts(element) {
+    element.onkeydown = function (event) {
+        if (!element.readOnly && !event.isComposing && event.key === "Enter" &&
+            event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.preventDefault();
+        }
+    };
+}

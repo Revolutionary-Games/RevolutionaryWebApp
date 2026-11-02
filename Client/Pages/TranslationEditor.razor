@@ -8,6 +8,7 @@
 @using System.Globalization
 @using System.Threading
 @using SharedBase.Utilities
+@inject IJSRuntime JS
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject NotificationHandler NotificationHandler
@@ -78,8 +79,8 @@ else
             @if (data.LanguageCode == project?.SourceLanguage)
             {
                 <label for="translation-text" class="form-label d-block mt-2">@LanguageCode source text</label>
-                <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
-                          @bind:event="oninput" @bind:after="OnTextChanged"
+                <textarea @ref="translationInput" id="translation-text" class="form-control" rows="7" @bind="editText"
+                          @bind:event="oninput" @bind:after="OnTextChanged" @onkeydown="HandleTranslationKeyDown"
                           readonly="@(!CanEditTranslation)"></textarea>
             }
             else
@@ -101,9 +102,16 @@ else
                 }
 
                 <label for="translation-text" class="form-label d-block mt-3">@LanguageCode translation</label>
-                <textarea id="translation-text" class="form-control" rows="7" @bind="editText"
-                          @bind:event="oninput" @bind:after="OnTextChanged"
+                <textarea @ref="translationInput" id="translation-text" class="form-control" rows="7" @bind="editText"
+                          @bind:event="oninput" @bind:after="OnTextChanged" @onkeydown="HandleTranslationKeyDown"
                           readonly="@(!CanEditTranslation)"></textarea>
+            }
+
+            @if (CanEditTranslation)
+            {
+                <small class="text-muted d-block mt-1">
+                    Ctrl+Enter: Save · Ctrl+Shift+Enter: Save &amp; Continue
+                </small>
             }
 
             <fieldset class="my-3" disabled="@(!CanEditTranslation)">
@@ -400,6 +408,8 @@ else
 
         <aside class="col-lg-3">
             <h5>About This Text</h5>
+            <h6>Text index</h6>
+            <p>@data.Position</p>
             @if (!string.IsNullOrWhiteSpace(data.Description))
             {
                 <p>@data.Description</p>
@@ -466,6 +476,9 @@ else
 @code {
     private readonly Dictionary<string, (string Text, TranslationState State)> drafts = new();
 
+    private ElementReference translationInput;
+    private bool translationInputInitialized;
+    private bool focusTranslationInput = true;
     private TranslationProjectDTO? project;
     private TranslationEditorDTO? data;
     private TranslationHistoryDTO[] history = [];
@@ -598,8 +611,30 @@ else
         UserInfo.OnUserInfoChanged += UserInfoChanged;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (data == null)
+            return;
+
+        if (!translationInputInitialized)
+        {
+            translationInputInitialized = true;
+            await JS.InvokeVoidAsync("configureTranslationShortcuts", translationInput);
+        }
+
+        if (focusTranslationInput && CanEditTranslation)
+        {
+            focusTranslationInput = false;
+            await translationInput.FocusAsync();
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
+        translationInputInitialized = false;
+        focusTranslationInput = true;
         message = null;
         data = null;
         historyOffset = 0;
@@ -933,6 +968,24 @@ else
     {
         SelectTab("nearby");
         await RefreshNearby();
+    }
+
+    private async Task HandleTranslationKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key != "Enter" || !args.CtrlKey || args.AltKey || args.MetaKey || args.Repeat ||
+            !CanEditTranslation || saving || processingAction != null)
+        {
+            return;
+        }
+
+        if (args.ShiftKey)
+        {
+            await SaveAndContinue();
+        }
+        else
+        {
+            await Save();
+        }
     }
 
     private async Task Save()

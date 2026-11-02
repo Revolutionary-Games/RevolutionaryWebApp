@@ -210,6 +210,7 @@ public class TranslationEditorController : Controller
             Version = value.Version,
             Description = unit.Description,
             SourceLocations = unit.SourceLocations,
+            Position = unit.Position,
             Active = unit.Active,
             CanVerify = canVerify,
             CanEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true),
