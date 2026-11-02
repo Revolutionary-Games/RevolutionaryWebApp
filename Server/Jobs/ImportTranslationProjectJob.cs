@@ -31,6 +31,7 @@ public class ImportTranslationProjectJob
     public ImportTranslationProjectJob(ILogger<ImportTranslationProjectJob> logger, ApplicationDbContext database,
         ILocalTempFileLocks fileLocks, IBackgroundJobClient jobs, TranslationRepositoryOperations? repository = null)
     {
+        this.notificationSender = notificationSender;
         this.logger = logger;
         this.database = database;
         this.fileLocks = fileLocks;
@@ -286,6 +287,8 @@ public class ImportTranslationProjectJob
                                 LocalText = sourceValue.Text,
                                 IncomingText = entry.SourceText,
                             }, cancellationToken);
+
+                            await TranslationMaintenance.ConflictDetected(database, project);
                             conflictWarnings.Add($"Source text conflict in {project.Name}, key {entry.Key}. " +
                                 "An admin needs to resolve it in the translation UI.");
                         }
@@ -356,6 +359,8 @@ public class ImportTranslationProjectJob
                             ProjectId = project.Id, Key = entry.Key, LanguageCode = language.LanguageCode,
                             LocalText = value.Text, IncomingText = entry.TargetText,
                         }, cancellationToken);
+
+                        await TranslationMaintenance.ConflictDetected(database, project);
                         conflictWarnings.Add($"Translation conflict in {project.Name}, " +
                             $"{language.LanguageCode}, key {entry.Key}. " +
                             "An admin needs to resolve it in the translation UI.");
@@ -436,6 +441,15 @@ public class ImportTranslationProjectJob
         }
 
         await database.SaveChangesAsync(cancellationToken);
+
+        if (conflictWarnings.Count > 0 && notificationSender != null)
+        {
+            await notificationSender.SendNotifications([
+                TranslationNotificationHelper.ProjectUpdated(project.Id),
+                TranslationNotificationHelper.ProjectConflictsUpdated(project.Id),
+                TranslationNotificationHelper.ProjectListUpdated(),
+            ]);
+        }
 
         foreach (var warning in conflictWarnings)
         {

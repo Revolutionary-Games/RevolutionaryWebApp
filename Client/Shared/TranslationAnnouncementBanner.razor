@@ -1,5 +1,6 @@
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
 @using System.Threading
@@ -7,6 +8,20 @@
 @inject NotificationHandler NotificationHandler
 @implements INotificationHandler<TranslationProjectUpdated>
 @implements IAsyncDisposable
+
+@if (closedForMaintenance)
+{
+    <div class="alert alert-warning" role="alert">
+        This project is closed for maintenance. Translations are temporarily not being accepted.
+        <AccessLimited RequiredAccess="GroupType.User">
+            <Button ButtonStyle="primary" Enabled="@(!subscribing && !subscribed)" Spinner="@subscribing"
+                    OnPressed="Subscribe">@(subscribed ? "Notification requested" : "Notify me when available")</Button>
+        </AccessLimited>
+        <AccessLimited RequiredAccess="GroupType.Admin">
+            <NavLink href="admin/translations">Manage project</NavLink>
+        </AccessLimited>
+    </div>
+}
 
 @if (announcement?.EndsAt > DateTime.UtcNow)
 {
@@ -21,6 +36,11 @@
 }
 
 @code {
+    private bool closedForMaintenance;
+    private bool subscribing;
+    private bool subscribed;
+    private long loadedProjectId;
+
     private TranslationAnnouncementDTO? announcement;
     private string? loadError;
     private Timer? expiryTimer;
@@ -35,12 +55,12 @@
 
     public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
-        groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + ProjectId);
+        groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + loadedProjectId);
     }
 
     public async Task Handle(TranslationProjectUpdated notification, CancellationToken cancellationToken)
     {
-        if (notification.ProjectId == ProjectId)
+        if (notification.ProjectId == loadedProjectId)
             await InvokeAsync(Load);
     }
 
@@ -71,7 +91,12 @@
             if (disposed)
                 return;
 
+            if (project?.ClosedForMaintenance != true || project.Id != loadedProjectId)
+                subscribed = false;
+
             announcement = project?.Announcement;
+            closedForMaintenance = project?.ClosedForMaintenance == true;
+            loadedProjectId = project?.Id ?? 0;
             ScheduleExpiry();
         }
         catch (Exception e)
@@ -80,7 +105,37 @@
             loadError = $"Could not load the translation announcement: {e.Message}";
         }
 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Subscribe()
+    {
+        subscribing = true;
+        loadError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/TranslationSubscriptions/{loadedProjectId}/reopened", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                loadError = $"Could not subscribe: {await response.Content.ReadAsStringAsync()}";
+            }
+            else
+            {
+                subscribed = true;
+            }
+        }
+        catch (Exception e)
+        {
+            loadError = $"Could not subscribe: {e.Message}";
+        }
+        finally
+        {
+            subscribing = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void ScheduleExpiry()

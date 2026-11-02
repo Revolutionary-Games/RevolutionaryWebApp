@@ -37,6 +37,49 @@ public class TranslationProjectsController : Controller
         this.jobs = jobs;
     }
 
+    [HttpPut("{id:long}/maintenance")]
+    public async Task<IActionResult> SetMaintenance(long id, [FromBody] bool closed)
+    {
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, id,
+            HttpContext.RequestAborted);
+        var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == id);
+        if (project == null)
+            return NotFound();
+
+        if (project.ClosedForMaintenance == closed)
+        {
+            return Ok("Project already in wanted status");
+        }
+
+        if (!closed && await database.TranslationImportConflicts.AnyAsync(item => item.ProjectId == id &&
+                item.ResolvedAt == null))
+        {
+            return Conflict("Resolve all translation conflicts before reopening the project");
+        }
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+
+        var wasClosed = project.ClosedForMaintenance;
+
+        project.MaintenanceClosed = closed;
+        if (!closed)
+            project.ConflictClosed = false;
+
+        project.BumpUpdatedAt();
+
+        if (wasClosed && !project.ClosedForMaintenance)
+            await TranslationMaintenance.NotifyReopened(database, project);
+
+        database.AdminActions.Add(new AdminAction($"Translation project {id} maintenance closure set to {closed}")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+        logger.LogInformation("Project {ProjectId} maintenance closure set to {Closed} by {Email}",
+            id, closed, user.Email);
+        return NoContent();
+    }
+
     [HttpPut("{id:long}/announcement")]
     [CountContribution(100)]
     public async Task<IActionResult> PublishAnnouncement(long id, [FromBody] TranslationAnnouncementDTO request)
@@ -412,6 +455,14 @@ public class TranslationProjectsController : Controller
         }
 
         conflict.ResolvedAt = DateTime.UtcNow;
+        if (project.ConflictClosed && !await database.TranslationImportConflicts.AnyAsync(item =>
+                item.ProjectId == id && item.Id != conflictId && item.ResolvedAt == null))
+        {
+            project.ConflictClosed = false;
+            project.BumpUpdatedAt();
+            await TranslationMaintenance.NotifyReopened(database, project);
+        }
+
         var user = HttpContext.AuthenticatedUserOrThrow();
         await database.AdminActions.AddAsync(new AdminAction(
             $"Translation conflict {conflictId} resolved ({(keepLocal ? "keep local" : "accept remote")})")
