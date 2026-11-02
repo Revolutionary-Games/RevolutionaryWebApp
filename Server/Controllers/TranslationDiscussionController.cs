@@ -13,6 +13,7 @@ using Models;
 using Models.Translations;
 using Shared.Models;
 using Shared.Models.Enums;
+using Utilities;
 
 [ApiController]
 [Route("api/v1/[controller]")]
@@ -52,6 +53,60 @@ public class TranslationDiscussionController : Controller
                 !comment.Deleted)
             .OrderBy(comment => comment.CreatedAt).Take(500).ToListAsync();
         return rows.Select(comment => comment.GetDTO()).ToArray();
+    }
+
+    [HttpDelete("comments/{id:long}")]
+    public async Task<IActionResult> DeleteComment(long id)
+    {
+        var actor = HttpContext.AuthenticatedUserOrThrow();
+        var comment = await database.TranslationComments.FirstOrDefaultAsync(c => c.Id == id && !c.Deleted);
+        if (comment == null)
+            return NotFound();
+
+        var groups = actor.AccessCachedGroupsOrThrow();
+        var moderator = groups.HasAccessLevel(GroupType.Admin) || groups.HasGroup(GroupType.ContentModerator);
+        if (!moderator && (!groups.HasAccessLevel(GroupType.User) || comment.AuthorUserId != actor.Id ||
+                DateTime.UtcNow > comment.CreatedAt.AddMinutes(15)))
+        {
+            return this.WorkingForbid("You are not allowed to delete this comment");
+        }
+
+        comment.Deleted = true;
+        if (comment.AuthorUserId != actor.Id)
+        {
+            var project = await database.TranslationProjects.AsNoTracking().IgnoreQueryFilters()
+                .FirstAsync(p => p.Id == comment.ProjectId);
+            await database.UserNotifications.AddAsync(new UserNotification
+            {
+                UserId = comment.AuthorUserId,
+                DeduplicationKey = $"translation-comment:{comment.Id}:deleted",
+                Type = UserNotificationType.TranslationCommentDeleted,
+                Message = $"A moderator deleted your translation comment in {project.Name} " +
+                    $"({comment.LanguageCode}) on {comment.Key}.",
+                TargetPath = $"/translations/{project.Slug}/{comment.LanguageCode}/edit" +
+                    $"?key={Uri.EscapeDataString(comment.Key)}",
+            });
+
+            // Moderators deleting actions are only logged when they deleted someone else's comment
+            if (moderator)
+            {
+                await database.AdminActions.AddAsync(new AdminAction($"Translation comment {id} deleted")
+                {
+                    PerformedById = actor.Id,
+                });
+            }
+        }
+        else
+        {
+            await database.ActionLogEntries.AddAsync(new ActionLogEntry($"Translation comment {id} deleted by self")
+            {
+                PerformedById = actor.Id,
+            });
+        }
+
+        await database.SaveChangesAsync();
+        logger.LogInformation("Translation comment {CommentId} deleted by {Email}", id, actor.Email);
+        return Ok();
     }
 
     [CountContribution(100)]

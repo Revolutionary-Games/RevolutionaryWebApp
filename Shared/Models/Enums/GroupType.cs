@@ -46,6 +46,7 @@ public enum GroupType
     SourceTextTranslator = 15,
     TranslationVerifier = 16,
     DictionaryManager = 17,
+    ContentModerator = 18,
 
     // TODO: add association status (though maybe association status is fine to stay with the old system?)
 

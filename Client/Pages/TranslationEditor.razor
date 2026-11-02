@@ -266,6 +266,15 @@ else
                                                                 "border border-primary bg-light rounded p-2" :
                                                                 string.Empty)">
                             <div class="clearfix">
+                                @if (CanDeleteComment(comment))
+                                {
+                                    <Button ButtonStyle="outline-danger" Small="true" class="float-end ms-2"
+                                            title="Delete comment" aria-label="Delete comment"
+                                            Enabled="@(processingAction == null)"
+                                            OnPressed="@(() => DeleteComment(comment))">
+                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                    </Button>
+                                }
                                 @if (comment.LanguageCode == project?.SourceLanguage)
                                 {
                                     <span class="badge bg-primary text-white float-end">
@@ -516,6 +525,9 @@ else
 
     [SupplyParameterFromQuery(Name = "key")]
     public string Key { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
 
     private bool HasLocalChanges => data != null &&
         (editText != data.Text || editState != data.State);
@@ -1100,6 +1112,60 @@ else
         catch (Exception e)
         {
             message = $"Could not move to the next translation: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private bool CanDeleteComment(TranslationCommentDTO comment)
+    {
+        return UserInfo.IsAdmin || UserInfo.HasGroup(GroupType.ContentModerator) ||
+            (CanUseTranslationDiscussion && comment.AuthorUserId == UserInfo.CurrentUserIdIfExists &&
+                DateTime.UtcNow <= comment.CreatedAt.AddMinutes(15));
+    }
+
+    private async Task DeleteComment(TranslationCommentDTO comment)
+    {
+        if (processingAction != null || !CanDeleteComment(comment))
+            return;
+
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmAction.Name), "this translation comment" },
+            { nameof(ConfirmAction.ActionVerb), "delete" },
+            { nameof(ConfirmAction.AcceptButton), "Delete" },
+        };
+
+        var modal = Modal.Show<ConfirmAction>("Delete comment?", parameters);
+        if ((await modal.Result).Cancelled || processingAction != null)
+            return;
+
+        processingAction = "deleteComment";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.DeleteAsync($"api/v1/translationDiscussion/comments/{comment.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await RefreshComments();
+                message = "Comment deleted.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                message = $"Could not delete the comment: {await response.Content.ReadAsStringAsync()} " +
+                    $"({response.StatusCode}).";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not delete the comment: {e.Message}";
             messageType = SiteNoticeType.Danger;
         }
         finally

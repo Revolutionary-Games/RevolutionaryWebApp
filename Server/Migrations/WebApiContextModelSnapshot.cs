@@ -20,7 +20,7 @@ namespace RevolutionaryWebApp.Server.Migrations
             modelBuilder
                 .UseCollation("en_GB.UTF-8")
                 .HasAnnotation("Npgsql:DatabaseTemplate", "template0")
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -5601,6 +5601,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         {
                             Id = 17,
                             Name = "DictionaryManager"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Name = "ContentModerator"
                         });
                 });
 
@@ -5729,6 +5734,13 @@ namespace RevolutionaryWebApp.Server.Migrations
                         new
                         {
                             GroupId = 17,
+                            CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
+                            CustomDescription = "Inbuilt group, cannot be modified",
+                            UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
+                        },
+                        new
+                        {
+                            GroupId = 18,
                             CreatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672),
                             CustomDescription = "Inbuilt group, cannot be modified",
                             UpdatedAt = new DateTime(2023, 4, 2, 16, 4, 31, 355, DateTimeKind.Utc).AddTicks(4672)
