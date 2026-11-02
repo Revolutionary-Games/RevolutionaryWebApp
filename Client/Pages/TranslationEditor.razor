@@ -23,6 +23,7 @@
 @implements INotificationHandler<TranslationDictionaryLanguagesUpdated>
 @implements IAsyncDisposable
 
+<TranslationAnnouncementBanner Slug="@Slug" @key="Slug"/>
 <TranslationAgreementWarning/>
 @if (data == null && message == null)
 {

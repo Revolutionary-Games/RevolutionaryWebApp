@@ -11,4 +11,5 @@ public enum TranslationSubscriptionEventType
     SourceChange,
     Suggestion,
     Announcement,
+    ProjectReopened,
 }

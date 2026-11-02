@@ -4815,6 +4815,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("announcement_severity");
 
+                    b.Property<bool>("ConflictClosed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("conflict_closed");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -4847,6 +4851,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
                         .HasColumnName("last_imported_sha");
+
+                    b.Property<bool>("MaintenanceClosed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("maintenance_closed");
 
                     b.Property<string>("Name")
                         .IsRequired()

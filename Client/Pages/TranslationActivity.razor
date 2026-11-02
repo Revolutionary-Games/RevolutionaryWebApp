@@ -7,6 +7,7 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
+<TranslationAnnouncementBanner Slug="@Slug" @key="Slug"/>
 <h3>Recent activity in @Slug @LanguageCode</h3>
 <p>
     <NavLink href="@($"translations/{Slug}")">← Project overview</NavLink>

@@ -44,6 +44,8 @@ public sealed class ManualTranslationKeysController : Controller
             p.Enabled && p.Format == TranslationFormat.Manual);
         if (project == null)
             return NotFound();
+        if (project.ClosedForMaintenance)
+            return Conflict("This project is closed for maintenance");
 
         var key = request.Key.Trim();
         var source = request.SourceText.Trim();

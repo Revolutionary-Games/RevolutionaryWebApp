@@ -236,6 +236,8 @@ public class TranslationEditorController : Controller
             p.Enabled);
         if (project == null)
             return NotFound();
+        if (project.ClosedForMaintenance)
+            return Conflict("This project is closed for maintenance");
 
         var groups = actor.AccessCachedGroupsOrThrow();
         if (!TranslationPermissions.CanTranslate(groups, request.LanguageCode == project.SourceLanguage))

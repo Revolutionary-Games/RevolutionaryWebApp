@@ -10,6 +10,8 @@ public sealed class TranslationProjectDTO : IIdentifiable
 {
     public long Id { get; set; }
 
+    public bool ClosedForMaintenance { get; set; }
+
     public TranslationAnnouncementDTO? Announcement { get; set; }
 
     [MaxLength(120)]

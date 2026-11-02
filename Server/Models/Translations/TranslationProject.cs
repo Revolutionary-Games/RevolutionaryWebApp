@@ -27,6 +27,13 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
 
     public bool Deleted { get; set; }
 
+    public bool MaintenanceClosed { get; set; }
+
+    public bool ConflictClosed { get; set; }
+
+    [NotMapped]
+    public bool ClosedForMaintenance => MaintenanceClosed || ConflictClosed;
+
     public bool Enabled { get; set; } = true;
 
     [MaxLength(35)]
@@ -116,6 +123,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             Format = Format,
             DictionaryId = DictionaryId,
             Announcement = announcement,
+            ClosedForMaintenance = ClosedForMaintenance,
             CanAddSourceKeys = canAddSourceKeys && Format == TranslationFormat.Manual,
         };
     }
@@ -138,7 +146,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
         string[] configurationProperties =
         [
             nameof(Slug), nameof(Name), nameof(Deleted), nameof(Enabled), nameof(SourceLanguage),
-            nameof(Format), nameof(DictionaryId),
+            nameof(Format), nameof(DictionaryId), nameof(MaintenanceClosed), nameof(ConflictClosed),
             nameof(AnnouncementMessage), nameof(AnnouncementSeverity), nameof(AnnouncementEndsAt),
             nameof(RepositoryFullName), nameof(SourceBranch), nameof(SourceFilePattern),
             nameof(TranslationFilePattern),

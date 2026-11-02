@@ -79,6 +79,13 @@ public class TranslationSuggestionsController : Controller
         await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, request.ProjectId,
             HttpContext.RequestAborted);
 
+        // Should we allow creating suggestions even if closed?
+        if (await database.TranslationProjects.AnyAsync(p => p.Id == request.ProjectId &&
+                (p.MaintenanceClosed || p.ConflictClosed)))
+        {
+            return Conflict("This project is closed for maintenance");
+        }
+
         var value = await database.TranslationValues.AsNoTracking().FirstOrDefaultAsync(v =>
             v.ProjectId == request.ProjectId && v.Key == request.Key && v.LanguageCode == request.LanguageCode &&
             v.Unit.Active);
@@ -272,6 +279,9 @@ public class TranslationSuggestionsController : Controller
         {
             return Conflict("Suggestion was made for an older source text");
         }
+
+        if (project.ClosedForMaintenance)
+            return Conflict("This project is closed for maintenance");
 
         if (!unit.Active)
             return Conflict("This source text has been removed and does not need translation");
