@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -56,6 +57,7 @@ public class TranslationSuggestionsController : Controller
             .ToArrayAsync(cancellationToken);
     }
 
+    [CountContribution(30)]
     [HttpPost]
     [RequireTranslatorAgreement]
     public async Task<ActionResult<TranslationSuggestionDTO>> Create(
@@ -97,6 +99,7 @@ public class TranslationSuggestionsController : Controller
         }, suggestion.GetDTO(0));
     }
 
+    [CountContribution(1)]
     [HttpPut("{id:long}/vote")]
     public async Task<IActionResult> Vote(long id, [FromBody] VoteOnTranslationSuggestionRequest request)
     {
@@ -150,6 +153,7 @@ public class TranslationSuggestionsController : Controller
         return NoContent();
     }
 
+    [CountContribution(10)]
     [HttpPost("{id:long}/accept")]
     [RequireTranslatorAgreement]
     public async Task<IActionResult> Accept(long id)

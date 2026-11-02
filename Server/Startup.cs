@@ -618,6 +618,7 @@ public class Startup
         AddJobHelper<CleanOldPrecompiledObjectVersionsJob>(configurationSection["CleanOldPrecompiledObjectVersions"]);
         AddJobHelper<ClearPassedSuspensionTimes>(configurationSection["ClearPassedSuspensionTimes"]);
         AddJobHelper<CheckAllUserAutomaticGroups>(configurationSection["CheckAllUserAutomaticGroups"]);
+        AddJobHelper<ResetDailyContributionsJob>(configurationSection["ResetDailyContributions"]);
         AddJobHelper<ResetDailyUploadQuotasJob>(configurationSection["ResetDailyUploadQuotas"]);
         AddJobHelper<FetchMailboxesJob>(configurationSection["FetchMailboxes"]);
         AddJobHelper<MaintainGitHubIssueStatusJob>(configurationSection["MaintainGitHubIssueStatus"]);

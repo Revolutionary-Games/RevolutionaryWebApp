@@ -104,7 +104,7 @@ public class UserManagementController : Controller
             HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
 
         var user = await database.Users.AsNoTracking().Where(u => u.Id == id).Include(u => u.AssociationMember)
-            .FirstOrDefaultAsync();
+            .Include(u => u.ContributionCount).FirstOrDefaultAsync();
 
         if (user == null)
             return NotFound();

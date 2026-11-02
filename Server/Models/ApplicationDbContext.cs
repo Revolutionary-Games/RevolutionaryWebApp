@@ -24,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<UserGroup> UserGroups { get; set; } = null!;
     public DbSet<UserGroupExtraData> UserGroupsExtraData { get; set; } = null!;
+    public DbSet<UserContributionCount> UserContributionCounts { get; set; } = null!;
     public DbSet<Session> Sessions { get; set; } = null!;
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
     public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
@@ -291,6 +292,13 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasOne(d => d.User)
                 .WithOne(p => p.EmailPreferences)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserContributionCount>(entity =>
+        {
+            entity.HasOne(d => d.User)
+                .WithOne(p => p.ContributionCount).HasForeignKey<UserContributionCount>(count => count.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

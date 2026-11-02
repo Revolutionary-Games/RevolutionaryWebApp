@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
+using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -191,6 +192,7 @@ public class TranslationEditorController : Controller
         };
     }
 
+    [CountContribution(10)]
     [HttpPut]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]

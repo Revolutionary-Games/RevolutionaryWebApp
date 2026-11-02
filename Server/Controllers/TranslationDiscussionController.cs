@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Authorization;
+using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -51,6 +52,7 @@ public class TranslationDiscussionController : Controller
         return rows.Select(comment => comment.GetDTO()).ToArray();
     }
 
+    [CountContribution(100)]
     [HttpPost("comments")]
     public async Task<ActionResult<TranslationCommentDTO>> AddComment(
         [FromBody] CreateTranslationCommentRequest request)

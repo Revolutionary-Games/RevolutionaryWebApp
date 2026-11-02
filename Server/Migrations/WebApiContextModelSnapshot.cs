@@ -5447,6 +5447,34 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserContributionCount", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<bool>("ContributionExceeded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("contribution_exceeded");
+
+                    b.Property<int>("ContributionLimit")
+                        .HasColumnType("integer")
+                        .HasColumnName("contribution_limit");
+
+                    b.Property<int>("CurrentContribution")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_contribution");
+
+                    b.Property<DateTime>("FirstContributedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_contributed_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_user_contribution_counts");
+
+                    b.ToTable("user_contribution_counts", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserGroup", b =>
                 {
                     b.Property<int>("Id")
@@ -6979,6 +7007,18 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("Unit");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserContributionCount", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithOne("ContributionCount")
+                        .HasForeignKey("RevolutionaryWebApp.Server.Models.UserContributionCount", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_contribution_counts_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserGroupExtraData", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.UserGroup", "Group")
@@ -7248,6 +7288,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("ChairmanOfMeetings");
 
                     b.Navigation("ClaSignatures");
+
+                    b.Navigation("ContributionCount");
 
                     b.Navigation("ContributorTranslationChanges");
 

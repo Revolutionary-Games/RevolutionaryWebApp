@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
+using Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,7 @@ public class TranslationDictionariesController : Controller
         return languages;
     }
 
+    [CountContribution(100)]
     [HttpPost]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<TranslationDictionaryDTO>> Create([FromBody] CreateDictionaryRequest request)
@@ -195,6 +197,7 @@ public class TranslationDictionariesController : Controller
             .ThenBy(term => term.SourceLanguageCode).ToArray();
     }
 
+    [CountContribution(20)]
     [HttpPost("terms")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
@@ -248,6 +251,7 @@ public class TranslationDictionariesController : Controller
         return CreatedAtAction(nameof(Terms), new { id = request.DictionaryId, language = "en" }, null);
     }
 
+    [CountContribution(5)]
     [HttpPut("terms/source")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
@@ -354,6 +358,7 @@ public class TranslationDictionariesController : Controller
         return NoContent();
     }
 
+    [CountContribution(15)]
     [HttpPost("terms/language")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
@@ -408,6 +413,7 @@ public class TranslationDictionariesController : Controller
         return CreatedAtAction(nameof(Terms), new { id = request.DictionaryId, language = request.LanguageCode }, null);
     }
 
+    [CountContribution(5)]
     [HttpPut("terms/language")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
@@ -481,6 +487,7 @@ public class TranslationDictionariesController : Controller
         return NoContent();
     }
 
+    [CountContribution(3)]
     [HttpPut("terms/translation")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
@@ -536,6 +543,7 @@ public class TranslationDictionariesController : Controller
         return NoContent();
     }
 
+    [CountContribution(50)]
     [HttpPost("requests")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
@@ -594,6 +602,7 @@ public class TranslationDictionariesController : Controller
             }).ToArrayAsync();
     }
 
+    [CountContribution(20)]
     [HttpPost("requests/{id:long}/approve")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.DictionaryManager, AllowAdmin = true)]
     [RequireTranslatorAgreement]
@@ -656,6 +665,7 @@ public class TranslationDictionariesController : Controller
         return NoContent();
     }
 
+    [CountContribution(5)]
     [HttpPost("requests/{id:long}/reject")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.DictionaryManager, AllowAdmin = true)]
     public async Task<IActionResult> RejectRequest(long id)

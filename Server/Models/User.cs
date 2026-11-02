@@ -109,6 +109,8 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     /// </summary>
     public long UploadQuotaUsed { get; set; }
 
+    public UserContributionCount? ContributionCount { get; set; }
+
     [NotMapped]
     public string AuthenticationType
     {
@@ -475,6 +477,9 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
                 info.BoardMember = AssociationMember?.BoardMember ?? false;
                 info.HasBeenBoardMember = AssociationMember?.HasBeenBoardMember ?? false;
                 info.UploadQuotaUsed = UploadQuotaUsed;
+                info.CurrentContribution = ContributionCount?.CurrentContribution ?? 0;
+                info.ContributionLimit = ContributionCount?.ContributionLimit ??
+                    UserContributionCount.GetInitialLimit(AccessCachedGroupsOrThrow());
                 break;
             }
 
