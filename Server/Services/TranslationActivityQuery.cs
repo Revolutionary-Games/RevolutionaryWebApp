@@ -33,6 +33,16 @@ public static class TranslationActivityQuery
                 Description = "Comment", Text = comment.RawMarkdown, PreviousText = null,
                 State = null, PreviousState = null,
             });
+        var suggestions = database.TranslationSuggestions.AsNoTracking()
+            .Where(suggestion => suggestion.ProjectId == project.Id &&
+                (language == null || suggestion.LanguageCode == language))
+            .Select(suggestion => new TranslationActivityDTO
+            {
+                Id = suggestion.Id, Key = suggestion.Key, LanguageCode = suggestion.LanguageCode,
+                UserId = suggestion.AuthorUserId, CreatedAt = suggestion.CreatedAt,
+                Description = "Suggestion", Text = suggestion.Text, PreviousText = null,
+                State = null, PreviousState = null,
+            });
         var keys = database.TranslationUnits.AsNoTracking()
             .Where(unit => unit.ProjectId == project.Id && unit.Active)
             .Select(unit => new TranslationActivityDTO
@@ -57,7 +67,8 @@ public static class TranslationActivityQuery
             });
 
         var activity = edits.Concat(comments.Where(_ => selected.Contains(TranslationActivityView.Comments)))
-            .Concat(keys.Where(_ => selected.Contains(TranslationActivityView.Keys)));
+            .Concat(keys.Where(_ => selected.Contains(TranslationActivityView.Keys)))
+            .Concat(suggestions.Where(_ => selected.Contains(TranslationActivityView.Suggestions)));
         if (userId != null)
             activity = activity.Where(item => item.UserId == userId);
 

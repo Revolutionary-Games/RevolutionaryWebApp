@@ -9,4 +9,5 @@ public enum TranslationSubscriptionEventType
     TranslationUpdate,
     Comment,
     SourceChange,
+    Suggestion,
 }

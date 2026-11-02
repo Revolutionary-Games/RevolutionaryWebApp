@@ -10,4 +10,5 @@ public enum TranslationActivityView
     Keys,
     Source,
     All,
+    Suggestions,
 }

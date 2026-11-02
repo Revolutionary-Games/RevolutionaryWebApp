@@ -13,6 +13,8 @@ public sealed class TranslationSubscriptionDTO
     [MaxLength(35)]
     public string LanguageCode { get; set; } = string.Empty;
 
+    public bool Suggestions { get; set; }
+
     public bool Comments { get; set; }
     public bool SourceChanges { get; set; }
 

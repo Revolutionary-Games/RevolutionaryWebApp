@@ -92,6 +92,27 @@ public class TranslationSuggestionsController : Controller
         };
         await database.TranslationSuggestions.AddAsync(suggestion);
         await database.SaveChangesAsync();
+        var project = await database.TranslationProjects.AsNoTracking()
+            .FirstAsync(project => project.Id == request.ProjectId);
+        var subscribers = await database.TranslationSubscriptions.AsNoTracking()
+            .Where(subscription => subscription.ProjectId == request.ProjectId &&
+                subscription.LanguageCode == request.LanguageCode &&
+                subscription.EventType == TranslationSubscriptionEventType.Suggestion && subscription.UserId != actor.Id)
+            .Select(subscription => subscription.UserId).ToListAsync();
+        foreach (var subscriber in subscribers)
+        {
+            database.UserNotifications.Add(new UserNotification
+            {
+                UserId = subscriber,
+                DeduplicationKey = $"translation-suggestion:{suggestion.Id}:subscriber:{subscriber}",
+                Type = UserNotificationType.TranslationSuggestionCreated,
+                Message = $"New suggestion in {project.Name} ({request.LanguageCode}) on {request.Key}.",
+                TargetPath = $"/translations/{project.Slug}/{request.LanguageCode}/edit" +
+                    $"?key={Uri.EscapeDataString(request.Key)}",
+            });
+        }
+
+        await database.SaveChangesAsync();
         logger.LogInformation("Translation suggestion {SuggestionId} created for project {ProjectId}, key {Key}, " +
             "language {LanguageCode} by {Email}", suggestion.Id, request.ProjectId, request.Key,
             request.LanguageCode, actor.Email);

@@ -21,5 +21,6 @@ public enum UserNotificationType
     TranslationComments,
     TranslationSourceChanged,
     PasswordChanged,
+    TranslationSuggestionCreated,
     TranslationCommentDeleted,
 }

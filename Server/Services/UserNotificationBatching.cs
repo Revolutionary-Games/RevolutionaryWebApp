@@ -20,6 +20,7 @@ public static class UserNotificationBatching
         UserNotificationType.TranslationKeyAdded,
         UserNotificationType.TranslationSourceChanged,
         UserNotificationType.TranslationComments,
+        UserNotificationType.TranslationSuggestionCreated,
     ];
 
     public static void Prepare(UserNotification notification)
@@ -89,6 +90,7 @@ public static class UserNotificationBatching
                 UserNotificationType.TranslationKeyAdded => "new translation keys",
                 UserNotificationType.TranslationSourceChanged => "source text updates",
                 UserNotificationType.TranslationComments => "new translation comments",
+                UserNotificationType.TranslationSuggestionCreated => "new translation suggestions",
                 _ => throw new InvalidOperationException("Unsupported combined notification type"),
             };
             var scope = parent.BatchKey!.Split('/');
@@ -96,6 +98,7 @@ public static class UserNotificationBatching
             var view = parent.Type switch
             {
                 UserNotificationType.TranslationComments => TranslationActivityView.Comments,
+                UserNotificationType.TranslationSuggestionCreated => TranslationActivityView.Suggestions,
                 UserNotificationType.TranslationKeyAdded => TranslationActivityView.Keys,
                 UserNotificationType.TranslationSourceChanged => TranslationActivityView.Source,
                 _ => TranslationActivityView.Edits,

@@ -11,7 +11,7 @@ public static class TranslationActivityFilter
     public static TranslationActivityView[] Types { get; } =
     [
         TranslationActivityView.Edits, TranslationActivityView.Comments,
-        TranslationActivityView.Keys, TranslationActivityView.Source,
+        TranslationActivityView.Keys, TranslationActivityView.Source, TranslationActivityView.Suggestions,
     ];
 
     public static bool TryParse(string? types, TranslationActivityView view, out TranslationActivityView[] selected)

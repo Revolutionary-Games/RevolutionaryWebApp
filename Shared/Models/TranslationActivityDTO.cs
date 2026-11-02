@@ -3,7 +3,7 @@ namespace RevolutionaryWebApp.Shared.Models;
 using System;
 
 /// <summary>
-///   A recent translation edit, source key addition, or discussion comment.
+///   A recent translation edit, source key addition, discussion comment, or suggestion.
 /// </summary>
 public sealed class TranslationActivityDTO
 {

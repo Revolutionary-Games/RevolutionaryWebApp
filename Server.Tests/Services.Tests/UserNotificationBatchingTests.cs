@@ -20,6 +20,7 @@ public class UserNotificationBatchingTests
     [InlineData(UserNotificationType.TranslationKeyAdded, TranslationActivityView.Keys)]
     [InlineData(UserNotificationType.TranslationSourceChanged, TranslationActivityView.Source)]
     [InlineData(UserNotificationType.TranslationComments, TranslationActivityView.Comments)]
+    [InlineData(UserNotificationType.TranslationSuggestionCreated, TranslationActivityView.Suggestions)]
     public async Task FiftyUnreadEventsCombineWithoutLosingDeduplicationRecords(UserNotificationType type,
         TranslationActivityView view)
     {

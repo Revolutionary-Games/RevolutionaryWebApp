@@ -52,6 +52,10 @@ else
                 <input type="checkbox" class="form-check-input" @bind="subscribeSourceChanges"/>
                 <span class="form-check-label">Source text changes (grouped per update)</span>
             </label>
+            <label class="form-check">
+                <input id="subscribe-suggestions" type="checkbox" class="form-check-input" @bind="subscribeSuggestions"/>
+                <span class="form-check-label">New suggestions in @LanguageCode (grouped when unread)</span>
+            </label>
             <Button Small="true" class="mt-2" ButtonStyle="outline-primary"
                     Enabled="@(!savingSubscription)" Spinner="@savingSubscription"
                     OnPressed="@SaveSubscription">Save notification choices
@@ -139,6 +143,7 @@ else
 @code {
     private TranslationProjectDTO? project;
     private TranslationSubscriptionDTO? subscription;
+    private bool subscribeSuggestions;
     private bool subscribeComments;
     private bool subscribeSourceChanges;
     private bool subscribeNewKeys;
@@ -218,6 +223,7 @@ else
             {
                 subscription = await Http.GetFromJsonAsync<TranslationSubscriptionDTO>($"api/v1/translationSubscriptions?" +
                     $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}");
+                subscribeSuggestions = subscription?.Suggestions ?? false;
                 subscribeComments = subscription?.Comments ?? false;
                 subscribeSourceChanges = subscription?.SourceChanges ?? false;
                 subscribeNewKeys = subscription?.NewKeys ?? false;
@@ -438,6 +444,7 @@ else
                 {
                     ProjectId = project.Id,
                     LanguageCode = LanguageCode,
+                    Suggestions = subscribeSuggestions,
                     Comments = subscribeComments,
                     SourceChanges = subscribeSourceChanges,
                     NewKeys = subscribeNewKeys,
