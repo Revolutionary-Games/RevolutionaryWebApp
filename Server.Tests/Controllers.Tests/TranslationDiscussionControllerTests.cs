@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Server.Controllers;
+using Server.Filters;
 using Server.Models;
 using Server.Models.Translations;
 using Server.Services;
@@ -55,19 +56,20 @@ public class TranslationDiscussionControllerTests
             ControllerContext = new ControllerContext { HttpContext = context },
         };
 
-        var result = await controller.DeleteComment(comment.Id);
-
-        Assert.Equal(allowed, comment.Deleted);
         if (allowed)
         {
+            var result = await controller.DeleteComment(comment.Id);
             Assert.IsType<OkResult>(result);
             Assert.Empty((await controller.Comments(1, "key", "fi")).Value!);
             Assert.IsType<NotFoundResult>(await controller.DeleteComment(comment.Id));
         }
         else
         {
-            Assert.IsType<ForbidResult>(result);
+            var exception = await Assert.ThrowsAsync<HttpResponseException>(() => controller.DeleteComment(comment.Id));
+            Assert.Equal(StatusCodes.Status403Forbidden, exception.Status);
         }
+
+        Assert.Equal(allowed, comment.Deleted);
 
         var notices = await database.UserNotifications.ToListAsync();
         if (allowed && !own)

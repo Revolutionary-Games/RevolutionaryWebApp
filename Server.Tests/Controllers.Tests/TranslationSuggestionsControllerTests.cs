@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Server.Controllers;
+using Server.Filters;
 using Server.Models;
 using Server.Models.Translations;
 using Server.Services;
@@ -282,10 +283,10 @@ public class TranslationSuggestionsControllerTests
 
         Assert.IsType<UnauthorizedResult>(await controller.Delete(suggestion.Id));
         context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
-        var result = await controller.Delete(suggestion.Id);
         if (!allowed)
         {
-            Assert.IsType<ForbidResult>(result);
+            var exception = await Assert.ThrowsAsync<HttpResponseException>(() => controller.Delete(suggestion.Id));
+            Assert.Equal(StatusCodes.Status403Forbidden, exception.Status);
             Assert.Single(await database.TranslationSuggestions.ToListAsync());
             Assert.Single(await database.TranslationSuggestionVotes.ToListAsync());
             Assert.Empty(await database.UserNotifications.ToListAsync());
@@ -293,7 +294,7 @@ public class TranslationSuggestionsControllerTests
             return;
         }
 
-        Assert.IsType<NoContentResult>(result);
+        Assert.IsType<NoContentResult>(await controller.Delete(suggestion.Id));
         Assert.Empty(await database.TranslationSuggestions.ToListAsync());
         Assert.Empty(await database.TranslationSuggestionVotes.ToListAsync());
         var notice = Assert.Single(await database.UserNotifications.ToListAsync());
