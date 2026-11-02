@@ -73,6 +73,40 @@ public class TranslationSuggestionsControllerTests
             Assert.Single(await database.UserNotifications.ToListAsync()).Type);
     }
 
+    [Fact]
+    public async Task VoteChangesRecountScoreAndKeepUserVoteRows()
+    {
+        await using var database = CreateDatabase();
+        var actor = new User("voter@example.com", "Voter");
+        actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
+        database.Users.Add(actor);
+        database.TranslationProjects.Add(new TranslationProject { Id = 1 });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
+        database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "key" });
+        database.TranslationValues.Add(new TranslationValue { ProjectId = 1, Key = "key", LanguageCode = "fi" });
+        var suggestion = new TranslationSuggestion
+        {
+            ProjectId = 1, Key = "key", LanguageCode = "fi", AuthorUserId = 100, Score = 10,
+        };
+        database.TranslationSuggestions.Add(suggestion);
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var controller = new TranslationSuggestionsController(NullLogger<TranslationSuggestionsController>.Instance,
+            database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+        foreach (var vote in new[] { 1, 1, -1, 0, 0 })
+        {
+            Assert.IsType<NoContentResult>(await controller.Vote(suggestion.Id,
+                new VoteOnTranslationSuggestionRequest { Value = vote }));
+            Assert.Equal(vote, suggestion.Score);
+            Assert.Equal(vote, suggestion.GetDTO().Score);
+            Assert.Equal(vote == 0 ? 0 : 1, await database.TranslationSuggestionVotes.CountAsync());
+        }
+    }
+
     private static NotificationsEnabledDb CreateDatabase()
     {
         return new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
