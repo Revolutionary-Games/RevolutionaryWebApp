@@ -145,7 +145,7 @@ public class TokenVerifier : JwtBase, ITokenVerifier
         catch (Exception e)
         {
             // Maybe would be nice to catch only the specific exceptions that indicate specific problems...
-            logger.LogWarning("Invalid CSRF token was checked: {@E}", e);
+            logger.LogWarning(e, "Invalid CSRF token was checked");
             return false;
         }
 

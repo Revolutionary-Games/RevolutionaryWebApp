@@ -104,7 +104,7 @@ public class OAuthReturnController : SSOLoginController
         }
         catch (Exception e)
         {
-            Logger.LogWarning("Failed to get user info from github due to error: {@E}", e);
+            Logger.LogWarning(e, "Failed to get user info from github due to error");
             return this.WorkingForbid("Failed to retrieve user info from Github");
         }
 
@@ -184,7 +184,7 @@ public class OAuthReturnController : SSOLoginController
         }
         catch (Exception e)
         {
-            Logger.LogWarning("Failed to get access token from github due to error: {@E}", e);
+            Logger.LogWarning(e, "Failed to get access token from github due to error");
             return null;
         }
     }

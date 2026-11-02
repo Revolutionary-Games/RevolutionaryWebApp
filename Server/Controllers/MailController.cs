@@ -61,7 +61,7 @@ public class MailController : Controller
         }
         catch (Exception e)
         {
-            logger.LogError("Error when sending test email: {@E}", e);
+            logger.LogError(e, "Error when sending test email");
             return Problem("Error sending test mail. See server logs for more details.");
         }
 

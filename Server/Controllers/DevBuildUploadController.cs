@@ -447,7 +447,7 @@ public class DevBuildUploadController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to check upload token / resulting file: {@E}", e);
+            logger.LogWarning(e, "Failed to check upload token / resulting file");
             return BadRequest("Failed to verify that uploaded file is valid");
         }
 
@@ -486,7 +486,7 @@ public class DevBuildUploadController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Hash calculation failed: {@E}", e);
+            logger.LogWarning(e, "Hash calculation failed");
             return BadRequest("Failed to calculate uploaded file hash");
         }
 

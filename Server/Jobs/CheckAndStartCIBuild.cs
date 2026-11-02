@@ -95,7 +95,7 @@ public class CheckAndStartCIBuild
             catch (Exception e)
             {
                 configuration = null;
-                logger.LogError("Error when trying to read repository for starting jobs: {@E}", e);
+                logger.LogError(e, "Error when trying to read repository for starting jobs");
             }
         }
 

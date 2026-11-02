@@ -184,7 +184,7 @@ public class LFSController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to verify LFS upload token: {@E}", e);
+            logger.LogWarning(e, "Failed to verify LFS upload token");
             return new ObjectResult(new GitLFSErrorResponse { Message = "Invalid upload verify token provided" }
                 .ToString())
             {
@@ -241,7 +241,7 @@ public class LFSController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to check object size in storage: {@E}", e);
+            logger.LogWarning(e, "Failed to check object size in storage");
             return new ObjectResult(new GitLFSErrorResponse
                     { Message = "Verification failed: failed to retrieve the object size" }
                 .ToString())
@@ -300,7 +300,7 @@ public class LFSController : Controller
         }
         catch (Exception e)
         {
-            logger.LogError("Upload verify storage operation failed: {@E}", e);
+            logger.LogError(e, "Upload verify storage operation failed");
             return new ObjectResult(new GitLFSErrorResponse { Message = "Internal storage operation failed" }
                 .ToString())
             {
@@ -523,7 +523,7 @@ public class LFSController : Controller
             }
             catch (Exception e)
             {
-                logger.LogWarning("Bucket check failed: {@E}", e);
+                logger.LogWarning(e, "Bucket check failed");
                 var error = "remote storage is inaccessible";
                 throw new HttpResponseException
                 {

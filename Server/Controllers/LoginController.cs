@@ -692,7 +692,7 @@ public class LoginController : SSOLoginController
         }
         catch (Exception e)
         {
-            Logger.LogWarning("Exception when processing Patreon return: {@E}", e);
+            Logger.LogWarning(e, "Exception when processing Patreon return");
             return Redirect(QueryHelpers.AddQueryString("/login", "error",
                 "Failed to retrieve account details from Patreon."));
         }

@@ -50,7 +50,7 @@ public class RemoteRunnersController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -103,7 +103,7 @@ public class RemoteRunnersController : Controller
 
         await database.SaveChangesAsync();
 
-        logger.LogInformation("New job runner created {Id} ({runnerName}) by {Email}", runner.Id, request.Name,
+        logger.LogInformation("New job runner created {Id} ({RunnerName}) by {Email}", runner.Id, request.Name,
             user.Email);
 
         return Ok($"Created. Please copy this secret access key now: {runner.SecretKey}");

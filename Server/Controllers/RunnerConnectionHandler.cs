@@ -207,7 +207,7 @@ public class RunnerConnectionHandler : IDisposable
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to read auth response from client: {@E}", e);
+            logger.LogWarning(e, "Failed to read auth response from client");
             try
             {
                 cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -1471,7 +1471,7 @@ public class RunnerConnectionHandler : IDisposable
 
             if (affected != 1)
             {
-                logger?.LogError("Expected one row to be updated but got {affected} when appending output text",
+                logger?.LogError("Expected one row to be updated but got {Affected} when appending output text",
                     affected);
             }
         }

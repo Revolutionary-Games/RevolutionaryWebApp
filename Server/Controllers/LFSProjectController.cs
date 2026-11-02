@@ -65,7 +65,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -237,7 +237,7 @@ public class LFSProjectController : BaseSoftDeletedResourceController<LfsProject
         }
         catch (DbUpdateException e)
         {
-            logger.LogWarning("Creating new LFSProject failed due to db error: {@E}", e);
+            logger.LogWarning(e, "Creating new LFSProject failed due to db error");
             return BadRequest(
                 "Error saving data to database, if the error persists the data likely violates some constraints");
         }

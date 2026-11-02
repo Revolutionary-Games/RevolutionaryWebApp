@@ -161,12 +161,11 @@ public class CheckOverallBuildStatusJob
             }
             catch (ArgumentNullException e)
             {
-                logger.LogWarning("Failed to send email notification because Commits is null: {@E}", e);
+                logger.LogWarning(e, "Failed to send email notification because Commits is null");
             }
             catch (JsonException e)
             {
-                logger.LogError("Failed to send email notification because ParsedCommits failed to be accessed: {@E}",
-                    e);
+                logger.LogError(e, "Failed to send email notification because ParsedCommits failed to be accessed");
             }
         }
     }

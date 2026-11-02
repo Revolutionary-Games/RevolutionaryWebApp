@@ -53,7 +53,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            Logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 

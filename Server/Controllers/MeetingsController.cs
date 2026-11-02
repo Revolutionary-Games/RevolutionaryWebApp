@@ -53,7 +53,7 @@ public class MeetingsController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -150,7 +150,7 @@ public class MeetingsController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -203,7 +203,7 @@ public class MeetingsController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -355,7 +355,7 @@ public class MeetingsController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Exception when parsing new meeting poll data: {@E}", e);
+            logger.LogWarning(e, "Exception when parsing new meeting poll data");
             return BadRequest("Invalid poll data");
         }
 

@@ -163,7 +163,7 @@ public class FeedConfigurationController : BaseSoftDeletedResourceController<Fee
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 

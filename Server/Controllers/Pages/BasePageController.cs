@@ -101,7 +101,7 @@ public abstract class BasePageController : Controller
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            Logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -457,7 +457,7 @@ public abstract class BasePageController : Controller
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            Logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 

@@ -139,7 +139,7 @@ public class PatreonConfigurationController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to verify Patreon token: {@E}", e);
+            logger.LogWarning(e, "Failed to verify Patreon token");
             return BadRequest("Failed to verify token: " + e.Message);
         }
     }
@@ -157,7 +157,7 @@ public class PatreonConfigurationController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to fetch Patreon campaigns: {@E}", e);
+            logger.LogWarning(e, "Failed to fetch Patreon campaigns");
             return BadRequest("Failed to fetch campaigns: " + e.Message);
         }
     }
@@ -174,7 +174,7 @@ public class PatreonConfigurationController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to fetch Patreon tiers: {@E}", e);
+            logger.LogWarning(e, "Failed to fetch Patreon tiers");
             return BadRequest("Failed to fetch tiers: " + e.Message);
         }
     }

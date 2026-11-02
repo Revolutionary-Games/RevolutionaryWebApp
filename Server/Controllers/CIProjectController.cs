@@ -89,7 +89,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         }
         catch (DbUpdateException e)
         {
-            logger.LogWarning("Creating new CI Project failed due to db error: {@E}", e);
+            logger.LogWarning(e, "Creating new CI Project failed due to db error");
             return BadRequest(
                 "Error saving data to database, if the error persists the data likely violates some constraints");
         }
@@ -115,7 +115,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            Logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -169,7 +169,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            Logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -224,7 +224,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
         }
         catch (ArgumentException e)
         {
-            Logger.LogWarning("Invalid requested order: {@E}", e);
+            Logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 

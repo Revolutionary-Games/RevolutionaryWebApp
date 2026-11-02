@@ -61,7 +61,7 @@ public class DeleteFailedItemVersionUploadsJob : IJob
                 }
                 catch (Exception e)
                 {
-                    logger.LogTrace("Couldn't delete the final path of the item failed to upload: {@E}", e);
+                    logger.LogTrace(e, "Couldn't delete the final path of the item failed to upload");
                 }
 
                 try
@@ -70,7 +70,7 @@ public class DeleteFailedItemVersionUploadsJob : IJob
                 }
                 catch (Exception e)
                 {
-                    logger.LogInformation("Couldn't delete the upload path of the item: {@E}", e);
+                    logger.LogInformation(e, "Couldn't delete the upload path of the item");
                 }
 
                 database.StorageFiles.Remove(version.StorageFile);

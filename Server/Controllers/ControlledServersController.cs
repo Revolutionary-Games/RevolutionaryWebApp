@@ -56,7 +56,7 @@ public class ControlledServersController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -302,7 +302,7 @@ public class ControlledServersController : Controller
         }
         catch (Exception e)
         {
-            logger.LogInformation("Failed to fetch server status due to: {@E}", e);
+            logger.LogInformation(e, "Failed to fetch server status due to");
             return BadRequest("Could not get server status, probably because it is terminated");
         }
 
@@ -360,7 +360,7 @@ public class ControlledServersController : Controller
         }
         catch (Exception e)
         {
-            logger.LogInformation("Failed to fetch server statuses due to: {@E}", e);
+            logger.LogInformation(e, "Failed to fetch server statuses due to");
             return BadRequest("Could not get server statuses, probably some instance id is valid for some reason");
         }
 

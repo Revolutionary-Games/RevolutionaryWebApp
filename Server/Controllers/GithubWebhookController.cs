@@ -71,7 +71,7 @@ public class GithubWebhookController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Error deserializing github webhook: {@E}", e);
+            logger.LogWarning(e, "Error deserializing github webhook");
             throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid content",

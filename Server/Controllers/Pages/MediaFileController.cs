@@ -322,7 +322,7 @@ public class MediaFileController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to verify media file upload token: {@E}", e);
+            logger.LogWarning(e, "Failed to verify media file upload token");
             return BadRequest("Invalid upload token");
         }
 
@@ -354,7 +354,7 @@ public class MediaFileController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to check object size in storage: {@E}", e);
+            logger.LogWarning(e, "Failed to check object size in storage");
             return BadRequest("Failed to retrieve the object size");
         }
 
@@ -379,7 +379,7 @@ public class MediaFileController : Controller
         }
         catch (Exception e)
         {
-            logger.LogError("Move to right path remote media storage file failed: {@E}", e);
+            logger.LogError(e, "Move to right path remote media storage file failed");
             return BadRequest("Error copying the uploaded file in remote storage");
         }
 
@@ -413,7 +413,7 @@ public class MediaFileController : Controller
         }
         catch (Exception e)
         {
-            logger.LogError("Loading uploaded media file as an image failed: {@E}", e);
+            logger.LogError(e, "Loading uploaded media file as an image failed");
             await fileStorage.DeleteObject(processingPath);
             return BadRequest("The uploaded file doesn't appear to be a valid image file");
         }

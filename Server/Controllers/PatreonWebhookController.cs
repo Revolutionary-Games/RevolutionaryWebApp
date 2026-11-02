@@ -73,7 +73,7 @@ public class PatreonWebhookController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to parse JSON in patreon webhook body: {@E}", e);
+            logger.LogWarning(e, "Failed to parse JSON in patreon webhook body");
             throw new HttpResponseException
             {
                 Value = new BasicJSONErrorResult("Invalid request", "Invalid JSON").ToString(),

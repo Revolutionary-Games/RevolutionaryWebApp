@@ -7,7 +7,7 @@ using Models;
 using Utilities;
 
 /// <summary>
-///   Extension to the Github API to allow easy reporting of commit statuses
+///   Extension to the GitHub API to allow easy reporting of commit statuses
 /// </summary>
 public interface IGithubCommitStatusReporter : IGithubAPI
 {
@@ -28,7 +28,7 @@ public class GithubCommitStatusReporter : GithubAPI, IGithubCommitStatusReporter
         }
         catch (Exception e)
         {
-            logger.LogError("Can't get base url for Github status reporting: {@E}", e);
+            logger.LogError(e, "Can't get base url for Github status reporting");
         }
     }
 

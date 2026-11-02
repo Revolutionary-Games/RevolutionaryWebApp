@@ -86,7 +86,7 @@ public class EmailTokens
         }
         catch (Exception e)
         {
-            logger.LogWarning("Invalid email token was checked: {@E}", e);
+            logger.LogWarning(e, "Invalid email token was checked");
             return null;
         }
     }

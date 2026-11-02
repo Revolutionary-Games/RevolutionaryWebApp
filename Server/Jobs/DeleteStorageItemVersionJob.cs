@@ -66,7 +66,7 @@ public class DeleteStorageItemVersionJob
         }
         catch (Exception e)
         {
-            logger.LogTrace("Upload path probably didn't exist for the above file, couldn't delete it: {@E}", e);
+            logger.LogTrace(e, "Upload path probably didn't exist for the above file, couldn't delete it");
         }
     }
 }

@@ -150,7 +150,7 @@ public class StorageFilesController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -182,7 +182,7 @@ public class StorageFilesController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -332,7 +332,7 @@ public class StorageFilesController : Controller
         }
         catch (ArgumentException e)
         {
-            logger.LogWarning("Invalid requested order: {@E}", e);
+            logger.LogWarning(e, "Invalid requested order");
             throw new HttpResponseException { Value = "Invalid data selection or sort" };
         }
 
@@ -1143,7 +1143,7 @@ public class StorageFilesController : Controller
             }
             catch (Exception e)
             {
-                logger.LogError("Failed to create multipart upload: {@E}", e);
+                logger.LogError(e, "Failed to create multipart upload");
                 return Problem("Failed to create a new multipart upload");
             }
 
@@ -1238,7 +1238,7 @@ public class StorageFilesController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to verify more chunks token: {@E}", e);
+            logger.LogWarning(e, "Failed to verify more chunks token");
             return BadRequest("Invalid more chunks token");
         }
 
@@ -1291,7 +1291,7 @@ public class StorageFilesController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to verify general file upload token: {@E}", e);
+            logger.LogWarning(e, "Failed to verify general file upload token");
             return BadRequest("Invalid upload token");
         }
 
@@ -1324,7 +1324,7 @@ public class StorageFilesController : Controller
             }
             catch (Exception e)
             {
-                logger.LogWarning("Failed to complete multipart upload in remote storage: {@E}", e);
+                logger.LogWarning(e, "Failed to complete multipart upload in remote storage");
                 return BadRequest("Failed to complete multipart upload in remote storage");
             }
 
@@ -1349,7 +1349,7 @@ public class StorageFilesController : Controller
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to check object size in storage: {@E}", e);
+            logger.LogWarning(e, "Failed to check object size in storage");
             return BadRequest("Failed to retrieve the object size");
         }
 
@@ -1376,7 +1376,7 @@ public class StorageFilesController : Controller
         }
         catch (Exception e)
         {
-            logger.LogError("Move to right path remote storage file failed: {@E}", e);
+            logger.LogError(e, "Move to right path remote storage file failed");
             return BadRequest("Error copying the uploaded file in remote storage");
         }
 
