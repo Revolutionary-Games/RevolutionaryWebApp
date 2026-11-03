@@ -1,0 +1,376 @@
+@inject HttpClient Http
+@inject NotificationHandler NotificationHandler
+@using System.Threading
+@using RevolutionaryWebApp.Client.Models
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Notifications
+@implements INotificationHandler<APIKeyListUpdated>
+@inherits ListDataPage<APIKeyDTO, string>
+
+<h4 class="mt-3">API Keys</h4>
+<small>
+    @(Data?.Count ?? 0) / @APIKeyPolicy.Limit(User.Groups) keys. Restricted users' keys are disabled.
+    Normal users can only use read-only keys.
+</small>
+
+<StatusMessageShower Message="@Error" Type="@SiteNoticeType.Danger" OnClosed="@DismissFetchError" />
+<StatusMessageShower Message="@statusMessage" Type="@statusMessageType" OnClosed="@DismissStatusMessage" />
+<StatusMessageShower Message="@authorizationMessage" Type="@SiteNoticeType.Success"
+                     OnClosed="@DismissAuthorizationMessage" />
+
+<SortableTable Columns="@columns" GetSortClass="@SortClass" OnSortChanged="@ChangeSort"
+               ShowContentSpinner="@VisibleFetchInProgress" ShowLoading="@(Data == null && FetchInProgress)"
+               ShowNoContent="@NoItemsFound" UseNonFixedColumns="@true" ShowHoverHighlight="@false">
+    @if (Data != null)
+    {
+        @foreach (var key in Data)
+        {
+            if (resourceStatus.IsDeleted(key.Id))
+                continue;
+
+            var status = resourceStatus.GetStatus(key.Id);
+            <tr @key="key.Id">
+                <td @onclick="() => ToggleDetails(key)" class="clickable">
+                    <ItemExpander Expanded="@status.Expanded" />
+                    <span class="ms-1">@key.Id</span>
+                </td>
+                <td><RecentTimeShortener Time="@key.CreatedAt" /></td>
+                <td>
+                    @if (key.LastUsedAt != null)
+                    {
+                        <RecentTimeShortener Time="@key.LastUsedAt.Value" />
+                    }
+                    else
+                    {
+                        <span>Never</span>
+                    }
+                </td>
+                <td>@(key.LastUsedIP ?? "Never")</td>
+                <td>@key.TotalUses</td>
+                <td>@(key.ExpiresAt?.ToLocalTime().ToString("g") ?? "Never")</td>
+                <td>
+                    <Button ButtonStyle="danger" Small="@true" Enabled="@(!status.Processing)"
+                            Spinner="@status.Processing" OnPressed="@(() => VerifyDelete(key))">Delete</Button>
+                </td>
+            </tr>
+            @if (status.Expanded)
+            {
+                <tr @key="@(key.Id + "-settings")">
+                    <td colspan="@columns.Count">
+                        <APIKeyEditor EditContext="@(status.EditContext!)" EditedData="@(status.EditedData!)"
+                                      ControlIdSuffix="@key.Id" ReadOnlyRequired="@ReadOnlyRequired"
+                                      Processing="@status.Processing" OnValidSubmit="@(() => Save(key))" />
+                    </td>
+                </tr>
+            }
+        }
+    }
+</SortableTable>
+
+@if (LookingAtSelf)
+{
+    @if (!showNewForm)
+    {
+        <StatusMessageShower Message="@createMessage" Type="@createMessageType" OnClosed="@DismissCreateMessage" />
+    }
+
+    <Button class="mt-2 mb-3 me-1" ButtonStyle="success" OnPressed="@ToggleCreateNew" Enabled="@CanCreateNew">
+        New API key
+    </Button>
+
+    @if (showNewForm)
+    {
+        <APIKeyEditor EditContext="@editContext" EditedData="@newData" ControlIdSuffix="@($"new-key-{User.Id}")"
+                      ReadOnlyRequired="@ReadOnlyRequired" Processing="@processingNewForm"
+                      StatusMessage="@createMessage" StatusMessageType="@createMessageType"
+                      OverrideSaveText="Create key" OnValidSubmit="@CreateNew">
+            <Button ButtonStyle="secondary" Enabled="@(!processingNewForm)" OnPressed="@ToggleCreateNew">
+                Cancel
+            </Button>
+        </APIKeyEditor>
+    }
+}
+
+@code {
+    private readonly List<TableColumn> columns =
+    [
+        new("ID", false),
+        new("Created", true, nameof(APIKeyDTO.CreatedAt)),
+        new("Last used", true, nameof(APIKeyDTO.LastUsedAt)),
+        new("Last used from", false),
+        new("Uses", false),
+        new("Expiration", false),
+        new("Actions", false),
+    ];
+
+    private ClientSideResourceStatus<APIKeyResourceStatus, string> resourceStatus = new();
+    private APIKeySettings newData = new();
+    private EditContext editContext = null!;
+    private long? loadedUser;
+    private bool showNewForm;
+    private bool processingNewForm;
+    private string? statusMessage;
+    private SiteNoticeType statusMessageType;
+    private string? createMessage;
+    private SiteNoticeType createMessageType;
+    private string? authorizationMessage;
+
+    public APIKeys() : base(new SortHelper(nameof(APIKeyDTO.CreatedAt), SortDirection.Descending))
+    {
+        AutoFetchDataOnInit = false;
+        NewItemRequiresFullReFetch = true;
+    }
+
+    [Parameter, EditorRequired]
+    public UserDTO User { get; set; } = null!;
+
+    [Parameter]
+    public bool LookingAtSelf { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    private string Endpoint => $"api/v1/APIKeys/{User.Id}";
+
+    private bool ReadOnlyRequired => APIKeyPolicy.IsReadOnlyUser(User.Groups);
+    private bool CanCreateNew => !processingNewForm && Data != null &&
+        APIKeyPolicy.Limit(User.Groups) > Data.Count;
+
+    public Task Handle(APIKeyListUpdated notification, CancellationToken cancellationToken)
+    {
+        return notification.UserId == User.Id ? HandleItemNotification(notification) : Task.CompletedTask;
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        groups.Add(NotificationGroups.UserAPIKeysUpdatedPrefix + User.Id);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedUser == User.Id)
+            return;
+
+        loadedUser = User.Id;
+        authorizationMessage = null;
+        statusMessage = null;
+        createMessage = null;
+        showNewForm = false;
+        resourceStatus = new ClientSideResourceStatus<APIKeyResourceStatus, string>();
+        Data = null;
+
+        await NotificationHandler.NotifyWantedGroupsChanged();
+        await FetchData();
+    }
+
+    protected override string GetItemId(APIKeyDTO item)
+    {
+        return item.Id;
+    }
+
+    protected override Task<List<APIKeyDTO>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<List<APIKeyDTO>>(QueryHelpers.AddQueryString(Endpoint, requestParams));
+    }
+
+    /*
+    protected override async Task SingleItemUpdateReceived(APIKeyDTO updatedItem)
+    {
+        await base.SingleItemUpdateReceived(updatedItem);
+
+        // Last-use updates can change the position of a row in the sorted list, but we don't care enough to fetch data again.
+    }
+    */
+
+    private static APIKeySettings CopySettings(APIKeyDTO key)
+    {
+        return new APIKeySettings
+        {
+            Scopes = key.Scopes.ToArray(),
+            ReadOnly = key.ReadOnly,
+            ExpiresAt = key.ExpiresAt,
+            AllowedIPNetwork = key.AllowedIPNetwork,
+        };
+    }
+
+    private void ToggleDetails(APIKeyDTO key)
+    {
+        var status = resourceStatus.GetStatus(key.Id);
+        status.Expanded = !status.Expanded;
+        if (status.Expanded)
+        {
+            status.EditedData = CopySettings(key);
+            status.EditContext = new EditContext(status.EditedData);
+        }
+    }
+
+    private void ToggleCreateNew()
+    {
+        showNewForm = !showNewForm;
+        if (showNewForm)
+        {
+            createMessage = null;
+            newData = new APIKeySettings();
+            editContext = new EditContext(newData);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task CreateNew()
+    {
+        processingNewForm = true;
+        createMessage = null;
+        createMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var result = await Http.PostAsJsonAsync(Endpoint, newData);
+            if (!result.IsSuccessStatusCode)
+            {
+                var content = await result.Content.ReadAsStringAsync();
+                createMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+                return;
+            }
+
+            var created = await result.Content.ReadFromJsonAsync<CreatedAPIKey>();
+            authorizationMessage = "Copy this Authorization header now. The secret will not be shown again: " +
+                created!.Authorization;
+            createMessage = "New API key created";
+            createMessageType = SiteNoticeType.Info;
+            showNewForm = false;
+
+            // We should get a SignalR notice about the new key (so we don't need to fetch data)
+        }
+        catch (Exception e)
+        {
+            createMessage = $"API key creation failed: {e.Message}";
+        }
+        finally
+        {
+            processingNewForm = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Save(APIKeyDTO key)
+    {
+        var status = resourceStatus.GetStatus(key.Id);
+        status.Processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var result = await Http.PutAsJsonAsync($"{Endpoint}/{key.Id}", status.EditedData);
+            if (!result.IsSuccessStatusCode)
+            {
+                var content = await result.Content.ReadAsStringAsync();
+                statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+                return;
+            }
+
+            statusMessage = $"API key {key.Id} saved";
+            statusMessageType = SiteNoticeType.Info;
+            status.Expanded = false;
+            await FetchData(true);
+        }
+        catch (Exception e)
+        {
+            statusMessage = $"API key save failed: {e.Message}";
+        }
+        finally
+        {
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task VerifyDelete(APIKeyDTO key)
+    {
+        var parameters = new ModalParameters { { nameof(ConfirmDelete.Name), $"API key {key.Id}" } };
+        var modal = Modal.Show<ConfirmDelete>("Delete API key?", parameters);
+        var result = await modal.Result;
+
+        if (!result.Cancelled)
+            await Delete(key);
+    }
+
+    private async Task Delete(APIKeyDTO key)
+    {
+        var status = resourceStatus.GetStatus(key.Id);
+        status.Processing = true;
+        statusMessage = null;
+        statusMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var result = await Http.DeleteAsync($"{Endpoint}/{key.Id}");
+            if (!result.IsSuccessStatusCode)
+            {
+                var content = await result.Content.ReadAsStringAsync();
+                statusMessage = $"Error, server responded with: {content}, {result.StatusCode}";
+                return;
+            }
+
+            statusMessage = $"API key {key.Id} deleted";
+            statusMessageType = SiteNoticeType.Warning;
+            resourceStatus.SetDeletedStatus(key.Id);
+            await FetchData(true);
+        }
+        catch (Exception e)
+        {
+            statusMessage = $"API key deletion failed: {e.Message}";
+        }
+        finally
+        {
+            status.Processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void DismissFetchError()
+    {
+        Error = null;
+    }
+
+    private void DismissStatusMessage()
+    {
+        statusMessage = null;
+    }
+
+    private void DismissCreateMessage()
+    {
+        createMessage = null;
+    }
+
+    private void DismissAuthorizationMessage()
+    {
+        authorizationMessage = null;
+    }
+
+    private class APIKeyResourceStatus : ExpandableResourceStatus
+    {
+        public APIKeySettings? EditedData { get; set; }
+        public EditContext? EditContext { get; set; }
+    }
+
+}
