@@ -9,6 +9,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using Enums;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Notifications;
@@ -34,9 +35,11 @@ public class APIKey : IContainsHashedLookUps, IUpdateNotifications
     [MaxLength(36)]
     public string Secret { get; set; } = string.Empty;
 
+    [AllowSortingBy]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }
 
+    [AllowSortingBy]
     public DateTime? LastUsedAt { get; set; }
 
     public string? LastUsedIP { get; set; }
