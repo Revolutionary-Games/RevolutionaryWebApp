@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -94,6 +95,33 @@ public class APIKeysControllerTests
         database.Users.Remove(owner);
         await database.SaveChangesAsync();
         Assert.Empty(await database.APIKeys.ToListAsync());
+    }
+
+    [Theory]
+    [InlineData(nameof(APIKey.CreatedAt), SortDirection.Ascending, "third", "first", "second")]
+    [InlineData(nameof(APIKey.CreatedAt), SortDirection.Descending, "second", "first", "third")]
+    [InlineData(nameof(APIKey.LastUsedAt), SortDirection.Ascending, "second", "third", "first")]
+    [InlineData(nameof(APIKey.LastUsedAt), SortDirection.Descending, "first", "third", "second")]
+    public async Task ListSortsByRequestedTimestamp(string column, SortDirection direction,
+        string first, string second, string third)
+    {
+        await using var database = Database();
+        var owner = new User("sort@example.com", "sort");
+        database.Users.Add(owner);
+        await database.SaveChangesAsync();
+        owner.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
+        var now = DateTime.UtcNow;
+        database.APIKeys.AddRange(
+            new APIKey { Id = "first", User = owner, CreatedAt = now, LastUsedAt = now },
+            new APIKey { Id = "second", User = owner, CreatedAt = now.AddDays(1), LastUsedAt = now.AddDays(-2) },
+            new APIKey { Id = "third", User = owner, CreatedAt = now.AddDays(-1), LastUsedAt = now.AddDays(-1) });
+        await database.SaveChangesAsync();
+
+        var controller = Controller(database, owner);
+        var result = await controller.List(owner.Id, column, direction);
+        Assert.Equal(new[] { first, second, third }, result.Value!.Select(key => key.Id));
+        Assert.IsType<BadRequestObjectResult>((await controller.List(owner.Id, nameof(APIKey.Secret))).Result);
+        Assert.IsType<BadRequestObjectResult>((await controller.List(owner.Id, "UnknownColumn")).Result);
     }
 
     private static NotificationsEnabledDb Database() => new(
