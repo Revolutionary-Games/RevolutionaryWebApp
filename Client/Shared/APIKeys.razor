@@ -87,7 +87,7 @@
                       ReadOnlyRequired="@ReadOnlyRequired" Processing="@processingNewForm"
                       StatusMessage="@createMessage" StatusMessageType="@createMessageType"
                       OverrideSaveText="Create key" OnValidSubmit="@CreateNew">
-            <Button ButtonStyle="secondary" Enabled="@(!processingNewForm)" OnPressed="@ToggleCreateNew">
+            <Button ButtonStyle="secondary mt-2" Enabled="@(!processingNewForm)" OnPressed="@ToggleCreateNew">
                 Cancel
             </Button>
         </APIKeyEditor>
