@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Shared.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -40,7 +41,7 @@ public class NotificationJsonConverter : JsonConverter<SerializedNotification>
 
         // Could maybe use an attribute but for now anything that inherits SerializedNotification is fair game
         types = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(s => s.GetTypes())
+            .SelectMany(GetLoadableTypes)
             .Where(p => type.IsAssignableFrom(p) && p.IsClass && !p.IsAbstract).ToList();
     }
 
@@ -99,5 +100,18 @@ public class NotificationJsonConverter : JsonConverter<SerializedNotification>
         JsonSerializer.Serialize(writer, (object)value, options);
 
         writer.WriteEndObject();
+    }
+
+    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException e)
+        {
+            // Browser runtime assemblies may contain types that cannot load on a native test host.
+            return e.Types.OfType<Type>();
+        }
     }
 }
