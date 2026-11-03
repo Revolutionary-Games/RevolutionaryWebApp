@@ -32,7 +32,7 @@
 
     private bool HasCallback => OnClosed.HasDelegate;
 
-    private async void DismissNotification()
+    private async Task DismissNotification()
     {
         await OnClosed.InvokeAsync();
     }

@@ -51,7 +51,7 @@ public sealed class APIKeysTests : BunitContext, IAsyncLifetime
         Assert.Equal(1, http.GetMatchCount(create));
         Assert.Empty(component.FindAll("form"));
         component.Find(".alert-success .btn-close").Click();
-        Assert.DoesNotContain("key:created:secret", component.Markup);
+        component.WaitForAssertion(() => Assert.DoesNotContain("key:created:secret", component.Markup));
     }
 
     [Fact]
