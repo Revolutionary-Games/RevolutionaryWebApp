@@ -28,6 +28,7 @@ public static class AppInfo
     public const string CurrentUserMiddlewareKey = "AuthenticatedUser";
     public const string CurrentUserSessionMiddleWareKey = "AuthenticatedUserSessionIfBrowser";
     public const string AuthenticationScopeRestrictionMiddleWareKey = "AuthenticatedUserScopeRestriction";
+    public const string AuthenticationKeyMiddleWareKey = "APIKey";
     public const string AccessKeyMiddlewareKey = "UsedAccessKey";
     public const string LauncherLinkMiddlewareKey = "UsedLauncherLink";
 
