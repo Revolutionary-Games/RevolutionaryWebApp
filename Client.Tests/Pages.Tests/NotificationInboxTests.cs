@@ -4,8 +4,10 @@ using System.Net;
 using System.Net.Http;
 using Bunit;
 using Client.Pages;
+using Microsoft.Extensions.DependencyInjection;
 using RevolutionaryWebApp.Shared.Models;
 using RichardSzalay.MockHttp;
+using Services;
 using Xunit;
 
 public class NotificationInboxTests : BunitContext
@@ -13,6 +15,7 @@ public class NotificationInboxTests : BunitContext
     [Fact]
     public void PrioritiesHaveDifferentStylesAndMarkAllReadUpdatesTheInbox()
     {
+        Services.AddSingleton<InboxNotificationState>();
         var http = Services.AddMockHttpClient();
         http.When("/api/v1/userNotifications?offset=0").RespondJson(new[]
         {
