@@ -37,12 +37,19 @@ correct.
   column changes, replaces an updated row by ID, and schedules a page refetch for
   additions/deletions because those can change page membership.
 - Use `ListDataPage<T>` when the API returns the full list. It replaces updated
-  rows, removes deleted rows, and appends added rows. If appending would leave the
-  collection incorrectly ordered, request a full refetch or override the hook.
+  rows, removes deleted rows, and appends added rows. For string or other
+  non-`long` IDs, use `ListDataPage<T,TId>` and implement `GetItemId`; do not
+  duplicate the list-management code to support a different ID type. If appending
+  would leave the collection incorrectly ordered, set
+  `NewItemRequiresFullReFetch = true`. If an update changes ordering or list
+  membership, also schedule a refetch through the base-class flow.
 - Use `SortHelper` for sort state and `TableColumn` metadata for the displayed
   columns. A column can provide a server-side sort property when its display name
   differs from the model property. Only mark columns sortable when the endpoint
-  accepts that sort key.
+  accepts that sort key. Wire sorting to the data page's `ChangeSort` and
+  `SortClass`, and send the selected column and direction in `StartQuery`.
+  Sorting re-fetches the list from the server, including for full-list endpoints;
+  do not introduce a separate client-side ordering implementation.
 - Use `PaginatedTable` for paginated results and `SortableTable` for full-list
   results. Pass `Columns`, `GetSortClass`, and the sort callback. Paginated pages
   also pass the page callback, page count/current page, loading overlay, and
@@ -59,6 +66,14 @@ correct.
 - Match the endpoint contract: list endpoints commonly require sort column,
   direction, page, and page size and return a `PagedResult<T>`. Preserve server
   validation and allowed sort fields when adding a sortable column.
+- Keep per-row UI state in `ClientSideResourceStatus<TStatus>` (or
+  `ClientSideResourceStatus<TStatus,TId>` for other ID types). Use
+  `ExpandableResourceStatus` for expandable rows and `ItemExpander` for the
+  chevron. Keep draft data and its `EditContext` separate from fetched DTOs so
+  notifications do not overwrite unsaved edits. Use `RecentTimeShortener` for
+  creation and last-use timestamps where appropriate. See
+  `Client/Shared/APIKeys.razor` for a full-list example with string IDs,
+  expandable editors, and notifications.
 
 ## Buttons and forms
 
@@ -75,6 +90,28 @@ such as `CustomInputText`, and a `ValidationSummary` where useful. Give each inp
 a stable, unique `id` and matching label. For reusable create/edit forms, pass an
 `EditContext`, model, processing state, status, and valid-submit callback as in
 `PrecompiledObjectDataForm.razor`.
+
+Open inline creation forms with a `Button` such as “New API key” and a component
+visibility flag. Show the editor with a Cancel button, disable actions while
+processing, and reset the draft and `EditContext` when cancelling or starting a
+fresh create flow. Follow the existing New/Cancel pattern rather than using
+native `<details>` / `<summary>` for creation forms. Reuse the same editor for
+create and edit when the fields match; derive it from `EditFormBase<T>` and use
+its model, edit context, processing, status, and submit parameters. Allow caller
+actions such as Cancel through `ChildContent` when needed.
+
+Use `StatusMessageShower` for fetch errors and action feedback, with
+`SiteNoticeType` and an `OnClosed` dismissal callback where appropriate, rather
+than rendering Bootstrap alerts directly. Use the data page's existing fetch
+error and loading state. Keep create, row-action, and fetch feedback separate
+when they have different lifetimes.
+
+Write explicit async action handlers following the request example below.
+Set processing state and clear previous feedback before the request, notify the
+renderer, handle unsuccessful responses and exceptions, and clear processing
+state in `finally` with another render notification. Avoid a generic `Run`
+wrapper that hides each action's state, feedback, or error handling. Use the
+existing modal confirmation pattern for destructive actions.
 
 ## Realtime notifications
 
@@ -108,6 +145,14 @@ For model-driven notifications:
 component, and group memberships are recalculated when handlers or user info
 change. Reconnection also rejoins the wanted groups. Keep client group names,
 server notification targets, and hub authorization rules consistent.
+
+For collection components, forward notifications to `HandleItemNotification`
+and let the data-page base manage updates and delayed refetches. Filter by the
+owning resource when needed. Do not maintain a separate notification queue or
+duplicate add/update/delete handling in the component. When a component's owner
+parameter changes, update group membership and fetch the new owner's data;
+preserve the base-class disposal behavior when unregistering handlers. Prefer
+these realtime updates to an explicit Refresh button.
 
 ## Controllers
 
@@ -311,7 +356,7 @@ Useful existing references include `Client/Shared/DataPage.cs`,
 `Server/Models/PrecompiledObject.cs`, `Server/Controllers/EmailBouncesController.cs`,
 and `Server/Controllers/BaseSoftDeletedResourceController.cs`.
 
-## Fontend request example
+## Frontend request example
 
 A complete example of how the frontend should make an API call.
 
@@ -335,9 +380,9 @@ private bool processing;
 private string? statusMessage;
 private SiteNoticeType statusMessageType = SiteNoticeType.Danger;
 
-private CanPerformAction => !processing;
+private bool CanPerformAction => !processing;
 
-private async void RerunBuild(bool all)
+private async Task RerunBuild(bool all)
 {
     processing = true;
     statusMessage = null;
@@ -377,7 +422,7 @@ private async void RerunBuild(bool all)
 
 private void DismissActionMessage()
 {
-    createMessage = null;
+    statusMessage = null;
     StateHasChanged();
 }
 ```
