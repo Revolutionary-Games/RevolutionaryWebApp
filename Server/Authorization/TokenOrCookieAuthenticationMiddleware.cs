@@ -28,13 +28,7 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
 
     protected override async Task<bool> PerformAuthentication(HttpContext context)
     {
-        // API token is allowed to be in "api_token" or "apiToken" query parameter
-        var result = await CheckQueryString(context);
-        if (result != AuthMethodResult.Nothing)
-            return result != AuthMethodResult.Error;
-
-        // Or in the Authorization header
-        result = await CheckAuthorizationHeader(context);
+        var result = await CheckAuthorizationHeader(context);
         if (result != AuthMethodResult.Nothing)
             return result != AuthMethodResult.Error;
 
@@ -46,59 +40,6 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         return true;
     }
 
-    private async Task<AuthMethodResult> CheckQueryString(HttpContext context)
-    {
-        bool foundToken = context.Request.Query.TryGetValue("api_token", out var queryToken) &&
-            queryToken.Count > 0;
-
-        if (!foundToken && context.Request.Query.TryGetValue("apiToken", out queryToken) && queryToken.Count > 0)
-            foundToken = true;
-
-        if (foundToken && !string.IsNullOrEmpty(queryToken[0]))
-        {
-            if (queryToken[0]!.Length > 100)
-            {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync("Invalid token (too long)");
-
-                return AuthMethodResult.Error;
-            }
-
-            var cacheKey = "api:" + queryToken[0];
-
-            if (IsNegativeAuthenticationAttemptCached(cacheKey))
-            {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync("Invalid token");
-
-                return AuthMethodResult.Error;
-            }
-
-            var user = await database.Users.WhereHashed(nameof(User.ApiToken), queryToken[0]!)
-                .Include(u => u.AssociationMember).AsAsyncEnumerable()
-                .FirstOrDefaultAsync(u => u.ApiToken == queryToken[0]);
-
-            if (user != null && user.Suspended != true)
-            {
-                // When using tokens, we can't cache the group list in the session object, so we need to load them here
-                // TODO: caching for this?
-                await user.ComputeUserGroups(database);
-
-                OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
-                return AuthMethodResult.Authenticated;
-            }
-
-            RememberFailedAuthentication(cacheKey);
-
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsync("Invalid token");
-
-            return AuthMethodResult.Error;
-        }
-
-        return AuthMethodResult.Nothing;
-    }
-
     private async Task<AuthMethodResult> CheckAuthorizationHeader(HttpContext context)
     {
         if (context.Request.Headers.TryGetValue("Authorization", out StringValues header) && header.Count > 0)
@@ -108,10 +49,10 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             if (string.IsNullOrEmpty(tokenValue))
                 return AuthMethodResult.Nothing;
 
-            if (tokenValue.StartsWith("Bearer "))
+            if (tokenValue.StartsWith("key:", StringComparison.Ordinal))
             {
-                // In format "Bearer TOKEN"
-                return await CheckBearerToken(context, tokenValue);
+                // In format "key:ID:SECRET"
+                return await CheckAPIKey(context, tokenValue);
             }
 
             if (!tokenValue.Contains(' ') && tokenValue.Length < AppInfo.MaxTokenLength)
@@ -125,43 +66,51 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         return AuthMethodResult.Nothing;
     }
 
-    private async Task<AuthMethodResult> CheckBearerToken(HttpContext context, string tokenValue)
+    private async Task<AuthMethodResult> CheckAPIKey(HttpContext context, string tokenValue)
     {
-        var apiToken = tokenValue.Split(' ').LastOrDefault();
-
-        if (string.IsNullOrEmpty(apiToken) || apiToken.Length > AppInfo.MaxTokenLength)
+        var parts = tokenValue.Split(':');
+        APIKey? key = null;
+        if (parts.Length == 3 && parts[1].Length == 14 && parts[2].Length == 36)
         {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await context.Response.WriteAsync("Authorization header format is invalid.");
-            return AuthMethodResult.Error;
+            key = await database.APIKeys.WhereHashed(nameof(APIKey.Id), parts[1])
+                .Include(k => k.User).ThenInclude(u => u.AssociationMember).AsAsyncEnumerable()
+                .FirstOrDefaultAsync(k => SecurityHelpers.SlowEquals(k.Id, parts[1]));
         }
 
-        var cacheKey = "api:" + apiToken;
-
-        if (IsNegativeAuthenticationAttemptCached(cacheKey))
+        if (key == null || !SecurityHelpers.SlowEquals(key.Secret, parts[2]) ||
+            key.User.Suspended || key.ExpiresAt <= DateTime.UtcNow ||
+            !key.AllowsIP(context.Connection.RemoteIpAddress))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsync("Invalid token");
             return AuthMethodResult.Error;
         }
 
-        var user = await database.Users.WhereHashed(nameof(User.ApiToken), apiToken).Include(u => u.AssociationMember)
-            .AsAsyncEnumerable().FirstOrDefaultAsync(u => u.ApiToken == apiToken);
-
-        if (user != null && user.Suspended != true)
+        // TODO: is there some way to cache user groups for API keys?
+        await key.User.ComputeUserGroups(database);
+        var groups = key.User.AccessCachedGroupsOrThrow();
+        var denialReason = APIKeyAuthorization.GetDenialReason(key, context, groups);
+        if (denialReason != null)
         {
-            // When using tokens we can't cache the groups list in the session object so we need to load them here
-            await user.ComputeUserGroups(database);
-
-            OnAuthenticationSucceeded(context, user, AuthenticationScopeRestriction.None, null);
-            return AuthMethodResult.Authenticated;
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "text/plain; charset=utf-8";
+            await context.Response.WriteAsync(denialReason);
+            return AuthMethodResult.Error;
         }
 
-        RememberFailedAuthentication(cacheKey);
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString();
 
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        await context.Response.WriteAsync("Invalid token");
-        return AuthMethodResult.Error;
+        if (string.IsNullOrEmpty(remoteIp))
+            throw new InvalidOperationException("No remote IP address");
+
+        // Atomic increment keeps simultaneous requests from losing usage counts.
+        // Key is verified already, so do not use hashing.
+        await database.APIKeys.Where(k => k.Id == key.Id).ExecuteUpdateAsync(update => update
+            .SetProperty(k => k.TotalUses, k => k.TotalUses + 1)
+            .SetProperty(k => k.LastUsedIP, remoteIp));
+
+        context.Items[AppInfo.AuthenticationKeyMiddleWareKey] = key;
+        OnAuthenticationSucceeded(context, key.User, AuthenticationScopeRestriction.None, null);
+        return AuthMethodResult.Authenticated;
     }
 
     private async Task<AuthMethodResult> CheckLauncherLink(HttpContext context, string tokenValue)
