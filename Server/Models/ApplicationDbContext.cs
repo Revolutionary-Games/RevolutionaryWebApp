@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserGroup> UserGroups { get; set; } = null!;
     public DbSet<UserGroupExtraData> UserGroupsExtraData { get; set; } = null!;
     public DbSet<UserContributionCount> UserContributionCounts { get; set; } = null!;
+    public DbSet<APIKey> APIKeys { get; set; } = null!;
     public DbSet<Session> Sessions { get; set; } = null!;
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
     public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
@@ -391,13 +392,18 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("users");
 
             entity.Property(e => e.Email).IsRequired();
-            entity.Property(e => e.ApiToken).IsRequired(false);
             entity.Property(e => e.LfsToken).IsRequired(false);
             entity.Property(e => e.LauncherLinkCode).IsRequired(false);
 
             entity.Property(e => e.UserName).HasColumnName("name").IsRequired();
 
             entity.Property(e => e.SuspendedManually).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<APIKey>(entity =>
+        {
+            entity.HasOne(k => k.User).WithMany(u => u.APIKeys)
+                .HasForeignKey(k => k.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<UserGroup>(entity =>

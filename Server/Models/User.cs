@@ -242,25 +242,37 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     public ICollection<UserNotification> Notifications { get; set; } = new HashSet<UserNotification>();
     public ICollection<TranslationValue> LastEditedTranslationValues { get; set; } = new HashSet<TranslationValue>();
     public ICollection<TranslationChange> ActorTranslationChanges { get; set; } = new HashSet<TranslationChange>();
+
     public ICollection<TranslationChange> ContributorTranslationChanges { get; set; } =
         new HashSet<TranslationChange>();
+
     public ICollection<TranslationComment> AuthoredTranslationComments { get; set; } =
         new HashSet<TranslationComment>();
+
     public ICollection<TranslationSuggestion> AuthoredTranslationSuggestions { get; set; } =
         new HashSet<TranslationSuggestion>();
+
     public ICollection<TranslationSuggestion> ResolvedTranslationSuggestions { get; set; } =
         new HashSet<TranslationSuggestion>();
+
     public ICollection<TranslationSuggestionVote> TranslationSuggestionVotes { get; set; } =
         new HashSet<TranslationSuggestionVote>();
+
     public ICollection<DictionaryTerm> LastEditedDictionaryTerms { get; set; } = new HashSet<DictionaryTerm>();
+
     public ICollection<DictionaryTermTranslation> LastEditedDictionaryTermTranslations { get; set; } =
         new HashSet<DictionaryTermTranslation>();
+
     public ICollection<DictionaryTermRequest> RequestedDictionaryTermRequests { get; set; } =
         new HashSet<DictionaryTermRequest>();
+
     public ICollection<DictionaryTermRequest> DecidedDictionaryTermRequests { get; set; } =
         new HashSet<DictionaryTermRequest>();
+
     public ICollection<TranslationSubscription> TranslationSubscriptions { get; set; } =
         new HashSet<TranslationSubscription>();
+
+    public ICollection<APIKey> APIKeys { get; set; } = new HashSet<APIKey>();
 
     /// <summary>
     ///   Set to this user's groups once <see cref="ComputeUserGroups"/> has been called

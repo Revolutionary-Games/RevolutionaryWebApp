@@ -100,6 +100,69 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("github_auto_comment_github_pull_request", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.APIKey", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(14)
+                        .HasColumnType("character varying(14)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AllowedIPNetwork")
+                        .HasColumnType("text")
+                        .HasColumnName("allowed_ip_network");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("HashedId")
+                        .HasColumnType("text")
+                        .HasColumnName("hashed_id");
+
+                    b.Property<string>("LastUsedIP")
+                        .HasColumnType("text")
+                        .HasColumnName("last_used_ip");
+
+                    b.Property<bool>("ReadOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("read_only");
+
+                    b.Property<string>("Scopes")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("scopes");
+
+                    b.Property<string>("Secret")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)")
+                        .HasColumnName("secret");
+
+                    b.Property<long>("TotalUses")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_uses");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_api_keys");
+
+                    b.HasIndex("HashedId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_api_keys_hashed_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_api_keys_user_id");
+
+                    b.ToTable("api_keys", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.AccessKey", b =>
                 {
                     b.Property<long>("Id")
@@ -5373,10 +5436,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("accepted_translator");
 
-                    b.Property<string>("ApiToken")
-                        .HasColumnType("text")
-                        .HasColumnName("api_token");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -5390,10 +5449,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("email");
-
-                    b.Property<string>("HashedApiToken")
-                        .HasColumnType("text")
-                        .HasColumnName("hashed_api_token");
 
                     b.Property<string>("HashedLauncherLinkCode")
                         .HasColumnType("text")
@@ -5480,10 +5535,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("ix_users_email");
-
-                    b.HasIndex("HashedApiToken")
-                        .IsUnique()
-                        .HasDatabaseName("ix_users_hashed_api_token");
 
                     b.HasIndex("HashedLauncherLinkCode")
                         .IsUnique()
@@ -5953,6 +6004,18 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_github_auto_comment_github_pull_request_github_pull_request");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.APIKey", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_api_keys_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ActionLogEntry", b =>
