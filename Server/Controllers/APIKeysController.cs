@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
@@ -20,13 +21,25 @@ using Utilities;
 public class APIKeysController(NotificationsEnabledDb database, ILogger<APIKeysController> logger) : Controller
 {
     [HttpGet]
-    public async Task<ActionResult<APIKeyDTO[]>> List(long userId)
+    public async Task<ActionResult<APIKeyDTO[]>> List(long userId,
+        string sortColumn = nameof(APIKey.CreatedAt), SortDirection sortDirection = SortDirection.Descending)
     {
         if (!CanManage(userId))
             return Forbid();
 
-        var keys = await database.APIKeys.AsNoTracking().Where(k => k.UserId == userId)
-            .OrderBy(k => k.CreatedAt).ToListAsync();
+        IQueryable<APIKey> query;
+        try
+        {
+            query = database.APIKeys.AsNoTracking().Where(k => k.UserId == userId)
+                .OrderBy(sortColumn, sortDirection);
+        }
+        catch (ArgumentException e)
+        {
+            logger.LogWarning(e, "Invalid requested API key order");
+            return BadRequest("Invalid data selection or sort");
+        }
+
+        var keys = await query.ToListAsync();
         return keys.Select(k => k.GetDTO()).ToArray();
     }
 
