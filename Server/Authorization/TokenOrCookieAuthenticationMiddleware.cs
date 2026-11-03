@@ -108,7 +108,6 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         // Key is verified already, so do not use hashing.
         await database.APIKeys.Where(k => k.Id == key.Id).ExecuteUpdateAsync(update => update
             .SetProperty(k => k.TotalUses, k => k.TotalUses + 1)
-            .SetProperty(k => k.LastUsedIP, remoteIp));
             .SetProperty(k => k.LastUsedIP, remoteIp)
             .SetProperty(k => k.LastUsedAt, usedAt));
 
