@@ -4,12 +4,18 @@ using System;
 using System.Collections.Generic;
 using Models;
 
-public class ClientSideResourceStatus<T>
+public class ClientSideResourceStatus<T> : ClientSideResourceStatus<T, long>
     where T : class, IDeletedResourceStatus, new()
 {
-    private readonly Dictionary<long, T> statuses = new();
+}
 
-    public T GetStatus(long resourceId)
+public class ClientSideResourceStatus<T, TId>
+    where T : class, IDeletedResourceStatus, new()
+    where TId : notnull
+{
+    private readonly Dictionary<TId, T> statuses = new();
+
+    public T GetStatus(TId resourceId)
     {
         lock (statuses)
         {
@@ -19,12 +25,12 @@ public class ClientSideResourceStatus<T>
         }
     }
 
-    public void SetDeletedStatus(long resourceId)
+    public void SetDeletedStatus(TId resourceId)
     {
         GetStatus(resourceId).Deleted = true;
     }
 
-    public bool IsDeleted(long resourceId)
+    public bool IsDeleted(TId resourceId)
     {
         if (!statuses.TryGetValue(resourceId, out var status))
             return false;
@@ -32,7 +38,7 @@ public class ClientSideResourceStatus<T>
         return status.Deleted;
     }
 
-    public bool HasStatus(long resourceId)
+    public bool HasStatus(TId resourceId)
     {
         return statuses.ContainsKey(resourceId);
     }

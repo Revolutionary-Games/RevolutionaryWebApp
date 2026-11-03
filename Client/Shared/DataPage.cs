@@ -16,7 +16,7 @@ using RevolutionaryWebApp.Shared.Notifications;
 /// <typeparam name="T">Single model type</typeparam>
 /// <typeparam name="TData">Type of the page data content (usually a list type)</typeparam>
 public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
-    where T : class, IIdentifiable, new()
+    where T : class, new()
     where TData : class
 {
     private readonly Timer fetchStartTimer;
@@ -200,7 +200,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
                 }
 
                 // If receiving a notification about a new item with 0 ID, fix that
-                if (notification is { Type: ListItemChangeType.ItemAdded, Item.Id: 0 })
+                if (notification is { Type: ListItemChangeType.ItemAdded, Item: IIdentifiable { Id: 0 } })
                 {
                     // TODO: come up with a better solution than this workaround
                     // TODO: https://github.com/Revolutionary-Games/RevolutionaryWebApp/issues/1137
@@ -393,11 +393,31 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 ///   A data helper page for pages that list all of their items at once
 /// </summary>
 /// <typeparam name="T">Type of item</typeparam>
-public abstract class ListDataPage<T> : DataPage<T, List<T>>
+public abstract class ListDataPage<T> : ListDataPage<T, long>
     where T : class, IIdentifiable, new()
 {
     protected ListDataPage(SortHelper sort) : base(sort) { }
+
+    protected override long GetItemId(T item)
+    {
+        return item.Id;
+    }
+}
+
+/// <summary>
+///   A full-list data page supporting resources with non-numeric IDs.
+/// </summary>
+/// <typeparam name="T">Type of item</typeparam>
+/// <typeparam name="TId">Type of the resource ID</typeparam>
+public abstract class ListDataPage<T, TId> : DataPage<T, List<T>>
+    where T : class, new()
+    where TId : notnull
+{
+    protected ListDataPage(SortHelper sort) : base(sort) { }
+
     public override bool NoItemsFound => Data is { Count: < 1 };
+
+    protected abstract TId GetItemId(T item);
 
     protected override async Task SingleItemUpdateReceived(T updatedItem)
     {
@@ -406,7 +426,7 @@ public abstract class ListDataPage<T> : DataPage<T, List<T>>
 
         for (int i = 0; i < Data.Count; ++i)
         {
-            if (Data[i].Id == updatedItem.Id)
+            if (EqualityComparer<TId>.Default.Equals(GetItemId(Data[i]), GetItemId(updatedItem)))
             {
                 // Found an item to replace
                 Data[i] = updatedItem;
@@ -421,7 +441,8 @@ public abstract class ListDataPage<T> : DataPage<T, List<T>>
         if (Data == null)
             return Task.CompletedTask;
 
-        bool deleted = Data.RemoveAll(i => i.Id == deletedItem.Id) > 0;
+        bool deleted = Data.RemoveAll(i =>
+            EqualityComparer<TId>.Default.Equals(GetItemId(i), GetItemId(deletedItem))) > 0;
 
         if (deleted)
             return InvokeAsync(StateHasChanged);
