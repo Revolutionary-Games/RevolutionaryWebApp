@@ -28,13 +28,6 @@
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
     <li><strong>Upload quota used today</strong>: @User.UploadQuotaUsed.BytesToMiB()</li>
 
-    <li><strong>API token</strong>: @User.HasApiToken</li>
-
-    @if (LookingAtSelf)
-    {
-        <UserTokenControls HasThisToken="@User.HasApiToken" TokenType="API" TokenCreateAPI="api/v1/Tokens/api/self" />
-    }
-
     <li><strong>Git LFS token</strong>: @User.HasLfsToken</li>
 
     @if (LookingAtSelf)
@@ -215,6 +208,8 @@ else
     <br />
 </AccessLimited>
 
+<APIKeys User="@User" LookingAtSelf="@LookingAtSelf" />
+
 @code {
 
     private bool clearingAllLinks;
@@ -235,16 +230,7 @@ else
     [Parameter]
     public bool ShowSelfIdentification { get; set; }
 
-    private bool CanClearTokens
-    {
-        get
-        {
-            if (clearingTokens)
-                return false;
-
-            return User.HasApiToken || User.HasLfsToken;
-        }
-    }
+    private bool CanClearTokens => !clearingTokens;
 
     private bool LookingAtSelf => CurrentUserInfo.InfoReady && CurrentUserInfo.Email ==
         User.Email;
