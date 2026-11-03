@@ -25,7 +25,7 @@ public enum APIKeyScope
     LFS = 16,
     Preferences = 17,
     DebugSymbols = 18,
-    Reports = 19,
+    GameReports = 19,
     CLA = 20,
     CIConfiguration = 21,
     SiteConfiguration = 22,

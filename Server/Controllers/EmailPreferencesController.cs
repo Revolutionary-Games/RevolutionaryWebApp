@@ -12,8 +12,10 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Emails;
 using RevolutionaryWebApp.Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Preferences)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class EmailPreferencesController : Controller

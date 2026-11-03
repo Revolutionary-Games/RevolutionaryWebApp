@@ -24,6 +24,7 @@ using Utilities;
 /// <summary>
 ///   Allows managing media folders
 /// </summary>
+[APIKeyScope(APIKeyScope.Media)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class MediaFolderController : Controller

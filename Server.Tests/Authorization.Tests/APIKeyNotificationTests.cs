@@ -5,11 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using Hubs;
 using Server.Models;
 using Server.Services;
 using Shared.Models;
@@ -26,7 +26,8 @@ public class APIKeyNotificationTests
         var sender = Substitute.For<IModelUpdateNotificationSender>();
         sender.OnChangesDetected(Arg.Any<EntityState>(), Arg.Any<IUpdateNotifications>(), Arg.Any<bool>())
             .Returns(call => call.Arg<IUpdateNotifications>() is APIKey key ?
-                key.GetNotifications(call.Arg<EntityState>()) : []);
+                key.GetNotifications(call.Arg<EntityState>()) :
+                []);
         sender.SendNotifications(Arg.Any<IEnumerable<Tuple<SerializedNotification, string>>>())
             .Returns(call =>
             {

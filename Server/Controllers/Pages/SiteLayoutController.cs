@@ -23,6 +23,7 @@ using Utilities;
 /// <summary>
 ///   Handles managing <see cref="SiteLayoutPart"/>
 /// </summary>
+[APIKeyScope(APIKeyScope.SiteConfiguration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.SiteLayoutEditor, AllowAdmin = true)]

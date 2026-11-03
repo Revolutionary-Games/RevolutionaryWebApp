@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Authorization;
 using Filters;
 using Hangfire;
 using Jobs;
@@ -20,6 +21,7 @@ using Shared;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Tools)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class StackwalkToolController : Controller

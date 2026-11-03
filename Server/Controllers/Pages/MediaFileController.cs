@@ -34,6 +34,7 @@ using Path = System.IO.Path;
 ///   Handles individual media files (as opposed to folders and their items that <see cref="MediaFolderController"/>
 ///   handles)
 /// </summary>
+[APIKeyScope(APIKeyScope.Media)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class MediaFileController : Controller

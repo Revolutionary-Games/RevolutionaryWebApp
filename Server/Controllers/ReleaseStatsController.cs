@@ -23,6 +23,7 @@ using Shared.Models.Enums;
 using SharedBase.Utilities;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class ReleaseStatsController : Controller
@@ -41,6 +42,7 @@ public class ReleaseStatsController : Controller
         this.httpClientFactory = httpClientFactory;
     }
 
+    [APIKeyScope(APIKeyScope.PublicInfo)]
     [HttpGet]
     [ResponseCache(Duration = 900)]
     public async Task<ActionResult<List<RepoReleaseStats>>> Get()
@@ -63,6 +65,7 @@ public class ReleaseStatsController : Controller
         return result;
     }
 
+    [APIKeyScope(APIKeyScope.PublicInfo)]
     [HttpGet("{name}")]
     [ResponseCache(Duration = 900, VaryByQueryKeys = ["name"])]
     public async Task<ActionResult<RepoReleaseStats>> GetSingle([Required] string name)

@@ -88,7 +88,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
 
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpDelete("{id:long}")]
-    public async Task<ActionResult> DeleteResource([Required] long id)
+    public virtual async Task<ActionResult> DeleteResource([Required] long id)
     {
         var item = await FindAndCheckAccess(id);
 
@@ -106,7 +106,7 @@ public abstract class BaseSoftDeletedResourceController<TModel, TInfo, TDTO> : C
 
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost("{id:long}/restore")]
-    public async Task<ActionResult> RestoreResource([Required] long id)
+    public virtual async Task<ActionResult> RestoreResource([Required] long id)
     {
         var item = await FindAndCheckAccess(id);
 

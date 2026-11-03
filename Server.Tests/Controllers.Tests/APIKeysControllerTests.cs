@@ -111,8 +111,7 @@ public class APIKeysControllerTests
         await database.SaveChangesAsync();
         owner.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         var now = DateTime.UtcNow;
-        database.APIKeys.AddRange(
-            new APIKey { Id = "first", User = owner, CreatedAt = now, LastUsedAt = now },
+        database.APIKeys.AddRange(new APIKey { Id = "first", User = owner, CreatedAt = now, LastUsedAt = now },
             new APIKey { Id = "second", User = owner, CreatedAt = now.AddDays(1), LastUsedAt = now.AddDays(-2) },
             new APIKey { Id = "third", User = owner, CreatedAt = now.AddDays(-1), LastUsedAt = now.AddDays(-1) });
         await database.SaveChangesAsync();
@@ -124,9 +123,12 @@ public class APIKeysControllerTests
         Assert.IsType<BadRequestObjectResult>((await controller.List(owner.Id, "UnknownColumn")).Result);
     }
 
-    private static NotificationsEnabledDb Database() => new(
-        new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
-        Substitute.For<IModelUpdateNotificationSender>());
+    private static NotificationsEnabledDb Database()
+    {
+        return new NotificationsEnabledDb(
+            new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
+            Substitute.For<IModelUpdateNotificationSender>());
+    }
 
     private static APIKeysController Controller(NotificationsEnabledDb database, User user, bool session = true)
     {

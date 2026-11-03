@@ -16,6 +16,7 @@ using Shared.Forms;
 using Shared.Models;
 using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.CIConfiguration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class CISecretsController : Controller

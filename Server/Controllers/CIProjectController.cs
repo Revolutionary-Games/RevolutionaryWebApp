@@ -18,6 +18,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.ContinuousIntegration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class CIProjectController : BaseSoftDeletedResourceController<CiProject, CIProjectInfo, CIProjectDTO>
@@ -39,6 +40,7 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
 
     protected override GroupType RequiredViewAccessLevel => GroupType.NotLoggedIn;
 
+    [APIKeyScope(APIKeyScope.CIConfiguration)]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost]
     public async Task<ActionResult> CreateNew([Required] CIProjectDTO projectInfo)
@@ -270,6 +272,18 @@ public class CIProjectController : BaseSoftDeletedResourceController<CiProject, 
             return NotFound("No output section with specified id exists");
 
         return section.GetDTO();
+    }
+
+    [APIKeyScope(APIKeyScope.CIConfiguration)]
+    public override Task<ActionResult> DeleteResource(long id)
+    {
+        return base.DeleteResource(id);
+    }
+
+    [APIKeyScope(APIKeyScope.CIConfiguration)]
+    public override Task<ActionResult> RestoreResource(long id)
+    {
+        return base.RestoreResource(id);
     }
 
     [NonAction]

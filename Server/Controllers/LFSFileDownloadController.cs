@@ -10,6 +10,7 @@ using Services;
 using Shared;
 using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.LFS)]
 [ApiController]
 [Route("api/v1/download_lfs")]
 public class LFSFileDownloadController : Controller

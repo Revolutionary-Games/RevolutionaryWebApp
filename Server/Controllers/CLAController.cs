@@ -26,6 +26,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.CLA)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class CLAController : Controller

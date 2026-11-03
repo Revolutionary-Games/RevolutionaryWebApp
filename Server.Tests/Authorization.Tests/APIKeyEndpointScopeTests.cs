@@ -24,7 +24,7 @@ public class APIKeyEndpointScopeTests
     [InlineData("CIProject", "RestoreResource", APIKeyScope.CIConfiguration)]
     [InlineData("CISecrets", "Get", APIKeyScope.CIConfiguration)]
     [InlineData("CIBuildManagement", "ReRunBuild", APIKeyScope.ContinuousIntegration)]
-    [InlineData("CrashReport", "GetSingle", APIKeyScope.Reports)]
+    [InlineData("CrashReport", "GetSingle", APIKeyScope.GameReports)]
     [InlineData("CrashReport", "ReProcessCrashDump", APIKeyScope.Tools)]
     [InlineData("ReleaseStats", "Get", APIKeyScope.PublicInfo)]
     [InlineData("ReleaseStats", "GetSingle", APIKeyScope.PublicInfo)]

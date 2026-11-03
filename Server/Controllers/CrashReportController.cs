@@ -26,6 +26,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.GameReports)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class CrashReportController : Controller
@@ -172,6 +173,7 @@ public class CrashReportController : Controller
     }
 
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
+    [APIKeyScope(APIKeyScope.Tools)]
     [HttpPost("{id:long}/reprocess")]
     public async Task<IActionResult> ReProcessCrashDump([Required] long id)
     {
