@@ -123,6 +123,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("hashed_id");
 
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
                     b.Property<string>("LastUsedIP")
                         .HasColumnType("text")
                         .HasColumnName("last_used_ip");
@@ -6009,7 +6013,7 @@ namespace RevolutionaryWebApp.Server.Migrations
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.APIKey", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
-                        .WithMany()
+                        .WithMany("APIKeys")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -7405,6 +7409,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
                 {
+                    b.Navigation("APIKeys");
+
                     b.Navigation("ActorTranslationChanges");
 
                     b.Navigation("AssociationMember");

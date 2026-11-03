@@ -60,6 +60,8 @@ public static class NotificationGroups
     public const string ControlledServerListUpdated = "CServers";
     public const string ExternalServerListUpdated = "EServers";
 
+    public const string UserAPIKeysUpdatedPrefix = "UserAPIKeys_";
+
     public const string UserLauncherLinksUpdatedPrefix = "UserLaunchers_";
 
     public const string MeetingUpdatedPrefix = "SMeeting_";

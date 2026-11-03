@@ -9,6 +9,7 @@ public class APIKeyDTO : APIKeySettings
     public string Id { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
     public string? LastUsedIP { get; set; }
     public long TotalUses { get; set; }
 }

@@ -56,6 +56,11 @@ public class ActionsUpdated : ListUpdated<ActionLogEntryDTO>
 {
 }
 
+public class APIKeyListUpdated : ListUpdated<APIKeyDTO>
+{
+    public long UserId { get; init; }
+}
+
 public class LauncherLinkListUpdated : ListUpdated<LauncherLinkDTO>
 {
 }

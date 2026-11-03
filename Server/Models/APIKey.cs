@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Models;
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
@@ -10,13 +11,14 @@ using Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 using Shared.Models.Enums;
+using Shared.Notifications;
 using Utilities;
 
 /// <summary>
 ///   User's API key
 /// </summary>
 [Index(nameof(HashedId), IsUnique = true)]
-public class APIKey : IContainsHashedLookUps
+public class APIKey : IContainsHashedLookUps, IUpdateNotifications
 {
     [MaxLength(14)]
     [Key]
@@ -34,6 +36,8 @@ public class APIKey : IContainsHashedLookUps
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }
+
+    public DateTime? LastUsedAt { get; set; }
 
     public string? LastUsedIP { get; set; }
     public long TotalUses { get; set; }
@@ -74,11 +78,22 @@ public class APIKey : IContainsHashedLookUps
             Id = Id,
             CreatedAt = CreatedAt,
             ExpiresAt = ExpiresAt,
+            LastUsedAt = LastUsedAt,
             LastUsedIP = LastUsedIP,
             TotalUses = TotalUses,
             AllowedIPNetwork = AllowedIPNetwork,
             Scopes = Scopes.Split(',').Select(s => (APIKeyScope)int.Parse(s)).ToArray(),
             ReadOnly = ReadOnly,
         };
+    }
+
+    public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
+    {
+        yield return new Tuple<SerializedNotification, string>(new APIKeyListUpdated
+        {
+            Type = entityState.ToChangeType(),
+            Item = GetDTO(),
+            UserId = UserId,
+        }, NotificationGroups.UserAPIKeysUpdatedPrefix + UserId);
     }
 }

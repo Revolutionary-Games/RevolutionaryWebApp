@@ -102,11 +102,15 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
         if (string.IsNullOrEmpty(remoteIp))
             throw new InvalidOperationException("No remote IP address");
 
+        var usedAt = DateTime.UtcNow;
+
         // Atomic increment keeps simultaneous requests from losing usage counts.
         // Key is verified already, so do not use hashing.
         await database.APIKeys.Where(k => k.Id == key.Id).ExecuteUpdateAsync(update => update
             .SetProperty(k => k.TotalUses, k => k.TotalUses + 1)
             .SetProperty(k => k.LastUsedIP, remoteIp));
+            .SetProperty(k => k.LastUsedIP, remoteIp)
+            .SetProperty(k => k.LastUsedAt, usedAt));
 
         context.Items[AppInfo.AuthenticationKeyMiddleWareKey] = key;
         OnAuthenticationSucceeded(context, key.User, AuthenticationScopeRestriction.None, null);

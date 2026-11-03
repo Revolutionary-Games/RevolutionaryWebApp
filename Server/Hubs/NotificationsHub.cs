@@ -678,6 +678,14 @@ public class NotificationsHub : Hub<INotifications>
             return RequireAccessLevel(GroupType.Developer, user);
         }
 
+        if (groupName.StartsWith(NotificationGroups.UserAPIKeysUpdatedPrefix))
+        {
+            if (!GetTargetModelFromGroup(groupName, database.Users, out var item))
+                return false;
+
+            return RequireAccessLevel(GroupType.Admin, user) || item!.Id == user?.Id;
+        }
+
         if (groupName.StartsWith(NotificationGroups.UserLauncherLinksUpdatedPrefix))
         {
             if (!GetTargetModelFromGroup(groupName, database.Users, out var item))
