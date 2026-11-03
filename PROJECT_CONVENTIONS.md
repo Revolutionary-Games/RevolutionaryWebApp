@@ -206,6 +206,11 @@ save an `AdminAction` when the operation is administrative, save the entity, and
 write an information log after the save succeeds. Map create requests explicitly
 to a new model; do not bind persistence entities directly from request bodies.
 
+When adding new database entries, use `await AddAsync(...)` on the appropriate
+`DbSet` rather than synchronous `Add(...)`. This also applies to supporting
+entries such as `AdminAction` records. Persist the changes with
+`await SaveChangesAsync()` through the configured context.
+
 Keep authorization on the server with the established filters or explicit
 checks. A UI access check does not protect an endpoint. Reuse the authenticated
 user within a method (`var user = HttpContext.AuthenticatedUserOrThrow();`)
