@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using AngleSharp.Io;
+using Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
@@ -13,8 +14,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Net.Http.Headers;
 using Models;
 using Services;
+using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Feeds)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class FeedController : Controller

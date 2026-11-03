@@ -20,6 +20,7 @@ using Shared.Models.Pages;
 ///   Main controller for <see cref="VersionedPage"/> handling when used as static pages (provides the API for
 ///   managing the pages)
 /// </summary>
+[APIKeyScope(APIKeyScope.Pages)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class PagesController : BasePageController

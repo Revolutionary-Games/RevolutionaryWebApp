@@ -18,6 +18,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Builds)]
 [ApiController]
 [Route("api/v1/download")]
 public class DownloadController : Controller

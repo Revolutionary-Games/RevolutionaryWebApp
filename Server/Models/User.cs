@@ -25,7 +25,6 @@ using Utilities;
 [Index(nameof(Email), IsUnique = true)]
 [Index(nameof(NormalizedEmail), IsUnique = true)]
 [Index(nameof(DisplayName), IsUnique = true)]
-[Index(nameof(HashedApiToken), IsUnique = true)]
 [Index(nameof(HashedLfsToken), IsUnique = true)]
 [Index(nameof(HashedLauncherLinkCode), IsUnique = true)]
 public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateNotifications
@@ -79,11 +78,6 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     public string? PasswordHash { get; set; }
 
     // TODO: implement 2fa support
-
-    [HashedLookUp]
-    public string? ApiToken { get; set; }
-
-    public string? HashedApiToken { get; set; }
 
     [HashedLookUp]
     public string? LfsToken { get; set; }
@@ -468,7 +462,6 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
                 info.TotalLauncherLinks = TotalLauncherLinks;
                 info.CreatedAt = CreatedAt;
                 info.UpdatedAt = UpdatedAt;
-                info.HasApiToken = !string.IsNullOrEmpty(ApiToken);
                 info.HasLfsToken = !string.IsNullOrEmpty(LfsToken);
                 info.Local = Local;
                 info.SsoSource = SsoSource;

@@ -18,6 +18,7 @@ using Shared.Models.Pages;
 /// <summary>
 ///   Controller for managing site posts.
 /// </summary>
+[APIKeyScope(APIKeyScope.Pages)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class PostsController : BasePageController

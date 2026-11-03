@@ -4,17 +4,20 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
+using Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
+using Shared.Models.Enums;
 using StackExchange.Redis;
 using Utilities;
 
 /// <summary>
 ///   Generates images dynamically on request, for example, progress update banners
 /// </summary>
+[APIKeyScope(APIKeyScope.Pages)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [Route("live/generated")]

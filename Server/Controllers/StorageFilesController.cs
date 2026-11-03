@@ -33,6 +33,7 @@ using Shared.Utilities;
 using SharedBase.Utilities;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Storage)]
 [ApiController]
 [Route("api/v1/Files")]
 public class StorageFilesController : Controller

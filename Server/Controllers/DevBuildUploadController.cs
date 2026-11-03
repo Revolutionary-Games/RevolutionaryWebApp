@@ -22,8 +22,10 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Builds)]
 [ApiController]
 [Route("api/v1/devbuild")]
 public class DevBuildUploadController : Controller

@@ -27,6 +27,7 @@ using Utilities;
 /// <summary>
 ///   Allows modification of the launcher info returned by <see cref="LauncherInfoController"/>
 /// </summary>
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class LauncherInfoConfigurationController : Controller

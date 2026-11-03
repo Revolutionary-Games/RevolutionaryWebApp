@@ -4,12 +4,15 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Models.Enums;
 
 /// <summary>
 ///   Allows testing the data protection to see if it is currently working or not
 /// </summary>
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class ProtectionCheckController : Controller

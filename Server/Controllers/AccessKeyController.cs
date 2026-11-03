@@ -30,6 +30,7 @@ public class AccessKeyController : Controller
         this.database = database;
     }
 
+    [APIKeyScope(APIKeyScope.Administration)]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpGet]
     public async Task<PagedResult<AccessKeyDTO>> Get([Required] string sortColumn,
@@ -52,6 +53,8 @@ public class AccessKeyController : Controller
 
         return objects.ConvertResult(i => i.GetDTO());
     }
+
+    // Intentionally API cannot create more keys
 
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpPost]
@@ -82,6 +85,7 @@ public class AccessKeyController : Controller
         return Ok($"Created new key \"{key.Id}\" with code: {key.KeyCode}");
     }
 
+    [APIKeyScope(APIKeyScope.Administration)]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> DeleteKey([Required] long id)

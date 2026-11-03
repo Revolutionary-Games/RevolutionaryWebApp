@@ -4,14 +4,17 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using Shared.Models.Enums;
 using StackExchange.Redis;
 
 /// <summary>
 ///   Handles requesting images on behalf of clients and returning them. This helps with hiding client IPs and
 ///   potentially tracking cookies.
 /// </summary>
+[APIKeyScope(APIKeyScope.Pages)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [Route("live/imageProxy")]

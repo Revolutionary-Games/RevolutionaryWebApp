@@ -22,6 +22,7 @@ using Utilities;
 ///   Controller with control operations (from the user POV) for CI builds and jobs.
 ///   Separate from the CIProjectController as that file is already big enough.
 /// </summary>
+[APIKeyScope(APIKeyScope.ContinuousIntegration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class CIBuildManagementController : Controller

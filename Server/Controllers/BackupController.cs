@@ -20,6 +20,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class BackupController : Controller

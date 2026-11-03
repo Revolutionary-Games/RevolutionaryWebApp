@@ -20,6 +20,7 @@ using Utilities;
 /// <summary>
 ///   Admin-only controller for managing Patreon settings
 /// </summary>
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]

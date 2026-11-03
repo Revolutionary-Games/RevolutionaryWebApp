@@ -22,6 +22,7 @@ using Utilities;
 /// <summary>
 ///   Handles serving the launcher requests API
 /// </summary>
+[APIKeyScope(APIKeyScope.Launcher)]
 [ApiController]
 [Route("api/v1/launcher")]
 public class LauncherController : Controller

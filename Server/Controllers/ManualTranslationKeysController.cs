@@ -12,7 +12,9 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Translations;
 using Shared.Models;
+using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public sealed class ManualTranslationKeysController : Controller

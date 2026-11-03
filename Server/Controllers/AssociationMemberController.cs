@@ -21,6 +21,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Association)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class AssociationMemberController : Controller

@@ -23,6 +23,7 @@ using Utilities;
 /// <summary>
 ///   Administrative deletion and recovery, including resources with composite keys.
 /// </summary>
+[APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
 [Route("api/v1/admin/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]

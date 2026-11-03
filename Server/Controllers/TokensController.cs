@@ -1,8 +1,10 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
+using System.Linq;
 using System.Threading.Tasks;
 using Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Shared;
@@ -22,42 +24,11 @@ public class TokensController : Controller
         this.database = database;
     }
 
-    [HttpGet("api/self")]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public ActionResult<string> GetOwnAPIToken()
-    {
-        return HttpContext.AuthenticatedUser()!.ApiToken ?? "none";
-    }
-
     [HttpGet("lfs/self")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public ActionResult<string> GetOwnLFSToken()
     {
         return HttpContext.AuthenticatedUser()!.LfsToken ?? "none";
-    }
-
-    [HttpDelete("api/self")]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<IActionResult> DeleteOwnAPIToken()
-    {
-        // We must re-fetch this data to get it from our db context for updating it
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
-        if (user == null)
-            return Problem("Could not find authenticated user in the database");
-
-        await user.ComputeUserGroups(database);
-
-        logger.LogInformation("User ({Email}) deleted their own API token", user.Email);
-
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry("API token cleared by user")
-        {
-            PerformedById = user.Id,
-        });
-
-        user.ApiToken = null;
-        await database.SaveChangesAsync();
-
-        return Ok();
     }
 
     [HttpDelete("lfs/self")]
@@ -82,30 +53,6 @@ public class TokensController : Controller
         await database.SaveChangesAsync();
 
         return Ok();
-    }
-
-    [HttpPost("api/self")]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<ActionResult<string>> CreateOwnAPIToken()
-    {
-        // We must re-fetch this data to get it from our db context for updating it
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
-        if (user == null)
-            return Problem("Could not find authenticated user in the database");
-
-        await user.ComputeUserGroups(database);
-
-        logger.LogInformation("User ({Email}) created a new API token", user.Email);
-
-        await database.ActionLogEntries.AddAsync(new ActionLogEntry("API token created")
-        {
-            PerformedById = user.Id,
-        });
-
-        user.ApiToken = NonceGenerator.GenerateNonce(AppInfo.APITokenByteCount);
-        await database.SaveChangesAsync();
-
-        return user.ApiToken;
     }
 
     [HttpPost("lfs/self")]
@@ -141,15 +88,18 @@ public class TokensController : Controller
         if (target == null)
             return NotFound();
 
+        var keys = await database.APIKeys.Where(k => k.UserId == target.Id).ToListAsync();
+
         // Early exit if already cleared
-        if (target.LfsToken == null && target.ApiToken == null)
+        if (target.LfsToken == null && keys.Count == 0)
             return Ok("Tokens already cleared");
 
         // Must load groups to be able to save changes
         await target.ComputeUserGroups(database);
 
         var user = HttpContext.AuthenticatedUser()!;
-        logger.LogInformation("Force clearing tokens on user {Id} by admin {Email}", target.Id, user.Email);
+        logger.LogInformation("Force clearing tokens and API keys on user {Id} by admin {Email}", target.Id,
+            user.Email);
 
         await database.AdminActions.AddAsync(new AdminAction("Force cleared user's tokens")
         {
@@ -159,7 +109,7 @@ public class TokensController : Controller
 
         // It's assumed here that the authentication also used ApplicationDbContext so that this works
         target.LfsToken = null;
-        target.ApiToken = null;
+        database.APIKeys.RemoveRange(keys);
 
         await database.SaveChangesAsync();
 

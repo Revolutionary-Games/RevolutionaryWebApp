@@ -11,6 +11,7 @@ using Services;
 using Shared.Forms;
 using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class MailController : Controller

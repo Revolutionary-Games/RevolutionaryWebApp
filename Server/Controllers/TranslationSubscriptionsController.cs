@@ -11,6 +11,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 
 // TODO: would be nice if restricted users could unsubscribe (but not make new subscriptions)
+[APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]

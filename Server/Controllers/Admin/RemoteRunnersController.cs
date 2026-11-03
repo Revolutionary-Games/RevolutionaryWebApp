@@ -19,6 +19,7 @@ using SharedBase.Utilities;
 using StackExchange.Redis;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]

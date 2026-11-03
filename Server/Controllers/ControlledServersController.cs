@@ -24,6 +24,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Servers)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class ControlledServersController : Controller

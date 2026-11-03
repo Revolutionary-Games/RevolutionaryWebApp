@@ -18,6 +18,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Launcher)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class LauncherLinksController : Controller

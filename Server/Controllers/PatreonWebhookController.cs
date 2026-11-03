@@ -21,9 +21,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
 using Shared.Models;
+using Shared.Models.Enums;
 using SharedBase.Utilities;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/webhook/patreon")]
 public class PatreonWebhookController : Controller

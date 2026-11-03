@@ -9,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Authorization;
 using DevCenterCommunication.Models;
 using DevCenterCommunication.Utilities;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +18,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
+using Shared.Models.Enums;
 using SharedBase.Models;
 
 /// <summary>
 ///   Returns the info about Thrive and launcher versions the launcher needs to download, edited through
 ///   <see cref="LauncherInfoConfigurationController"/>
 /// </summary>
+[APIKeyScope(APIKeyScope.Launcher)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class LauncherInfoController : Controller

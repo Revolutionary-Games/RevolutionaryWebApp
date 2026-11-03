@@ -29,6 +29,7 @@ using Shared.Models.Enums;
 using SharedBase.Utilities;
 using Utilities;
 
+
 [ApiController]
 [Route("LoginController")]
 public class LoginController : SSOLoginController
@@ -115,6 +116,7 @@ public class LoginController : SSOLoginController
     }
 
     [HttpGet]
+    [APIKeyScope(APIKeyScope.Users)]
     public LoginOptions Get()
     {
         return new LoginOptions

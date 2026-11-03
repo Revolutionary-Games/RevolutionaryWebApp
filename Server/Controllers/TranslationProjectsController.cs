@@ -20,6 +20,7 @@ using Services;
 using Shared.Models;
 using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
 [Route("api/v1/admin/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]

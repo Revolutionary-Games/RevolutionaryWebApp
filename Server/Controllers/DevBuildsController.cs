@@ -20,6 +20,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Builds)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class DevBuildsController : Controller

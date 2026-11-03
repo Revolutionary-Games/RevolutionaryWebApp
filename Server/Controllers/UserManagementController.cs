@@ -21,6 +21,7 @@ using Shared.Models.Enums;
 using Shared.Notifications;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Users)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class UserManagementController : Controller
@@ -118,6 +119,7 @@ public class UserManagementController : Controller
         return user.GetDTO(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
     }
 
+    [APIKeyWrite(false)]
     [HttpPost("usernames")]
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)
     {
@@ -152,6 +154,7 @@ public class UserManagementController : Controller
         return result;
     }
 
+    [APIKeyWrite(false)]
     [HttpPost("pickUser")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<Dictionary<long, string>>> FindUserToPick(

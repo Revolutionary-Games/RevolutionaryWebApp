@@ -1,10 +1,13 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
+using Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Services;
 using Shared.Models;
+using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.Administration)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class HealthController : Controller

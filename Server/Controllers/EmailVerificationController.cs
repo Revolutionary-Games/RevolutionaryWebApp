@@ -16,6 +16,7 @@ using Models.Enums;
 using Services;
 using Shared.Forms;
 using Shared.Models;
+using Shared.Models.Enums;
 using Utilities;
 
 [ApiController]
@@ -136,7 +137,7 @@ public class EmailVerificationController : Controller
 
         var returnUrl = new Uri(baseUrl, $"/verify/email?token={token}").ToString();
 
-        var category = Shared.Models.Enums.EmailReason.ConfirmEmail;
+        var category = EmailReason.ConfirmEmail;
 
         var plain = "Someone (hopefully you) has requested to use your email in signing a document.\n" +
             "If this was you, please copy the below link into your browser to verify your email: \n" +

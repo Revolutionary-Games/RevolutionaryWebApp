@@ -12,6 +12,7 @@ using Shared.Models.Enums;
 using Shared.Models.Pages;
 using Shared.Notifications;
 
+[APIKeyScope(APIKeyScope.Pages)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class EditNotificationsController : Controller

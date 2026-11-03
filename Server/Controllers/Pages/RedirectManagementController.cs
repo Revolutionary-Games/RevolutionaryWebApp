@@ -18,6 +18,7 @@ using Shared.Models.Enums;
 using Shared.Models.Pages;
 using Utilities;
 
+[APIKeyScope(APIKeyScope.Pages)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.RedirectEditor, AllowAdmin = true)]

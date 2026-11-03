@@ -13,6 +13,7 @@ using Models;
 using Shared.Models;
 using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.Users)]
 [ApiController]
 [Route("api/v1/UserManagement/{id:long}/groups")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]

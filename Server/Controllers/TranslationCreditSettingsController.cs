@@ -9,6 +9,7 @@ using Models;
 using Shared.Models;
 using Shared.Models.Enums;
 
+[APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
 [Route("api/v1/[controller]")]
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]

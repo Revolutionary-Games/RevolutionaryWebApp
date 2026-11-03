@@ -12,10 +12,12 @@ using Models;
 using Services;
 using Shared;
 using Shared.Models;
+using Shared.Models.Enums;
 
 /// <summary>
 ///   Translation project top level data controller
 /// </summary>
+[APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
 [Route("api/v1/[controller]")]
 public class TranslationsController : Controller

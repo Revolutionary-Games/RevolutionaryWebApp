@@ -21,7 +21,6 @@ public class UserDTO : ClientSideTimedModel
     [Required]
     public CachedUserGroups Groups { get; set; } = null!;
 
-    public bool HasApiToken { get; set; }
     public bool HasLfsToken { get; set; }
     public int TotalLauncherLinks { get; set; }
 
