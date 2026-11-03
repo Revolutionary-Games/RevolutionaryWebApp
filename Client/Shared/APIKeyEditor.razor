@@ -1,0 +1,83 @@
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+
+<div class="p-3">
+    <label class="me-3">
+        <input type="checkbox" @bind="Settings.ReadOnly" disabled="@ReadOnlyRequired"/> Read only
+    </label>
+    <div class="my-2">
+        <label for="expiry-@EditorId">Expiration (local time, optional)</label>
+        <input id="expiry-@EditorId" type="datetime-local" class="form-control" @bind="expiration"/>
+    </div>
+    <div class="my-2">
+        <label for="network-@EditorId">Allowed IP network (CIDR, optional)</label>
+        <input id="network-@EditorId" class="form-control" placeholder="192.0.2.0/24 or 2001:db8::/32"
+               @bind="Settings.AllowedIPNetwork"/>
+    </div>
+    <fieldset>
+        <legend class="fs-6">Scopes</legend>
+        @foreach (var scope in Enum.GetValues<APIKeyScope>())
+        {
+            <label class="me-3">
+                <input type="checkbox" checked="@(AllScopes || Settings.Scopes.Contains(scope))"
+                       disabled="@(AllScopes && scope != APIKeyScope.All)"
+                       @onchange="e => ToggleScope(scope, e.Value is true)"/> @scope
+            </label>
+        }
+    </fieldset>
+    <Button class="mt-2" Enabled="@(!Processing)" Spinner="@Processing" OnPressed="Save">@SaveLabel</Button>
+</div>
+
+@code {
+    private DateTime? expiration;
+    private APIKeySettings? previousSettings;
+
+    [Parameter, EditorRequired]
+    public APIKeySettings Settings { get; set; } = null!;
+
+    [Parameter]
+    public string EditorId { get; set; } = "new-key";
+
+    [Parameter]
+    public bool ReadOnlyRequired { get; set; }
+
+    [Parameter]
+    public bool Processing { get; set; }
+
+    [Parameter]
+    public string SaveLabel { get; set; } = "Save";
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    private bool AllScopes => Settings.Scopes.Contains(APIKeyScope.All);
+
+    protected override void OnParametersSet()
+    {
+        if (ReadOnlyRequired)
+            Settings.ReadOnly = true;
+
+        if (previousSettings == Settings)
+            return;
+
+        previousSettings = Settings;
+        expiration = Settings.ExpiresAt?.ToLocalTime();
+    }
+
+    private void ToggleScope(APIKeyScope scope, bool selected)
+    {
+        if (AllScopes && scope != APIKeyScope.All)
+            return;
+
+        Settings.Scopes = selected ?
+            Settings.Scopes.Append(scope).Distinct().ToArray() :
+            Settings.Scopes.Where(s => s != scope).ToArray();
+    }
+
+    private async Task Save()
+    {
+        Settings.ExpiresAt = expiration?.ToUniversalTime();
+        await OnSave.InvokeAsync();
+    }
+
+}

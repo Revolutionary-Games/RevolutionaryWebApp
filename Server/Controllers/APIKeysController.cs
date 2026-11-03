@@ -145,7 +145,8 @@ public class APIKeysController(NotificationsEnabledDb database, ILogger<APIKeysC
 
     private static void Apply(APIKey key, APIKeySettings request)
     {
-        key.Scopes = string.Join(',', request.Scopes.Distinct().Order().Select(s => (int)s));
+        key.Scopes = request.Scopes.Contains(APIKeyScope.All) ?
+            "0" : string.Join(',', request.Scopes.Distinct().Order().Select(s => (int)s));
         key.ReadOnly = request.ReadOnly;
         key.ExpiresAt = request.ExpiresAt?.ToUniversalTime();
         key.AllowedIPNetwork = string.IsNullOrWhiteSpace(request.AllowedIPNetwork) ? null : request.AllowedIPNetwork;
