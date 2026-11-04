@@ -50,6 +50,49 @@ public class TranslationEditorControllerTests
         var inactive = await controller.Get(1, "removed", "fi", CancellationToken.None);
         Assert.False(inactive.Value!.Active);
         Assert.Equal(3, inactive.Value.Position);
+        Assert.Null(inactive.Value.TextIndex);
+        Assert.Equal(3, inactive.Value.TotalTexts);
+        for (var index = 0; index < 3; ++index)
+        {
+            var item = await controller.Get(1, keys[index], "fi", CancellationToken.None);
+            Assert.Equal(index + 1, item.Value!.TextIndex);
+            Assert.Equal(3, item.Value.TotalTexts);
+        }
+    }
+
+    [Fact]
+    public async Task TextIndexHandlesPositionGapsTiesAndMissingLanguageValues()
+    {
+        await using var database = CreateDatabase();
+        database.TranslationProjects.Add(new TranslationProject { Id = 1, Slug = "test", Name = "Test" });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" });
+        foreach (var key in new[] { "A", "B", "C", "missing" })
+        {
+            database.TranslationUnits.Add(new TranslationUnit
+            {
+                ProjectId = 1, Key = key, Position = key == "C" ? 20 : 10,
+            });
+            if (key != "missing")
+            {
+                database.TranslationValues.Add(new TranslationValue
+                {
+                    ProjectId = 1, Key = key, LanguageCode = "fi",
+                });
+            }
+        }
+
+        await database.SaveChangesAsync();
+        var controller = new TranslationEditorController(NullLogger<TranslationEditorController>.Instance, database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+        var keys = new[] { "A", "B", "C" };
+        for (var index = 0; index < keys.Length; ++index)
+        {
+            var item = await controller.Get(1, keys[index], "fi", CancellationToken.None);
+            Assert.Equal(index + 1, item.Value!.TextIndex);
+            Assert.Equal(3, item.Value.TotalTexts);
+        }
     }
 
     private static NotificationsEnabledDb CreateDatabase()

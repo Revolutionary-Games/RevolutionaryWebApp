@@ -45,6 +45,10 @@ public sealed class TranslationEditorDTO
 
     public int Position { get; set; }
 
+    public int? TextIndex { get; set; }
+
+    public int TotalTexts { get; set; }
+
     public bool Active { get; set; } = true;
 
     public bool CanVerify { get; set; }

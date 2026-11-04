@@ -184,6 +184,16 @@ public class TranslationEditorController : Controller
         if (unit == null || value == null)
             return NotFound();
 
+        var navigableUnits = database.TranslationUnits.AsNoTracking()
+            .Where(item => item.ProjectId == projectId && item.Active &&
+                database.TranslationValues.Any(translation => translation.ProjectId == projectId &&
+                    translation.Key == item.Key && translation.LanguageCode == language));
+        var totalTexts = await navigableUnits.CountAsync(cancellationToken);
+        var textIndex = unit.Active ?
+            await navigableUnits.CountAsync(item => item.Position < unit.Position ||
+                (item.Position == unit.Position && string.Compare(item.Key, key) < 0), cancellationToken) + 1 :
+            (int?)null;
+
         var groups = HttpContext.AuthenticatedUser()?.AccessCachedGroupsOrThrow();
         var canVerify = groups != null && TranslationPermissions.CanVerify(groups);
         var comments = await database.TranslationComments.CountAsync(c => c.ProjectId == projectId &&
@@ -212,6 +222,8 @@ public class TranslationEditorController : Controller
             Description = unit.Description,
             SourceLocations = unit.SourceLocations,
             Position = unit.Position,
+            TextIndex = textIndex,
+            TotalTexts = totalTexts,
             Active = unit.Active,
             CanVerify = canVerify,
             CanEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true),
