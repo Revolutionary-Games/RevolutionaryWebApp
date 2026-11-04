@@ -9,6 +9,7 @@ using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -140,6 +141,7 @@ public class WebHostServerFixture<TStartup> : WebHostServerFixture
                 .UseWebRoot(Path.GetFullPath(Path.Join(solutionFolder, "Client/wwwroot")))
                 .UseStaticWebAssets()
                 .UseStartup<TStartup>()
+                .ConfigureTestServices(ConfigureTestServices)
 
                 // TODO: the actual server should detect BaseUrl automatically, as it is now hardcoded to be this
                 // in appsettings.json. Or alternatively we could "naively" pick an empty port here and pass the url
@@ -147,5 +149,9 @@ public class WebHostServerFixture<TStartup> : WebHostServerFixture
                 // .UseUrls($"http://localhost:5001"))
                 .UseUrls("http://127.0.0.1:0")) // :0 allows to choose a port automatically
             .Build();
+    }
+
+    protected virtual void ConfigureTestServices(IServiceCollection services)
+    {
     }
 }
