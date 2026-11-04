@@ -30,6 +30,10 @@ public class APIKeyEndpointScopeTests
     [InlineData("ReleaseStats", "GetSingle", APIKeyScope.PublicInfo)]
     [InlineData("ReleaseStats", "GetConfiguration", APIKeyScope.Administration)]
     [InlineData("ReleaseStats", "Create", APIKeyScope.Administration)]
+    [InlineData("PrecompiledObject", "GetSingleByName", APIKeyScope.PrecompiledObjects)]
+    [InlineData("PrecompiledObject", "Create", APIKeyScope.PrecompiledObjects)]
+    [InlineData("PrecompiledObjectVersion", "Get", APIKeyScope.PrecompiledObjects)]
+    [InlineData("PrecompiledObjectVersion", "StartUpload", APIKeyScope.PrecompiledObjects)]
     public async Task RoutingUsesExpectedScope(string controller, string action, APIKeyScope expectedScope)
     {
         using var host = await new HostBuilder().ConfigureWebHost(web => web.UseTestServer()

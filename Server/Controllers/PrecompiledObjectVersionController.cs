@@ -28,7 +28,7 @@ using SharedBase.Models;
 using SharedBase.Utilities;
 using Utilities;
 
-[APIKeyScope(APIKeyScope.Builds)]
+[APIKeyScope(APIKeyScope.PrecompiledObjects)]
 [ApiController]
 [Route("api/v1/PrecompiledObject/{objectId:long}/versions")]
 public class PrecompiledObjectVersionController : Controller

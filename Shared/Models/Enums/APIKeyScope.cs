@@ -30,4 +30,5 @@ public enum APIKeyScope
     CIConfiguration = 21,
     SiteConfiguration = 22,
     Media = 23,
+    PrecompiledObjects = 24,
 }

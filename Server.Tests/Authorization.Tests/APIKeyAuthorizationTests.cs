@@ -48,6 +48,10 @@ public class APIKeyAuthorizationTests
         key.Scopes = "2,7";
         Assert.True(key.AllowsScope(APIKeyScope.Translations));
         Assert.False(key.AllowsScope(APIKeyScope.Users));
+        Assert.False(key.AllowsScope(APIKeyScope.PrecompiledObjects));
+        key.Scopes = "24";
+        Assert.True(key.AllowsScope(APIKeyScope.PrecompiledObjects));
+        Assert.False(key.AllowsScope(APIKeyScope.Builds));
         key.Scopes = "0";
         foreach (var scope in Enum.GetValues<APIKeyScope>())
             Assert.True(key.AllowsScope(scope));
