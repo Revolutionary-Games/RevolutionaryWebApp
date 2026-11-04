@@ -7,7 +7,19 @@ using Shared.Models.Enums;
 ///   Specifies the scope this endpoint is for in terms of API usage
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public sealed class APIKeyScopeAttribute(APIKeyScope scope) : Attribute
+public sealed class APIKeyScopeAttribute : Attribute
 {
-    public APIKeyScope Scope { get; } = scope;
+    /// <summary>
+    ///   Allows any API key scope, for endpoints that inspect the current key itself.
+    /// </summary>
+    public APIKeyScopeAttribute()
+    {
+    }
+
+    public APIKeyScopeAttribute(APIKeyScope scope)
+    {
+        Scope = scope;
+    }
+
+    public APIKeyScope? Scope { get; }
 }

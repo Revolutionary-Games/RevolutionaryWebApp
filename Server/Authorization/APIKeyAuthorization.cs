@@ -34,10 +34,12 @@ public static class APIKeyAuthorization
             return "This operation does not allow API key authentication.";
 
         var reasons = new List<string>();
-        if (!key.AllowsScope(scope.Scope))
+
+        // This is done like this now to allow API scopes that accept any API key
+        if (scope.Scope is { } requiredScope && !key.AllowsScope(requiredScope))
         {
             reasons.Add("API key has incorrect scopes. " +
-                $"This operation requires scope {scope.Scope} ({(int)scope.Scope}).");
+                $"This operation requires scope {requiredScope} ({(int)requiredScope}).");
         }
 
         var writes = endpoint?.Metadata.GetMetadata<APIKeyWriteAttribute>()?.Writes ??
