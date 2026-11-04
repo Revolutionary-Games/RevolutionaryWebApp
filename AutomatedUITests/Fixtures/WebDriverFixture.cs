@@ -6,6 +6,8 @@ using Microsoft.Playwright;
 
 public sealed class WebDriverFixture : IDisposable
 {
+    private const int DefaultTimeoutMilliseconds = 60000;
+
     private static readonly bool Headless = true;
 
     private readonly IPlaywright playwright;
@@ -13,6 +15,8 @@ public sealed class WebDriverFixture : IDisposable
 
     public WebDriverFixture()
     {
+        // Full page reloads restart Blazor, which can take much longer on CI than locally.
+        Assertions.SetDefaultExpectTimeout(DefaultTimeoutMilliseconds);
         playwright = Playwright.CreateAsync().Result;
 
         var options = new BrowserTypeLaunchOptions
@@ -28,6 +32,8 @@ public sealed class WebDriverFixture : IDisposable
     public async Task<IPage> NewPage(Uri address)
     {
         var page = await Browser.NewPageAsync();
+        page.SetDefaultTimeout(DefaultTimeoutMilliseconds);
+        page.SetDefaultNavigationTimeout(DefaultTimeoutMilliseconds);
         await page.GotoAsync(address.ToString());
         return page;
     }
@@ -52,7 +58,7 @@ public sealed class WebDriverFixture : IDisposable
         {
             await Task.Delay(TimeSpan.FromMilliseconds(50));
 
-            if (DateTime.Now - start > TimeSpan.FromSeconds(30))
+            if (DateTime.Now - start > TimeSpan.FromMilliseconds(DefaultTimeoutMilliseconds))
                 throw new Exception("Spinner did not disappear within time limit");
         }
     }

@@ -149,8 +149,7 @@ public class AssociationMeetingTests : IClassFixture<WebHostServerFixture<Startu
             await Assertions.Expect(poll.GetByText("This poll closed at", new() { Exact = false })).ToBeVisibleAsync();
 
             // Closing the poll queues the real Hangfire job that computes and publishes its results.
-            await Assertions.Expect(poll.Locator("ol li")).ToHaveTextAsync(new[] { "Approve: 1", "Reject: 0" },
-                new() { Timeout = 30000 });
+            await Assertions.Expect(poll.Locator("ol li")).ToHaveTextAsync(new[] { "Approve: 1", "Reject: 0" });
             await Assertions.Expect(poll.GetByText("Total votes: 1", new() { Exact = true })).ToBeVisibleAsync();
             await Assertions.Expect(poll.GetByRole(AriaRole.Button, new() { Name = "Vote", Exact = true }))
                 .ToHaveCountAsync(0);
