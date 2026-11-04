@@ -1,0 +1,13 @@
+.character-diff-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    min-height: 2em;
+}
+
+del {
+    background-color: #ffdce0;
+}
+
+ins {
+    background-color: #cdffd8;
+}

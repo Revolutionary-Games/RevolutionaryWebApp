@@ -96,9 +96,8 @@ else
                          !string.IsNullOrEmpty(data.SourceTextTranslatedFrom))
                 {
                     <h5 class="mt-3">Source changed since this translation was made</h5>
-                    @* TODO: we need a word-by-word diff viewer for this as most translations are a single line *@
-                    <TextDiffView OldText="@data.SourceTextTranslatedFrom" NewText="@data.SourceText"
-                                  OldLabel="When translated" NewLabel="Current source"/>
+                    <CharacterDiffView OldText="@data.SourceTextTranslatedFrom" NewText="@data.SourceText"
+                                       OldLabel="When translated" NewLabel="Current source"/>
                 }
 
                 <label for="translation-text" class="form-label d-block mt-3">@LanguageCode translation</label>
@@ -252,8 +251,7 @@ else
                             <div>@change.OldState → @change.NewState</div>
                             @if (change.OldText != change.NewText)
                             {
-                                @* TODO: word-by-word diff viewer here as well *@
-                                <TextDiffView OldText="@change.OldText" NewText="@change.NewText"/>
+                                <CharacterDiffView OldText="@change.OldText" NewText="@change.NewText"/>
                             }
                         </div>
                     }
@@ -343,8 +341,7 @@ else
                         <div class="border-bottom pb-2 mb-2">
                             <UsernameDisplayer UserId="@suggestion.AuthorUserId"/>
                             <small class="text-muted ms-2">Score: @suggestion.Score</small>
-                            <TextDiffView OldText="@data.Text" NewText="@suggestion.Text"/>
-                            @* TODO: word-by-word diff viewer here as well *@
+                            <CharacterDiffView OldText="@data.Text" NewText="@suggestion.Text"/>
                             @if (CanUseTranslationDiscussion)
                             {
                                 <Button Small="true" class="me-1" ButtonStyle="outline-primary"
