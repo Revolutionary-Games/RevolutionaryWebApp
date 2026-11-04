@@ -230,6 +230,15 @@ public class ApplicationDbContext : DbContext
             {
                 notification.UserId, notification.ReadAt, notification.CreatedAt,
             });
+
+            // Inbox status only counts unread notifications that are not combined into another item.
+            entity.HasIndex(notification => notification.UserId)
+                .HasFilter("read_at IS NULL AND combined_into_id IS NULL");
+
+            // Match the inbox ordering, including its tie-breaker for notifications created at the same time.
+            entity.HasIndex(notification => new { notification.UserId, notification.CreatedAt, notification.Id })
+                .IsDescending(false, true, true)
+                .HasFilter("combined_into_id IS NULL");
             entity.HasIndex(notification => new { notification.CreatedAt, notification.Type })
                 .HasFilter("read_at IS NULL AND combined_into_id IS NULL AND email_sent_at IS NULL");
             entity.HasOne(notification => notification.CombinedInto).WithMany()

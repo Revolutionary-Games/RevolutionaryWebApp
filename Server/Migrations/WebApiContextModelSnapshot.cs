@@ -5898,6 +5898,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasKey("UserId", "Id")
                         .HasName("pk_user_notifications");
 
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_user_notifications_user_id")
+                        .HasFilter("read_at IS NULL AND combined_into_id IS NULL");
+
                     b.HasIndex("CreatedAt", "Type")
                         .HasDatabaseName("ix_user_notifications_created_at_type")
                         .HasFilter("read_at IS NULL AND combined_into_id IS NULL AND email_sent_at IS NULL");
@@ -5908,6 +5912,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasIndex("UserId", "DeduplicationKey")
                         .IsUnique()
                         .HasDatabaseName("ix_user_notifications_user_id_deduplication_key");
+
+                    b.HasIndex("UserId", "CreatedAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_user_notifications_user_id_created_at_id")
+                        .HasFilter("combined_into_id IS NULL");
 
                     b.HasIndex("UserId", "ReadAt", "CreatedAt")
                         .HasDatabaseName("ix_user_notifications_user_id_read_at_created_at");
