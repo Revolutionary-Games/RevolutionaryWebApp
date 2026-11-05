@@ -143,11 +143,16 @@ public class DownloadController : Controller
             patreonSettings.IsEntitledToDevBuilds(p)).ToList();
         var other = patrons.Where(p => !patreonSettings.IsEntitledToDevBuilds(p)).ToList();
 
+        var patronEmails = patrons.Select(p => p.Email).ToList();
+        var displayNames = await database.Users.AsNoTracking()
+            .Where(u => patronEmails.Contains(u.Email) && u.DisplayName != null)
+            .ToDictionaryAsync(u => u.Email, u => u.DisplayName);
+
         var result = new PatreonCredits
         {
-            VIPPatrons = PreparePatronGroup(vips),
-            DevBuildPatrons = PreparePatronGroup(devbuilds),
-            SupporterPatrons = PreparePatronGroup(other),
+            VIPPatrons = PreparePatronGroup(vips, displayNames),
+            DevBuildPatrons = PreparePatronGroup(devbuilds, displayNames),
+            SupporterPatrons = PreparePatronGroup(other, displayNames),
         };
 
         Response.Headers["Content-Disposition"] = "attachment; filename=\"patrons.json\"";
@@ -155,8 +160,11 @@ public class DownloadController : Controller
     }
 
     [NonAction]
-    private List<string> PreparePatronGroup(IEnumerable<Patron> group)
+    private List<string> PreparePatronGroup(IEnumerable<Patron> group,
+        IReadOnlyDictionary<string, string?> displayNames)
     {
-        return group.OrderBy(p => p.Username).Select(p => p.Username).ToList();
+        return group.Select(p => displayNames.TryGetValue(p.Email, out var displayName) &&
+                !string.IsNullOrWhiteSpace(displayName) ? displayName : p.Username)
+            .OrderBy(name => name).ToList();
     }
 }
