@@ -446,14 +446,19 @@ else
                 <h6>Dictionary Words</h6>
                 @foreach (var term in dictionaryMatches)
                 {
-                    @* TODO: additionally showing these as overlays with tooltips on the English text would be very nice QOL*@
+                    var dictionaryLink = $"translations/dictionaries/{term.DictionaryId}?language=" +
+                        $"{Uri.EscapeDataString(LanguageCode)}&search={Uri.EscapeDataString(term.SourceWord ?? term.Word)}";
                     <div class="border-bottom mb-2">
                         <strong>@term.Word</strong>
                         @if (!string.IsNullOrWhiteSpace(term.Context))
                         {
                             <small>(@term.Context)</small>
                         }
-                        <div>@(string.IsNullOrEmpty(term.TargetText) ? "Not translated" : term.TargetText)</div>
+                        <div>
+                            <a href="@dictionaryLink">
+                                @(string.IsNullOrEmpty(term.TargetText) ? "Not translated — add translation" : term.TargetText)
+                            </a>
+                        </div>
                         @if (!string.IsNullOrWhiteSpace(term.SourceExplanation))
                         {
                             <small>@term.SourceExplanation</small>
