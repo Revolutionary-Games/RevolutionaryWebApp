@@ -26,6 +26,7 @@
     {
         UserInfo.OnUserInfoChanged -= UserChanged;
         InboxState.OnAllMarkedRead -= AllMarkedRead;
+        InboxState.OnMarkedRead -= MarkedRead;
 
         try
         {
@@ -41,6 +42,7 @@
     {
         UserInfo.OnUserInfoChanged += UserChanged;
         InboxState.OnAllMarkedRead += AllMarkedRead;
+        InboxState.OnMarkedRead += MarkedRead;
         await Refresh();
         _ = Poll();
     }
@@ -69,7 +71,7 @@
             var count = (await Http.GetFromJsonAsync<UnreadNotificationCountDTO>("api/v1/userNotifications/" +
                 "unreadCount", shutdown.Token))?.Count ?? 0;
 
-            // A request started before marking everything read may still contain the old count.
+            // A request started before marking notifications read may still contain the old count.
             if (version != readVersion)
                 return;
 
@@ -99,6 +101,13 @@
     {
         ++readVersion;
         unread = 0;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void MarkedRead(object? sender, EventArgs args)
+    {
+        ++readVersion;
+        unread = Math.Max(0, unread - 1);
         _ = InvokeAsync(StateHasChanged);
     }
 

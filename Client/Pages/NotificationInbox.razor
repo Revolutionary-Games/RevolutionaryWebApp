@@ -139,6 +139,12 @@ else
             using var response = await Http.PostAsync($"api/v1/userNotifications/{item.Id}/read", null);
             if (response.IsSuccessStatusCode)
             {
+                if (item.ReadAt == null)
+                {
+                    item.ReadAt = DateTime.UtcNow;
+                    InboxState.MarkRead();
+                }
+
                 NavManager.NavigateTo(item.TargetPath);
             }
             else
