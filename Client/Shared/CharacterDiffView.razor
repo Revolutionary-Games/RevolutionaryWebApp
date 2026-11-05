@@ -1,0 +1,73 @@
+@using System.Globalization
+@using DiffPlex
+@using DiffPlex.DiffBuilder
+@using DiffPlex.DiffBuilder.Model
+
+<div class="character-diff-view mt-3 mb-3">
+    <div class="row g-0 border rounded overflow-hidden">
+        <div class="col-6 border-end">
+            <div class="bg-light p-1 border-bottom text-center small">@OldLabel</div>
+            <div class="character-diff-content p-2 small font-monospace">@foreach (var piece in diff.Lines)
+                {
+                    if (piece.Type == ChangeType.Deleted)
+                    {
+                        <del>@piece.Text</del>
+                    }
+                    else if (piece.Type == ChangeType.Unchanged)
+                    {
+                        <span>@piece.Text</span>
+                    }
+                }</div>
+        </div>
+        <div class="col-6">
+            <div class="bg-light p-1 border-bottom text-center small">@NewLabel</div>
+            <div class="character-diff-content p-2 small font-monospace">@foreach (var piece in diff.Lines)
+                {
+                    if (piece.Type == ChangeType.Inserted)
+                    {
+                        <ins>@piece.Text</ins>
+                    }
+                    else if (piece.Type == ChangeType.Unchanged)
+                    {
+                        <span>@piece.Text</span>
+                    }
+                }</div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private DiffPaneModel diff = new();
+
+    [Parameter]
+    public string? OldText { get; set; }
+
+    [Parameter]
+    public string? NewText { get; set; }
+
+    [Parameter]
+    public string OldLabel { get; set; } = "Previous";
+
+    [Parameter]
+    public string NewLabel { get; set; } = "Current";
+
+    protected override void OnParametersSet()
+    {
+        diff = InlineDiffBuilder.Diff(OldText ?? string.Empty, NewText ?? string.Empty,
+            ignoreWhiteSpace: false, ignoreCase: false, chunker: new TextElementChunker());
+    }
+
+    // Keep surrogate pairs, combining marks, and emoji sequences together when highlighting changes.
+    private sealed class TextElementChunker : IChunker
+    {
+        public IReadOnlyList<string> Chunk(string text)
+        {
+            var elements = new List<string>();
+            var enumerator = StringInfo.GetTextElementEnumerator(text);
+            while (enumerator.MoveNext())
+                elements.Add(enumerator.GetTextElement());
+
+            return elements;
+        }
+    }
+}
