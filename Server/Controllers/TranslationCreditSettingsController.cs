@@ -39,10 +39,12 @@ public class TranslationCreditSettingsController : Controller
     public async Task<ActionResult<TranslationCreditSettingsDTO>> Update(
         [FromBody] TranslationCreditSettingsDTO request)
     {
-        var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
+        var userId = HttpContext.AuthenticatedUserOrThrow().Id;
+        var user = await database.Users.Include(u => u.Groups).FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null)
             return Unauthorized();
 
+        user.ProcessGroupDataFromLoadedGroups();
         user.UseEmailInTranslationCredits = request.UseEmailInTranslationCredits;
         await database.SaveChangesAsync();
         return new TranslationCreditSettingsDTO
