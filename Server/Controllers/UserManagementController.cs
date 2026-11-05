@@ -3,7 +3,9 @@ namespace RevolutionaryWebApp.Server.Controllers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Authorization;
 using BlazorPagination;
@@ -133,6 +135,12 @@ public class UserManagementController : Controller
         var user = await database.Users.FindAsync(id);
         if (user == null)
             return NotFound();
+
+        if (request.DisplayName != null && !HasValidNameCharacters(request.DisplayName))
+        {
+            return BadRequest("Name may contain letters, accents, numbers, ordinary spaces, apostrophes, " +
+                "hyphens, periods and middle dots, but no control characters, emoji or other symbols");
+        }
 
         var name = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim();
         if (name != null && name.Length > 120)
@@ -464,6 +472,30 @@ public class UserManagementController : Controller
         logger.LogInformation("User ({Email}) unsuspended by {Email2}", user.Email, actingUser.Email);
 
         return Ok();
+    }
+
+    private static bool HasValidNameCharacters(string name)
+    {
+        foreach (var rune in name.EnumerateRunes())
+        {
+            // Variation selectors can turn otherwise ordinary characters into emoji presentations.
+            if (rune.Value is >= 0xFE00 and <= 0xFE0F or >= 0xE0100 and <= 0xE01EF)
+                return false;
+
+            if (rune.Value is ' ' or '\'' or '-' or '.' or 0x2019 or 0x00B7 or 0x30FB)
+                continue;
+
+            var category = Rune.GetUnicodeCategory(rune);
+            if (category is not (UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or
+                UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or
+                UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or
+                UnicodeCategory.DecimalDigitNumber))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     [NonAction]

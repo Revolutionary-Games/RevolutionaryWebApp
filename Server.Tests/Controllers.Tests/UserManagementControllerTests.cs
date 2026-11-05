@@ -26,8 +26,26 @@ public class UserManagementControllerTests
     [InlineData(false, false, "   ", null)]
     [InlineData(true, true, "New Name", "New Name")]
     [InlineData(true, false, "New Name", "Original Name")]
+    [InlineData(false, false, "王小明", "王小明")]
+    [InlineData(false, false, "𠀀", "𠀀")]
+    [InlineData(false, false, "Jose\u0301 O’Neill-Smith", "Jose\u0301 O’Neill-Smith")]
+    [InlineData(false, false, "محمد", "محمد")]
+    [InlineData(false, false, "山田・太郎", "山田・太郎")]
+    [InlineData(false, false, "Name\n", "Original Name", true)]
+    [InlineData(false, false, "\tName", "Original Name", true)]
+    [InlineData(false, false, "\r\n", "Original Name", true)]
+    [InlineData(false, false, "Name\0", "Original Name", true)]
+    [InlineData(false, false, "Name\u2028Other", "Original Name", true)]
+    [InlineData(false, false, "Name\u202EOther", "Original Name", true)]
+    [InlineData(false, false, "Name\u200BOther", "Original Name", true)]
+    [InlineData(false, false, "Name😀", "Original Name", true)]
+    [InlineData(false, false, "Name❤", "Original Name", true)]
+    [InlineData(false, false, "Name1\uFE0F\u20E3", "Original Name", true)]
+    [InlineData(false, false, "Name\U000E0100", "Original Name", true)]
+    [InlineData(false, false, "Name\uE000", "Original Name", true)]
+    [InlineData(false, false, "Name�", "Original Name", true)]
     public async Task NameChangesRequireOwnerOrAdminAndPreserveUsername(bool otherUser, bool admin,
-        string name, string? expectedName)
+        string name, string? expectedName, bool rejected = false)
     {
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
@@ -54,7 +72,11 @@ public class UserManagementControllerTests
 
         var result = await controller.UpdateName(target.Id, new UserNameUpdateRequest { DisplayName = name });
 
-        if (otherUser && !admin)
+        if (rejected)
+        {
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+        else if (otherUser && !admin)
         {
             Assert.IsType<NotFoundResult>(result);
         }
