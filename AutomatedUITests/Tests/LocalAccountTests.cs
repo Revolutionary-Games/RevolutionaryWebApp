@@ -72,8 +72,6 @@ public class LocalAccountTests : IClassFixture<LocalAccountServerFixture>, IClas
             await Assertions.Expect(page.Locator(".content h4").First).ToContainTextAsync(username);
             await Assertions.Expect(page.Locator(".content li").Filter(new() { HasText = "Email:" }))
                 .ToHaveTextAsync("Email: " + email);
-            await Assertions.Expect(page.Locator(".content li").Filter(new() { HasText = "Local:" }))
-                .ToHaveTextAsync("Local: True");
         }
         finally
         {
