@@ -407,11 +407,15 @@ else
                     @foreach (var nearbyItem in nearby)
                     {
                         <p>
-                            <strong>@nearbyItem.LanguageCode</strong> (@nearbyItem.State):
+                            <strong>@nearbyItem.LanguageCode</strong>:
                             <NavLink
                                 href="@($"translations/{Slug}/{nearbyItem.LanguageCode}/edit?key={Uri.EscapeDataString(Key)}")">
                                 @nearbyItem.Text
                             </NavLink>
+                            @if (nearbyItem.State == TranslationState.NeedsTranslation)
+                            {
+                                <span class="badge bg-warning text-dark ms-1">Needs changes</span>
+                            }
                         </p>
                     }
                 }
