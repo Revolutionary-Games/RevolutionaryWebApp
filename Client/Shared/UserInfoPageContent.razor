@@ -23,8 +23,7 @@
     <li><strong>Email</strong>: @User.Email</li>
     <li><strong>Name</strong>: @User.Name</li>
     <li><strong>Primary group</strong>: @User.Groups.ComputePrimaryGroup()</li>
-    <li><strong>SSO</strong>: @User.SsoSource</li>
-    <li><strong>Local</strong>: @User.Local</li>
+    <li><strong>Last SSO</strong>: @User.SsoSource</li>
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
     <li><strong>Upload quota used today</strong>: @User.UploadQuotaUsed.BytesToMiB()</li>
 
@@ -196,7 +195,7 @@ else
     <br />
     <Button class="mb-1" ButtonStyle="danger" Enabled="@CanClearTokens" Spinner="@clearingTokens"
             OnPressed="@ClearTokensOnUser">
-        Force Clear Tokens
+        Force Clear Tokens (and keys)
     </Button>
     <br />
 
