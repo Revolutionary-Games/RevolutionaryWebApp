@@ -450,6 +450,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
         {
             Id = Id,
             Name = Name,
+            DisplayName = DisplayName,
         };
 
         switch (infoLevel)

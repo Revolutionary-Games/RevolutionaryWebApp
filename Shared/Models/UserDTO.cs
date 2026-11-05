@@ -6,8 +6,13 @@ using DevCenterCommunication.Models;
 
 public class UserDTO : ClientSideTimedModel
 {
+    /// <summary>
+    ///   This is the username
+    /// </summary>
     [Required]
     public string Name { get; set; } = string.Empty;
+
+    public string? DisplayName { get; set; }
 
     public string? Email { get; set; }
 

@@ -1,0 +1,80 @@
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Forms
+@using RevolutionaryWebApp.Shared.Models
+
+<EditForm Model="@draft" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <div class="mb-2">
+        <label for="account-name">Name</label>
+        <CustomInputText id="account-name" class="form-control" @bind-Value="draft.DisplayName"
+                         maxlength="120" disabled="@saving" />
+        <ValidationMessage For="@(() => draft.DisplayName)" />
+    </div>
+    <p>
+        Translation and game credits will use this Name rather than the username if a Name is set.
+        Leave it empty to use the username.
+    </p>
+    <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage" />
+    <Button class="mb-3" type="submit" ButtonStyle="primary" Enabled="@(!saving)" Spinner="@saving">
+        Save Name
+    </Button>
+</EditForm>
+
+@code {
+    private readonly UserNameUpdateRequest draft = new();
+    private bool initialized;
+    private bool saving;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    [Parameter]
+    [EditorRequired]
+    public UserDTO User { get; set; } = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (initialized)
+            return;
+
+        draft.DisplayName = User.DisplayName;
+        initialized = true;
+    }
+
+    private async Task Save()
+    {
+        saving = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync($"api/v1/UserManagement/{User.Id}/name", draft);
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                message = $"Could not save Name: {content}, {response.StatusCode}";
+                return;
+            }
+
+            draft.DisplayName = string.IsNullOrWhiteSpace(draft.DisplayName) ? null : draft.DisplayName.Trim();
+            message = "Name updated successfully";
+            messageType = SiteNoticeType.Success;
+        }
+        catch (Exception e)
+        {
+            message = $"Could not save Name: {e.Message}";
+        }
+        finally
+        {
+            saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+}

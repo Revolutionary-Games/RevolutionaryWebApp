@@ -119,6 +119,49 @@ public class UserManagementController : Controller
         return user.GetDTO(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
     }
 
+    [HttpPut("{id:long}/name")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    [CountContribution(200)]
+    public async Task<ActionResult> UpdateName(long id, [FromBody] UserNameUpdateRequest request)
+    {
+        var actingUser = HttpContext.AuthenticatedUserOrThrow();
+        bool admin = HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
+
+        if (!admin && actingUser.Id != id)
+            return NotFound();
+
+        var user = await database.Users.FindAsync(id);
+        if (user == null)
+            return NotFound();
+
+        var name = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim();
+        if (name != null && name.Length > 120)
+            return BadRequest("Name must be at most 120 characters");
+
+        // TODO: maybe we should allow duplicate names?
+        if (name != null && await database.Users.AnyAsync(u => u.Id != id && u.DisplayName == name))
+            return Conflict("This name is already in use");
+
+        if (user.DisplayName == name)
+            return Ok();
+
+        await user.ComputeUserGroups(database);
+        user.DisplayName = name;
+
+        if (actingUser.Id != id)
+        {
+            await database.AdminActions.AddAsync(new AdminAction("Account name changed")
+            {
+                PerformedById = actingUser.Id,
+                TargetUserId = id,
+            });
+        }
+
+        await database.SaveChangesAsync();
+        logger.LogInformation("Account name for user {Id} changed by user {Email}", id, actingUser.Email);
+        return Ok();
+    }
+
     [APIKeyWrite(false)]
     [HttpPost("usernames")]
     public async Task<ActionResult<Dictionary<long, string>>> GetUsernames([Required] [FromBody] List<long> ids)

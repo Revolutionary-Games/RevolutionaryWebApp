@@ -21,7 +21,8 @@
 <ul>
     <li><strong>Contributions today</strong>: @User.CurrentContribution / @User.ContributionLimit</li>
     <li><strong>Email</strong>: @User.Email</li>
-    <li><strong>Name</strong>: @User.Name</li>
+    <li><strong>Username</strong>: @User.Name</li>
+    <li><strong>Name</strong>: @User.DisplayName</li>
     <li><strong>Primary group</strong>: @User.Groups.ComputePrimaryGroup()</li>
     <li><strong>Last SSO</strong>: @User.SsoSource</li>
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
@@ -55,6 +56,11 @@
 
     </AccessLimited>
 </ul>
+
+@if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
+{
+    <UserNameEditor @key="User.Id" User="@User" />
+}
 
 <h4>Launcher Links</h4>
 

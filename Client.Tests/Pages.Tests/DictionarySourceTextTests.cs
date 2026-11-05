@@ -24,6 +24,7 @@ public class DictionarySourceTextTests : BunitContext
         Assert.Equal(3, cut.FindAll(".dictionary-highlight").Count);
         Assert.All(cut.FindAll(".dictionary-tooltip"), tooltip =>
         {
+            _ = tooltip;
             Assert.Contains("Testi", tooltip.TextContent);
             Assert.Contains("Word from dictionary Finnish terms", tooltip.TextContent);
         });
