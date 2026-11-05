@@ -79,7 +79,7 @@ public class TranslationDictionariesController : Controller
         [FromQuery] string language = "en", [Required] string sortColumn = "Word",
         [Required] SortDirection sortDirection = SortDirection.Ascending,
         [Required] [Range(1, int.MaxValue)] int page = 1,
-        [Required] [Range(1, 100)] int pageSize = 100)
+        [Required] [Range(1, 100)] int pageSize = 100, [FromQuery] string? search = null)
     {
         if (!await database.TranslationDictionaries.AnyAsync(item => item.Id == id))
             return NotFound();
@@ -113,6 +113,14 @@ public class TranslationDictionariesController : Controller
             });
 
         var termsQuery = sourceTerms.Concat(languageTerms);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchText = search.Trim().ToLowerInvariant();
+            termsQuery = termsQuery.Where(term => term.Word.ToLower().Contains(searchText) ||
+                (term.SourceWord != null && term.SourceWord.ToLower().Contains(searchText)) ||
+                term.Context.ToLower().Contains(searchText));
+        }
+
         if (sortColumn != nameof(DictionaryTermDTO.Word) && sortColumn != nameof(DictionaryTermDTO.Context))
             return BadRequest("Invalid sort column");
 
@@ -162,8 +170,9 @@ public class TranslationDictionariesController : Controller
             return Array.Empty<DictionaryTermDTO>();
 
         // This is just a "is deleted" check, not absolutely mandatory here
-        if (!await database.TranslationDictionaries.AnyAsync(item => item.Id == project.DictionaryId,
-                cancellationToken))
+        var dictionary = await database.TranslationDictionaries.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == project.DictionaryId, cancellationToken);
+        if (dictionary == null)
         {
             return NotFound();
         }
@@ -196,10 +205,13 @@ public class TranslationDictionariesController : Controller
         var matches = matchingTerms.Select(term =>
         {
             targetMap.TryGetValue((term.Word, term.Context), out var translated);
-            return term.GetDTO(translated);
+            var dto = term.GetDTO(translated);
+            dto.DictionaryName = dictionary.Name;
+            return dto;
         }).Concat(matchingLanguageTerms.Select(term => new DictionaryTermDTO
         {
             DictionaryId = term.DictionaryId,
+            DictionaryName = dictionary.Name,
             Word = term.SourceWord,
             SourceWord = term.SourceWord,
             Context = term.Context,

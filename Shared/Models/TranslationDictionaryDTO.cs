@@ -22,6 +22,8 @@ public sealed class TranslationDictionaryDTO
 /// </summary>
 public sealed class DictionaryTermDTO : IIdentifiable
 {
+    public string DictionaryName { get; set; } = string.Empty;
+
     public long DictionaryId { get; set; }
 
     /// <summary>

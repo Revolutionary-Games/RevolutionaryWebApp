@@ -22,11 +22,15 @@
 <label for="dictionary-language" class="form-label">Language</label>
 <select id="dictionary-language" class="form-select mb-3" @bind="Language" @bind:after="ChangeLanguage">
     <option value="en">English</option>
-    @foreach (var code in languages.Where(code => code != "en"))
+    @foreach (var code in languages.Append(Language).Distinct().Where(code => code != "en"))
     {
         <option value="@(code)">@(code)</option>
     }
 </select>
+
+<label for="dictionary-search" class="form-label">Search terms</label>
+<input id="dictionary-search" type="search" class="form-control mb-3" @bind="Search"
+       @bind:event="oninput" @bind:after="TriggerSearchDebounce" placeholder="Word, source word, or context"/>
 
 @if (!string.IsNullOrEmpty(Error))
 {
@@ -105,8 +109,10 @@ else
     }
     else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     {
-        <p><NavLink href="@NavManager.GetLinkToLogin("Log in to add dictionary terms")">Log in</NavLink>
-            to add language-specific terms.</p>
+        <p>
+            <NavLink href="@NavManager.GetLinkToLogin("Log in to add dictionary terms")">Log in</NavLink>
+            to add language-specific terms.
+        </p>
     }
 }
 
@@ -136,8 +142,10 @@ else
 }
 else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
 {
-    <p><NavLink href="@NavManager.GetLinkToLogin("Log in to request dictionary terms")">Log in</NavLink>
-        to request a dictionary term.</p>
+    <p>
+        <NavLink href="@NavManager.GetLinkToLogin("Log in to request dictionary terms")">Log in</NavLink>
+        to request a dictionary term.
+    </p>
 }
 
 <DevCenterTitle>Dictionary</DevCenterTitle>
@@ -152,6 +160,8 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     private string[] languages = [];
     private long? loadedDictionaryId;
     private string lastRequestedLanguage = "en";
+    private string? lastRequestedSearch;
+    private CancellationTokenSource? searchDebounceToken;
     private string newWord = string.Empty;
     private string newContext = string.Empty;
     private string? newExplanation;
@@ -175,6 +185,14 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     private bool dataUpdateReceivedDuringSubmission;
     private int editorResetVersion;
 
+    public TranslationDictionary() : base(new SortHelper(nameof(DictionaryTermDTO.Word), SortDirection.Ascending))
+    {
+        DefaultPageSize = 50;
+    }
+
+    [QueryStringParameter]
+    public string? Search { get; set; }
+
     [Parameter]
     public long DictionaryId { get; set; }
 
@@ -185,11 +203,6 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
         (UserInfo.HasGroup(GroupType.DictionaryManager) || UserInfo.IsAdmin);
 
     private bool CanEditTargetDictionary => UserInfo.AcceptedTranslator && UserInfo.HasAccessLevel(GroupType.User);
-
-    public TranslationDictionary() : base(new SortHelper(nameof(DictionaryTermDTO.Word), SortDirection.Ascending))
-    {
-        DefaultPageSize = 100;
-    }
 
     private bool HasUnsavedChanges => dirtyEditors.Count > 0 || !string.IsNullOrEmpty(newWord) ||
         !string.IsNullOrEmpty(newContext) || !string.IsNullOrEmpty(newExplanation) ||
@@ -218,6 +231,11 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     {
         bool dictionaryChanged = loadedDictionaryId != DictionaryId;
         bool languageChanged = lastRequestedLanguage != Language;
+        bool searchChanged = lastRequestedSearch != Search;
+        lastRequestedSearch = Search;
+
+        if (dictionaryChanged || languageChanged || searchChanged)
+            CancelSearchDebounce();
 
         if (dictionaryChanged)
         {
@@ -225,14 +243,14 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
             languages = await Http.GetFromJsonAsync<string[]>($"api/v1/translationDictionaries/{DictionaryId}/languages") ?? [];
         }
 
-        if (languageChanged)
+        if (languageChanged || searchChanged)
         {
             lastRequestedLanguage = Language;
             if (Data != null)
                 Page = 1;
         }
 
-        if (Data != null && (dictionaryChanged || languageChanged))
+        if (Data != null && (dictionaryChanged || languageChanged || searchChanged))
             await FetchData();
 
         await UpdateNotificationRegistration();
@@ -248,12 +266,15 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     {
         var result = base.CreatePageRequestParams();
         result["language"] = Language;
+        result["search"] = Search;
         return result;
     }
 
     protected override void PruneRequestParams(Dictionary<string, string?> queryParams)
     {
         base.PruneRequestParams(queryParams);
+        if (string.IsNullOrWhiteSpace(Search))
+            queryParams.Remove("search");
         if (Language == "en")
             queryParams.Remove("language");
     }
@@ -263,8 +284,43 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
         return URLHelper.UpdateUrlHistoryIfChanged(requestParams);
     }
 
+    private void TriggerSearchDebounce()
+    {
+        CancelSearchDebounce();
+        searchDebounceToken = new CancellationTokenSource();
+        _ = DebouncedSearchAsync(searchDebounceToken.Token);
+    }
+
+    private async Task DebouncedSearchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(1000, cancellationToken);
+            await ChangeSearch();
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer query, language change, or navigation superseded this timer.
+        }
+    }
+
+    private void CancelSearchDebounce()
+    {
+        searchDebounceToken?.Cancel();
+        searchDebounceToken?.Dispose();
+        searchDebounceToken = null;
+    }
+
+    private async Task ChangeSearch()
+    {
+        lastRequestedSearch = Search;
+        Page = 1;
+        await FetchData();
+    }
+
     private async Task ChangeLanguage()
     {
+        CancelSearchDebounce();
         lastRequestedLanguage = Language;
         Page = 1;
         await FetchData();
@@ -557,6 +613,7 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
 
     public override async ValueTask DisposeAsync()
     {
+        CancelSearchDebounce();
         UserInfo.OnUserInfoChanged -= UserInfoChanged;
 
         if (registeredDictionaryId.HasValue)
