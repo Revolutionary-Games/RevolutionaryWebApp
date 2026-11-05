@@ -44,6 +44,41 @@ public class TranslationDictionariesControllerTests
         Assert.Contains("Updated explanation", entry.Extended);
     }
 
+    [Theory]
+    [InlineData(" TEST ", 2)]
+    [InlineData("tapaus", 1)]
+    [InlineData("animal", 1)]
+    [InlineData("missing", 0)]
+    public async Task SearchFindsSourceWordsLanguageSpecificWordsAndContext(string search, int expectedCount)
+    {
+        await using var database = CreateDatabase();
+        await database.TranslationDictionaries.AddAsync(new TranslationDictionary { Id = 1, Name = "Test" });
+        await database.DictionaryTerms.AddAsync(new DictionaryTerm { DictionaryId = 1, Word = "Test" });
+        await database.DictionaryTerms.AddAsync(new DictionaryTerm
+        {
+            DictionaryId = 1, Word = "Cat", Context = "animal",
+        });
+        await database.DictionaryLanguageTerms.AddAsync(new DictionaryLanguageTerm
+        {
+            DictionaryId = 1, LanguageCode = "fi", Word = "Testitapaus", SourceWord = "test case",
+        });
+        await database.DictionaryLanguageTerms.AddAsync(new DictionaryLanguageTerm
+        {
+            DictionaryId = 1, LanguageCode = "de", Word = "Testfall", SourceWord = "test case",
+        });
+        await database.SaveChangesAsync();
+        var controller = new TranslationDictionariesController(NullLogger<TranslationDictionariesController>.Instance,
+            database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+
+        var result = await controller.Terms(1, language: "fi", search: search);
+
+        Assert.NotNull(result.Value);
+        Assert.Equal(expectedCount, result.Value.Results.Length);
+    }
+
     private static NotificationsEnabledDb CreateDatabase()
     {
         return new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
