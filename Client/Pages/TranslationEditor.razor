@@ -89,8 +89,8 @@ else
                          href="@($"translations/{Slug}/{project?.SourceLanguage ?? LanguageCode}/edit?key={Uri.EscapeDataString(Key)}")">
                     @project?.SourceLanguage source
                 </NavLink>
-                <textarea id="source-text" class="form-control" rows="4" readonly
-                          aria-label="@($"{project?.SourceLanguage ?? LanguageCode} source text")">@data.SourceText</textarea>
+                <DictionarySourceText Text="@data.SourceText" Terms="@dictionaryMatches"
+                                      LanguageCode="@(project?.SourceLanguage ?? LanguageCode)"/>
 
                 @if (data.SourceTextTranslatedFrom != data.SourceText &&
                          !string.IsNullOrEmpty(data.SourceTextTranslatedFrom))

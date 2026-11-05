@@ -1,0 +1,69 @@
+@using System.Text.RegularExpressions
+@using RevolutionaryWebApp.Shared.Models
+
+<div id="source-text" class="form-control dictionary-source-text"
+     aria-label="@($"{LanguageCode} source text")">@foreach (var piece in pieces)
+    {
+        if (piece.Terms.Length == 0)
+        {
+            @piece.Text
+        }
+        else
+        {
+            <span class="dictionary-highlight" tabindex="0">@piece.Text<span class="dictionary-tooltip"
+                                                                           role="tooltip">@foreach (var term in piece.Terms)
+                    {
+                        <span class="dictionary-tooltip-entry">
+                            <strong>@(string.IsNullOrEmpty(term.TargetText) ? "Not translated" : term.TargetText)</strong>
+                            @if (!string.IsNullOrWhiteSpace(term.Context))
+                            {
+                                <span>(@term.Context)</span>
+                            }
+                            <small>Word from dictionary @term.DictionaryName</small>
+                        </span>
+                    }</span></span>
+        }
+    }</div>
+
+@code {
+    private readonly List<(string Text, DictionaryTermDTO[] Terms)> pieces = [];
+
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public DictionaryTermDTO[] Terms { get; set; } = [];
+
+    [Parameter]
+    public string LanguageCode { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        pieces.Clear();
+        var matches = new List<(int Start, int End, DictionaryTermDTO Term)>();
+        foreach (var term in Terms)
+        {
+            var word = term.SourceWord ?? term.Word;
+            if (string.IsNullOrWhiteSpace(word))
+                continue;
+
+            foreach (Match match in Regex.Matches(Text,
+                         $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(word)}(?![\p{{L}}\p{{N}}])",
+                         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                matches.Add((match.Index, match.Index + match.Length, term));
+            }
+        }
+
+        // Split at every match boundary so overlapping terms retain all their hover details.
+        var boundaries = matches.SelectMany(match => new[] { match.Start, match.End })
+            .Append(0).Append(Text.Length).Distinct().Order().ToArray();
+        for (int i = 0; i < boundaries.Length - 1; ++i)
+        {
+            int start = boundaries[i];
+            int end = boundaries[i + 1];
+            pieces.Add((Text[start..end], matches.Where(match => match.Start <= start && match.End >= end)
+                .Select(match => match.Term).ToArray()));
+        }
+    }
+}
