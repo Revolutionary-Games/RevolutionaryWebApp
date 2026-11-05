@@ -41,11 +41,31 @@
     IN THE SOFTWARE.
 </p>
 
+<p>
+    You can change the Name used in translation credits on your
+    <NavLink href="/me">profile</NavLink>
+    .
+    Your username is used if no Name is set. You can also change your email credit preference later on your profile.
+</p>
+
 <StatusMessageShower Message="@message" Type="SiteNoticeType.Danger" OnClosed="@(() => message = null)"/>
 
 <AccessLimited RequiredAccess="GroupType.RestrictedUser" AutoRedirectIfNotLoggedIn="true">
     @if (!UserInfo.AcceptedTranslator)
     {
+        <p>
+            Choose whether Git commits crediting your translations may show your real account email address.
+            If you leave this unchecked, a synthetic email address will be generated for you. Using your account
+            email can attribute translation contributions to your GitHub profile if it uses the same email address.
+            Your real email address will be visible in the public commit history if you enable this option.
+        </p>
+        <div class="form-check mb-3">
+            <input id="translator-credit-email" type="checkbox" class="form-check-input"
+                   @bind="UseEmailInTranslationCredits" disabled="@saving"/>
+            <label class="form-check-label" for="translator-credit-email">
+                Use my real email address in translation commits
+            </label>
+        </div>
         <div class="form-check mb-3">
             <input id="translator-agreement" type="checkbox" class="form-check-input" @bind="agreed"
                    disabled="@saving"/>
@@ -63,7 +83,14 @@
 @code {
     private bool agreed;
     private bool saving;
+    private bool? useEmailInTranslationCredits;
     private string? message;
+
+    private bool UseEmailInTranslationCredits
+    {
+        get => useEmailInTranslationCredits ?? UserInfo.Info?.UseEmailInTranslationCredits ?? false;
+        set => useEmailInTranslationCredits = value;
+    }
 
     private async Task Agree()
     {
@@ -75,7 +102,10 @@
         await InvokeAsync(StateHasChanged);
         try
         {
-            using var response = await Http.PostAsync("api/v1/translationAgreement", null);
+            using var response = await Http.PostAsJsonAsync("api/v1/translationAgreement", new TranslationCreditSettingsDTO
+            {
+                UseEmailInTranslationCredits = UseEmailInTranslationCredits,
+            });
             if (!response.IsSuccessStatusCode)
             {
                 message = $"Could not save your agreement: {await response.Content.ReadAsStringAsync()}";

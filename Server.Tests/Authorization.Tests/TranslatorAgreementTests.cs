@@ -67,13 +67,15 @@ public class TranslatorAgreementTests
         Assert.Equal(required, action.GetCustomAttribute<RequireTranslatorAgreementAttribute>() != null);
     }
 
-    [Fact]
-    public async Task AgreePersistsAcceptanceAndCanBeRepeated()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AgreePersistsAcceptanceAndCanBeRepeated(bool useEmail)
     {
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
             Substitute.For<IModelUpdateNotificationSender>());
-        var user = new User("translator@example.com", "Translator");
+        var user = new User("translator@example.com", "Translator") { UseEmailInTranslationCredits = !useEmail };
         Assert.False(user.AcceptedTranslator);
         user.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
         database.Users.Add(user);
@@ -83,11 +85,15 @@ public class TranslatorAgreementTests
             ControllerContext = new ControllerContext { HttpContext = CreateContext(user) },
         };
 
-        var result = await controller.Agree();
+        var result = await controller.Agree(new TranslationCreditSettingsDTO
+        {
+            UseEmailInTranslationCredits = useEmail,
+        });
         Assert.True(result.Value!.AcceptedTranslator);
         database.ChangeTracker.Clear();
         var reloadedUser = (await database.Users.FindAsync(user.Id))!;
         Assert.True(reloadedUser.AcceptedTranslator);
+        Assert.Equal(useEmail, reloadedUser.UseEmailInTranslationCredits);
         reloadedUser.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
         Assert.True((await controller.Agree()).Value!.AcceptedTranslator);
     }

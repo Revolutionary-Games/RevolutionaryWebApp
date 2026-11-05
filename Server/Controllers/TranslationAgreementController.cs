@@ -4,6 +4,7 @@ using System;
 using System.Threading.Tasks;
 using Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Models;
 using Shared.Models;
 using Shared.Models.Enums;
@@ -22,7 +23,8 @@ public class TranslationAgreementController : Controller
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserDTO>> Agree()
+    public async Task<ActionResult<UserDTO>> Agree(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] TranslationCreditSettingsDTO? request = null)
     {
         var user = await database.Users.FindAsync(HttpContext.AuthenticatedUserOrThrow().Id);
         if (user == null)
@@ -36,6 +38,9 @@ public class TranslationAgreementController : Controller
             {
                 return this.WorkingForbid("You do not have permission to agree to the translation agreement");
             }
+
+            if (request != null)
+                user.UseEmailInTranslationCredits = request.UseEmailInTranslationCredits;
 
             user.AcceptedTranslator = true;
             user.UpdatedAt = DateTime.UtcNow;
