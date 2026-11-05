@@ -128,7 +128,7 @@ public class APIKeyAuthorizationTests
         await fixture.Database.SaveChangesAsync();
 
         var context = Context("POST");
-        context.Request.Headers.Authorization = $"key:{key.Id}:{key.Secret}";
+        context.Request.Headers.Authorization = $"Bearer key:{key.Id}:{key.Secret}";
         using var body = new MemoryStream();
         context.Response.Body = body;
         var cache = new CustomMemoryCache();

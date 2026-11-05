@@ -49,6 +49,14 @@ public class TokenOrCookieAuthenticationMiddleware : BaseAuthenticationHelper
             if (string.IsNullOrEmpty(tokenValue))
                 return AuthMethodResult.Nothing;
 
+            // HTTP authentication schemes are case-insensitive. Only unwrap Bearer for API keys.
+            if (tokenValue.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                var bearerToken = tokenValue[7..].TrimStart(' ');
+                if (bearerToken.StartsWith("key:", StringComparison.Ordinal))
+                    return await CheckAPIKey(context, bearerToken);
+            }
+
             if (tokenValue.StartsWith("key:", StringComparison.Ordinal))
             {
                 // In format "key:ID:SECRET"
