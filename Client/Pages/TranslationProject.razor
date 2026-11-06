@@ -19,7 +19,7 @@
 {
     <TranslationAnnouncementBanner ProjectId="@project.Id" Slug="@Slug" @key="project.Id"/>
 }
-<h3>@Slug translations</h3>
+<h3>@(project?.Name ?? Slug) translations</h3>
 <p>
     <NavLink href="@($"translations/{Slug}/recent")">Project history</NavLink>
 </p>
@@ -107,7 +107,7 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     </div>
 }
 
-<DevCenterTitle>@Slug translations</DevCenterTitle>
+<DevCenterTitle>@(project?.Name ?? Slug) translations</DevCenterTitle>
 
 @code {
 
