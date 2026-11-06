@@ -3,6 +3,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
 @using System.Threading
 @inject CurrentUserInfo UserInfo
 @inject HttpClient Http
@@ -19,7 +20,9 @@
     <TranslationAnnouncementBanner ProjectId="@project.Id" Slug="@Slug" @key="project.Id"/>
 }
 <h3>@Slug translations</h3>
-<p><NavLink href="@($"translations/{Slug}/recent")">Project history</NavLink></p>
+<p>
+    <NavLink href="@($"translations/{Slug}/recent")">Project history</NavLink>
+</p>
 
 @if (!string.IsNullOrEmpty(loadError))
 {
@@ -54,9 +57,15 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     <ul class="list-group">
         @foreach (var language in languages)
         {
+            var localizedName = LanguageNameHelper.GetDisplayName(language.LanguageCode);
             <li class="list-group-item">
                 <NavLink href="@($"translations/{Slug}/{language.LanguageCode}")">
-                    <strong>@language.DisplayName</strong> (@language.LanguageCode)
+                    <strong>@(localizedName ?? language.DisplayName)</strong>
+                    @if (localizedName != null && localizedName != language.DisplayName)
+                    {
+                        <span> – @language.DisplayName</span>
+                    }
+                    (@language.LanguageCode)
                 </NavLink>
                 <span class="text-muted ms-2">@language.Translated translated, @language.Verified verified,
                     @language.NeedsTranslation needing work</span>
