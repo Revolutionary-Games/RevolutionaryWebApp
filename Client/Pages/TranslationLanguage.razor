@@ -120,6 +120,10 @@ else
                     <NavLink href="@(EditorUrl(item.Key))">@item.Key</NavLink>
                     <span class="badge bg-secondary ms-2">@item.State</span>
                     <div class="small text-muted">@item.SourceText</div>
+                    @if (!string.IsNullOrEmpty(item.Text))
+                    {
+                        <div class="small">@item.Text</div>
+                    }
                 </li>
             }
         </ul>
