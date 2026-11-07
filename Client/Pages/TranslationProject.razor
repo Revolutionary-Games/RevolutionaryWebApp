@@ -68,7 +68,15 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
                     (@language.LanguageCode)
                 </NavLink>
                 <span class="text-muted ms-2">@language.Translated translated, @language.Verified verified,
-                    @language.NeedsTranslation needing work</span>
+                    @if (language.NeedsTranslation > 0)
+                    {
+                        <strong>@language.NeedsTranslation needing work</strong>
+                    }
+                    else
+                    {
+                        <span>@language.NeedsTranslation needing work</span>
+                    }
+                </span>
             </li>
         }
     </ul>
