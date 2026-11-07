@@ -1,7 +1,9 @@
 namespace AutomatedUITests.Tests;
 
+using System;
 using System.Threading.Tasks;
 using Fixtures;
+using Microsoft.Playwright;
 using RevolutionaryWebApp.Server;
 using Xunit;
 
@@ -14,6 +16,50 @@ public class SiteNavigationTests : IClassFixture<WebHostServerFixture<Startup>>,
     {
         this.driver = driver;
         this.server = server;
+    }
+
+    [Theory]
+    [InlineData("sk")]
+    [InlineData("fi")]
+    public async Task Navigation_DictionaryKeepsLinkedLanguageWhenLanguagesLoad(string language)
+    {
+        var page = await driver.NewPage(server.RootUri);
+        await driver.WaitUntilBlazorIsLoaded(page);
+
+        var releaseLanguages = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/v1/translationDictionaries/1/languages", async route =>
+        {
+            await releaseLanguages.Task;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                ContentType = "application/json",
+                Body = "[\"aeb\",\"fi\",\"sk\"]",
+            });
+        });
+        await page.RouteAsync("**/api/v1/translationDictionaries/1/terms?*", route =>
+            route.FulfillAsync(new RouteFulfillOptions
+            {
+                ContentType = "application/json",
+                Body = "{\"results\":[],\"currentPage\":1,\"pageCount\":1}",
+            }));
+
+        try
+        {
+            await page.GotoAsync(new Uri(server.RootUri,
+                $"translations/dictionaries/1?language={language}&search=Launcher").ToString());
+            var selector = page.Locator("#dictionary-language");
+            await Assertions.Expect(selector).ToHaveValueAsync(language);
+
+            releaseLanguages.SetResult();
+            await Assertions.Expect(selector.Locator("option[value='aeb']")).ToHaveCountAsync(1);
+            await Assertions.Expect(selector).ToHaveValueAsync(language);
+            await Assertions.Expect(page.Locator("#dictionary-search")).ToHaveValueAsync("Launcher");
+        }
+        finally
+        {
+            releaseLanguages.TrySetResult();
+            await page.CloseAsync();
+        }
     }
 
     [Fact]

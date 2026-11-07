@@ -24,7 +24,7 @@
     <option value="en">English</option>
     @foreach (var code in languages.Append(Language).Distinct().Where(code => code != "en"))
     {
-        <option value="@(code)">@(code)</option>
+        <option @key="code" value="@(code)">@(code)</option>
     }
 </select>
 
