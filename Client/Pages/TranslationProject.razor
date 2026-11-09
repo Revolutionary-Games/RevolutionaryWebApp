@@ -87,6 +87,11 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     <p class="mt-3">
         <NavLink href="@($"translations/dictionaries/{dictionaryId}")">Related dictionary</NavLink>
     </p>
+    <p>
+        Dictionary words do not appear in the final translation results. Use the dictionary to help
+        yourself and other translators translate terms more consistently, and to identify names and
+        similar terms that should remain untranslated.
+    </p>
 }
 
 @if (UserInfo.AcceptedTranslator && project?.CanAddSourceKeys == true)
