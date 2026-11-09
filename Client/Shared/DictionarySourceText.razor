@@ -20,10 +20,18 @@
                                 string.IsNullOrEmpty(term.TargetText) ? "Not translated" : term.TargetText)</strong>
                             @if (term.Untranslatable)
                             {
-                                <span>Do not translate: this is a name or similar special term in this context.</span>
+                                if (!string.IsNullOrWhiteSpace(term.Context))
+                                {
+                                    <span>
+                                        Do not translate: this is a name or similar special term in this context (@(term.Context)).
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>Do not translate: this is a name or similar special term in this context.</span>
+                                }
                                 <span>@term.SourceExplanation</span>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(term.Context))
+                            } else if (!string.IsNullOrWhiteSpace(term.Context))
                             {
                                 <span>(@term.Context)</span>
                             }

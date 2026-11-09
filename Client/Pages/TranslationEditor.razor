@@ -454,6 +454,10 @@ else
                         {
                             <small>(@term.Context)</small>
                         }
+                        @if (term.Untranslatable)
+                        {
+                            <div>Untranslated word - name or similar special term</div>
+                        }
                         <div>
                             <a href="@dictionaryLink">
                                 @(string.IsNullOrEmpty(term.TargetText) ? "Not translated — add translation" : term.TargetText)

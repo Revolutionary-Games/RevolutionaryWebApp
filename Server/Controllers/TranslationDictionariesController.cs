@@ -111,6 +111,8 @@ public class TranslationDictionariesController : Controller
                 State = TranslationState.Translated,
                 SourceLanguageCode = term.LanguageCode,
                 IsLanguageSpecific = true,
+
+                // Language specific terms can not be marked as untranslatable
                 Untranslatable = false,
             });
 
@@ -146,6 +148,12 @@ public class TranslationDictionariesController : Controller
         var targetMap = targets.ToDictionary(t => (t.Word, t.Context));
         foreach (var term in pageTerms)
         {
+            if (term.Untranslatable)
+            {
+                term.TargetText = term.Word;
+                continue;
+            }
+
             targetMap.TryGetValue((term.Word, term.Context), out var target);
             term.TargetExplanation = target?.Explanation;
             term.TargetText = target?.Text ?? string.Empty;

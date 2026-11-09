@@ -8,6 +8,27 @@ using Xunit;
 public class DictionarySourceTextTests : BunitContext
 {
     [Fact]
+    public void UntranslatableTermsHaveDistinctHighlightAndExplainTheirContext()
+    {
+        var cut = Render<DictionarySourceText>(parameters => parameters
+            .Add(p => p.Text, "Ladle")
+            .Add(p => p.Terms,
+            [
+                new DictionaryTermDTO
+                {
+                    Word = "Ladle", Untranslatable = true, Context = "library",
+                    SourceExplanation = "Software library",
+                },
+            ]));
+
+        Assert.Single(cut.FindAll(".dictionary-untranslatable"));
+        var tooltip = cut.Find(".dictionary-tooltip").TextContent;
+        Assert.Contains("Do not translate", tooltip);
+        Assert.Contains("library", tooltip);
+        Assert.Contains("Software library", tooltip);
+    }
+
+    [Fact]
     public void HighlightsWholeWordsIgnoringCaseAndPreservesSourceText()
     {
         const string text = "This is a test.\nTEST testing <test>";

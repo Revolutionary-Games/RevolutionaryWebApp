@@ -79,6 +79,46 @@ public class TranslationDictionariesControllerTests
         Assert.Equal(expectedCount, result.Value.Results.Length);
     }
 
+    [Fact]
+    public async Task UntranslatableTermsAppearInOtherLanguagesAndRejectTranslationSaves()
+    {
+        await using var database = CreateDatabase();
+        var actor = new User("translator@example.com", "Translator");
+        actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
+        await database.Users.AddAsync(actor);
+        await database.TranslationDictionaries.AddAsync(new TranslationDictionary { Id = 1, Name = "Test" });
+        var term = new DictionaryTerm
+        {
+            DictionaryId = 1, Word = "Ladle", Context = "library", Explanation = "Software library",
+            Untranslatable = true,
+        };
+        await database.DictionaryTerms.AddAsync(term);
+        await database.DictionaryTermTranslations.AddAsync(new DictionaryTermTranslation
+        {
+            DictionaryId = 1, Word = "Ladle", Context = "library", LanguageCode = "fi", Text = "Old translation",
+        });
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var controller = new TranslationDictionariesController(NullLogger<TranslationDictionariesController>.Instance,
+            database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+
+        var result = await controller.Terms(1, language: "fi");
+        var dto = Assert.Single(result.Value!.Results);
+        Assert.True(dto.Untranslatable);
+        Assert.Equal("Ladle", dto.TargetText);
+        Assert.Equal("Software library", dto.SourceExplanation);
+        Assert.Equal("Ladle", term.GetDTO().TargetText);
+        Assert.IsType<BadRequestObjectResult>(await controller.SaveTranslation(new SaveDictionaryTranslationRequest
+        {
+            DictionaryId = 1, Word = "Ladle", Context = "library", LanguageCode = "fi", Text = "Kauha",
+        }));
+        Assert.Equal("Old translation", (await database.DictionaryTermTranslations.SingleAsync()).Text);
+    }
+
     private static NotificationsEnabledDb CreateDatabase()
     {
         return new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
