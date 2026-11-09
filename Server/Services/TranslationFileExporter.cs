@@ -111,7 +111,7 @@ public static class TranslationFileExporter
 
                 element = new XElement("data", new XAttribute("name", key),
                     new XAttribute(XNamespace.Xml + "space", "preserve"), new XElement("value"));
-                target.Root?.Add(element);
+                AddResxEntry(target.Root!, element, source.Root!);
                 changed = true;
             }
 
@@ -133,15 +133,50 @@ public static class TranslationFileExporter
             if (declarationEnd >= 0)
             {
                 declarationEnd += 2;
-                var gap = new string(targetContent[declarationEnd..].TakeWhile(char.IsWhiteSpace).ToArray());
-                output = targetContent[..declarationEnd] + gap + output;
+
+                // PreserveWhitespace already retained the gap after the declaration.
+                output = targetContent[..declarationEnd] + output;
             }
         }
 
         if (targetContent.EndsWith('\n') && !output.EndsWith('\n'))
             output += "\n";
 
+        if (targetContent.Contains("\r\n", StringComparison.Ordinal))
+        {
+            output = output.Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace("\n", "\r\n", StringComparison.Ordinal);
+        }
+
         return output;
+    }
+
+    private static void AddResxEntry(XElement root, XElement entry, XElement sourceRoot)
+    {
+        var sample = root.Elements("data").FirstOrDefault() ?? sourceRoot.Elements("data").FirstOrDefault();
+        var indent = GetResxIndent(sample) ?? "  ";
+        var valueIndent = GetResxIndent(sample?.Element("value")) ?? indent + "  ";
+        entry.AddFirst(new XText("\n" + valueIndent));
+        entry.Add(new XText("\n" + indent));
+
+        // Insert before the closing tag's whitespace so it stays on its own line.
+        if (root.LastNode is XText trailing && string.IsNullOrWhiteSpace(trailing.Value))
+        {
+            trailing.AddBeforeSelf(new XText("\n" + indent), entry);
+        }
+        else
+        {
+            root.Add(new XText("\n" + indent), entry, new XText("\n"));
+        }
+    }
+
+    private static string? GetResxIndent(XElement? element)
+    {
+        if (element?.PreviousNode is not XText whitespace || !string.IsNullOrWhiteSpace(whitespace.Value))
+            return null;
+
+        var newline = whitespace.Value.LastIndexOf('\n');
+        return newline >= 0 ? whitespace.Value[(newline + 1)..] : null;
     }
 
     private static POCatalog ParsePo(string content)
