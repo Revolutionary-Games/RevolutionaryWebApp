@@ -335,7 +335,8 @@ public sealed class PublishTranslationProjectJob
 
     private string BotEmail()
     {
-        return "noreply@" + MainEmailDomain();
+        var emailOverride = configuration["Translations:BotEmail"];
+        return string.IsNullOrWhiteSpace(emailOverride) ? "noreply@" + MainEmailDomain() : emailOverride;
     }
 
     private async Task<bool> WriteAndCommitFile(string checkout, string path, string languageCode, string original,
