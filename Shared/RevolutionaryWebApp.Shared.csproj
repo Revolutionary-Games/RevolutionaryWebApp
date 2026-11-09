@@ -15,7 +15,7 @@
     <ProjectReference Include="..\RevolutionaryGamesCommon\FeedParser.Shared\FeedParser.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlSanitizer" Version="10.0.1120" />
+    <PackageReference Include="HtmlSanitizer" Version="11.0.16" />
     <PackageReference Include="Markdig" Version="1.6.0" />
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.403" />
   </ItemGroup>
