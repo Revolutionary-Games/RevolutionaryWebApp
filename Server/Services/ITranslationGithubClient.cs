@@ -14,5 +14,5 @@ public interface ITranslationGithubClient : IDisposable
         CancellationToken cancellationToken);
 
     public Task<TranslationGithubPullRequest> CreatePullRequest(string repository, string branch,
-        string forkOwner, string headBranch, CancellationToken cancellationToken);
+        string forkOwner, string headBranch, string projectUrl, CancellationToken cancellationToken);
 }

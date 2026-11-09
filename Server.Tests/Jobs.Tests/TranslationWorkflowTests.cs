@@ -164,17 +164,22 @@ public class TranslationWorkflowTests
             repository.GetCurrentCommit(checkout.FullName, CancellationToken.None).Returns("published-head-sha");
             github.GetLogin(CancellationToken.None).Returns("translation-bot");
             github.CreatePullRequest(project.RepositoryFullName, project.SourceBranch, "translation-bot",
-                Arg.Any<string>(), CancellationToken.None).Returns(new TranslationGithubPullRequest(42, true,
-                "published-head-sha", "unused", "translation-bot", "main", true));
+                Arg.Any<string>(), Arg.Any<string>(), CancellationToken.None).Returns(new TranslationGithubPullRequest(
+                42, true, "published-head-sha", "unused", "translation-bot", "main", true));
             var tokens = Substitute.For<ITranslationGithubTokenProvider>();
             tokens.GetToken(CancellationToken.None).Returns("test-token");
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Email:FromAddress"] = "translations@example.com",
+                ["BaseUrl"] = "https://devcenter.example.com/",
             }).Build();
             var publish = new PublishTranslationProjectJob(database, locks, tokens, configuration,
                 NullLogger<PublishTranslationProjectJob>.Instance, repository);
             await publish.Execute(project.Id, CancellationToken.None);
+
+            await github.Received(1).CreatePullRequest(project.RepositoryFullName, project.SourceBranch,
+                "translation-bot", Arg.Any<string>(), "https://devcenter.example.com/translations/first-deployment",
+                CancellationToken.None);
 
             var finalEnglish = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "en." + extension));
             var finalFinnish = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension));

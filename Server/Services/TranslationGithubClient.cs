@@ -85,12 +85,12 @@ public sealed class TranslationGithubClient : ITranslationGithubClient
     }
 
     public async Task<TranslationGithubPullRequest> CreatePullRequest(string repository, string branch,
-        string forkOwner, string headBranch, CancellationToken cancellationToken)
+        string forkOwner, string headBranch, string projectUrl, CancellationToken cancellationToken)
     {
         using var response = await client.PostAsJsonAsync($"repos/{repository}/pulls", new
         {
             title = "Update translations",
-            body = "Translations maintained in Thrive DevCenter.",
+            body = $"Translations maintained in [Thrive DevCenter]({projectUrl}).",
             head = $"{forkOwner}:{headBranch}",
             @base = branch,
             maintainer_can_modify = false,

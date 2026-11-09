@@ -15,6 +15,7 @@ using Models;
 using Models.Translations;
 using Services;
 using Shared.Models;
+using Utilities;
 
 /// <summary>
 ///   Regenerates an app-owned PR branch from the latest public upstream branch.
@@ -317,10 +318,12 @@ public sealed class PublishTranslationProjectJob
             $"https://github.com/{forkOwner}/{project.RepositoryFullName.Split('/')[1]}.git", branch, expected,
             authEnvironment, cancellationToken);
 
+        var link = new Uri(configuration.GetBaseUrl(), "translations/" + Uri.EscapeDataString(project.Slug)).ToString();
+
         var pr = reusePr ?
             remotePr! :
             await github.CreatePullRequest(project.RepositoryFullName,
-                project.SourceBranch, forkOwner, branch, cancellationToken);
+                project.SourceBranch, forkOwner, branch, link, cancellationToken);
         tracked ??= new TranslationPullRequest { ProjectId = project.Id };
         if (database.Entry(tracked).State == EntityState.Detached)
             database.TranslationPullRequests.Add(tracked);
