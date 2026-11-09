@@ -21,6 +21,86 @@ using Xunit;
 public class ImportTranslationProjectJobTests
 {
     [Theory]
+    [InlineData(TranslationFormat.Resx, false, false)]
+    [InlineData(TranslationFormat.Resx, false, true)]
+    [InlineData(TranslationFormat.Resx, true, false)]
+    [InlineData(TranslationFormat.Resx, true, true)]
+    [InlineData(TranslationFormat.Gettext, false, false)]
+    [InlineData(TranslationFormat.Gettext, false, true)]
+    [InlineData(TranslationFormat.Gettext, true, false)]
+    [InlineData(TranslationFormat.Gettext, true, true)]
+    public async Task MissingLanguageIsDisabledUntilItsFileReturns(TranslationFormat format, bool customPath,
+        bool anotherLanguageRemains)
+    {
+        await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        var extension = format == TranslationFormat.Gettext ? "po" : "resx";
+        var project = new TranslationProject
+        {
+            Id = 1, Name = "Test", Slug = "test", Format = format,
+            SourceFilePattern = format == TranslationFormat.Gettext ? "template.pot" : "en.resx",
+            TranslationFilePattern = "{language}." + extension,
+        };
+        var language = new TranslationProjectLanguage
+        {
+            ProjectId = project.Id, Project = project, LanguageCode = "fi", DisplayName = "Finnish",
+            FilePath = customPath ? "custom.xml" : null,
+        };
+        await database.TranslationProjects.AddAsync(project);
+        await database.TranslationProjectLanguages.AddAsync(language);
+        await database.SaveChangesAsync();
+        var job = new ImportTranslationProjectJob(NullLogger<ImportTranslationProjectJob>.Instance, database,
+            Substitute.For<ILocalTempFileLocks>(), Substitute.For<IBackgroundJobClient>(),
+            Substitute.For<IModelUpdateNotificationSender>());
+        var checkout = Directory.CreateTempSubdirectory("translation-import-test-");
+        try
+        {
+            var source = format == TranslationFormat.Gettext ?
+                "msgid \"HELLO\"\nmsgstr \"Hello\"\n" :
+                "<root><data name=\"HELLO\"><value>Hello</value></data></root>";
+            var target = format == TranslationFormat.Gettext ?
+                "msgid \"HELLO\"\nmsgstr \"Hei\"\n" :
+                "<root><data name=\"HELLO\"><value>Hei</value></data></root>";
+            await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "en." + extension), source);
+            if (format == TranslationFormat.Gettext)
+            {
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "template.pot"),
+                    "msgid \"HELLO\"\nmsgstr \"\"\n");
+            }
+
+            if (anotherLanguageRemains)
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "sv." + extension), target);
+
+            var targetPath = Path.Combine(checkout.FullName, language.FilePath ?? "fi." + extension);
+            await File.WriteAllTextAsync(targetPath, target);
+            var importFiles = typeof(ImportTranslationProjectJob).GetMethod("ImportFiles",
+                BindingFlags.Instance | BindingFlags.NonPublic)!;
+            await (Task)importFiles.Invoke(job, [project, checkout.FullName, "first", CancellationToken.None])!;
+            var value = await database.TranslationValues.SingleAsync(item => item.LanguageCode == "fi");
+            Assert.Equal("Hei", value.Text);
+
+            File.Delete(targetPath);
+            for (var replay = 0; replay < 2; ++replay)
+            {
+                await (Task)importFiles.Invoke(job, [project, checkout.FullName, "removed", CancellationToken.None])!;
+                Assert.False(language.Enabled);
+                Assert.Equal("Hei", value.Text);
+                Assert.True(await database.TranslationUnits.AllAsync(unit => unit.Active));
+            }
+
+            await File.WriteAllTextAsync(targetPath, target.Replace("Hei", "Terve", StringComparison.Ordinal));
+            await (Task)importFiles.Invoke(job, [project, checkout.FullName, "restored", CancellationToken.None])!;
+            Assert.True(language.Enabled);
+            Assert.Equal("Terve", value.Text);
+            Assert.Same(value, await database.TranslationValues.SingleAsync(item => item.LanguageCode == "fi"));
+        }
+        finally
+        {
+            checkout.Delete(true);
+        }
+    }
+
+    [Theory]
     [InlineData(TranslationFormat.Gettext, false)]
     [InlineData(TranslationFormat.Gettext, true)]
     [InlineData(TranslationFormat.Resx, false)]

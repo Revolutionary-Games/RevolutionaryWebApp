@@ -32,7 +32,7 @@ public sealed class ScheduleTranslationPublishesJob : IJob
         var cutoff = now.AddDays(-1);
         var busyAfter = now.AddHours(-2);
         var projects = await database.TranslationValues.AsNoTracking()
-            .Where(value => value.PendingRevision != null && value.PendingSince <= cutoff)
+            .Where(value => value.Language.Enabled && value.PendingRevision != null && value.PendingSince <= cutoff)
             .Select(value => value.ProjectId).Distinct().ToListAsync(cancellationToken);
         foreach (var projectId in projects)
         {
