@@ -26,10 +26,12 @@ using Xunit;
 public class TranslationWorkflowTests
 {
     [Theory]
-    [InlineData(TranslationFormat.Gettext)]
-    [InlineData(TranslationFormat.Resx)]
-    public async Task FirstImportUserEditsAndNonconflictingUpstreamChangePublishUpdatedCatalogs(
-        TranslationFormat format)
+    [InlineData(TranslationFormat.Gettext, false)]
+    [InlineData(TranslationFormat.Resx, false)]
+    [InlineData(TranslationFormat.Gettext, true)]
+    [InlineData(TranslationFormat.Resx, true)]
+    public async Task ImportEditsAndRepublishingPreserveCatalogsAndTranslatorAttribution(TranslationFormat format,
+        bool republishWithAutomatedChanges)
     {
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
@@ -47,8 +49,11 @@ public class TranslationWorkflowTests
         };
         var user = new User("translator@example.com", "Translator");
         user.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.SourceTextTranslator));
+        var secondUser = new User("second@example.com", "Second translator");
+        secondUser.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
         database.TranslationProjects.Add(project);
         database.Users.Add(user);
+        database.Users.Add(secondUser);
         await database.SaveChangesAsync();
 
         var checkout = Directory.CreateTempSubdirectory("translation-workflow-test-");
@@ -91,6 +96,18 @@ public class TranslationWorkflowTests
             var confirm = await database.TranslationUnits.FindAsync(project.Id, "CONFIRM_BUTTON");
             Assert.NotNull(confirm);
             Assert.Equal("Confirm", confirm.SourceText);
+
+            // This earlier contribution is already in upstream and must not receive credit again.
+            database.TranslationChanges.Add(new TranslationChange
+            {
+                ProjectId = project.Id, Key = confirm.Key, LanguageCode = "en",
+                ContributorUserId = secondUser.Id, ActorUserId = secondUser.Id,
+                Kind = TranslationChangeKind.UserEdit, OldText = "Legacy confirmation", NewText = "Confirm",
+                OldState = TranslationState.Translated, NewState = TranslationState.Translated,
+                CountsAsContribution = true,
+            });
+            await database.SaveChangesAsync();
+
             Assert.Equal(new[] { "CONFIRM_BUTTON", "CANCEL_BUTTON", "HELP_BUTTON" },
                 await database.TranslationUnits.OrderBy(unit => unit.Position).Select(unit => unit.Key).ToArrayAsync());
             var source = await Value(database, project.Id, "CONFIRM_BUTTON", "en");
@@ -123,6 +140,7 @@ public class TranslationWorkflowTests
             Assert.Equal(2, confirm.SourceRevision);
             Assert.Equal(TranslationState.NeedsTranslation, target.State);
             Assert.NotNull(source.PendingRevision);
+            context.Items[AppInfo.CurrentUserMiddlewareKey] = secondUser;
             var editedTarget = await editor.Save(new TranslationSaveRequest
             {
                 ProjectId = project.Id, Key = confirm.Key, LanguageCode = "fi",
@@ -230,7 +248,8 @@ public class TranslationWorkflowTests
                 Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.UserName),
                 CancellationToken.None);
             await repository.Received(1).CommitFile(checkout.FullName, "fi." + extension, "Update fi translations",
-                Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.UserName),
+                Arg.Is<Dictionary<string, string>>(environment =>
+                    environment["GIT_AUTHOR_NAME"] == secondUser.UserName),
                 CancellationToken.None);
             if (format == TranslationFormat.Gettext)
             {
@@ -245,6 +264,72 @@ public class TranslationWorkflowTests
             await repository.Received(1).PushBranch(checkout.FullName,
                 "https://github.com/translation-bot/translations.git", pr.HeadBranch, string.Empty,
                 Arg.Any<Dictionary<string, string>>(), CancellationToken.None);
+
+            if (republishWithAutomatedChanges)
+            {
+                // A fresh checkout contains upstream, not the two commits already delivered to the fork.
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "en." + extension), english);
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension),
+                    Catalog(format, "Vahvista", "Peruuta", string.Empty));
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "de." + extension), german);
+                await File.WriteAllTextAsync(Path.Combine(checkout.FullName, "sv." + extension), swedish);
+                await import.Execute(project.Id, CancellationToken.None);
+                Assert.Null(source.PendingRevision);
+                Assert.Null(target.PendingRevision);
+
+                // Automated state changes affect both files which still contain unmerged human edits.
+                foreach (var value in new[] { source, target })
+                {
+                    var oldState = value.State;
+                    value.State = TranslationState.NeedsTranslation;
+                    value.PendingRevision = ++project.CurrentRevision;
+                    database.TranslationChanges.Add(new TranslationChange
+                    {
+                        ProjectId = project.Id, Key = value.Key, LanguageCode = value.LanguageCode,
+                        Kind = TranslationChangeKind.SourceChanged, OldText = value.Text, NewText = value.Text,
+                        OldState = oldState, NewState = value.State, ProjectRevision = project.CurrentRevision,
+                    });
+                }
+
+                await database.SaveChangesAsync();
+                github.GetPullRequest(project.RepositoryFullName, pr.Number, CancellationToken.None)
+                    .Returns(new TranslationGithubPullRequest(pr.Number, true, pr.HeadSha!, pr.HeadBranch,
+                        "translation-bot", project.SourceBranch, true));
+                repository.ClearReceivedCalls();
+                github.ClearReceivedCalls();
+
+                await publish.Execute(project.Id, CancellationToken.None);
+
+                await repository.Received(1).CheckoutNewBranch(checkout.FullName, pr.HeadBranch,
+                    project.SourceBranch, CancellationToken.None);
+                await repository.Received(1).CommitFile(checkout.FullName, "en." + extension,
+                    "Update en translations", Arg.Is<Dictionary<string, string>>(environment =>
+                        environment["GIT_AUTHOR_NAME"] == user.UserName), CancellationToken.None);
+                await repository.Received(1).CommitFile(checkout.FullName, "fi." + extension,
+                    "Update fi translations", Arg.Is<Dictionary<string, string>>(environment =>
+                        environment["GIT_AUTHOR_NAME"] == secondUser.UserName), CancellationToken.None);
+                if (format == TranslationFormat.Resx)
+                {
+                    await repository.DidNotReceive().CommitFile(checkout.FullName, ".", Arg.Any<string>(),
+                        Arg.Any<Dictionary<string, string>>(), CancellationToken.None);
+                }
+                else
+                {
+                    await repository.Received(1).CommitFile(checkout.FullName, ".",
+                        "Update automated translation states", Arg.Any<Dictionary<string, string>>(),
+                        CancellationToken.None);
+                }
+
+                await github.DidNotReceive().CreatePullRequest(Arg.Any<string>(), Arg.Any<string>(),
+                    Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), CancellationToken.None);
+                var republished = ParseCatalog(format, template,
+                    await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "en." + extension)),
+                    await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "fi." + extension)));
+                Assert.Equal("Confirm selection", republished["CONFIRM_BUTTON"].SourceText);
+                Assert.Equal("Vahvista valinta", republished["CONFIRM_BUTTON"].TargetText);
+                Assert.Null(source.PendingRevision);
+                Assert.Null(target.PendingRevision);
+            }
         }
         finally
         {

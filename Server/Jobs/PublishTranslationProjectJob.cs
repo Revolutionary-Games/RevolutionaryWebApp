@@ -124,6 +124,37 @@ public sealed class PublishTranslationProjectJob
         return fullPath;
     }
 
+    private static IReadOnlyCollection<TranslationChange> UnmergedChanges(IReadOnlyCollection<TranslationValue> values,
+        IReadOnlyCollection<TranslationChange> history,
+        TranslationFormat format)
+    {
+        var byValue = history.ToLookup(change => (change.Key, change.LanguageCode));
+        var changes = new List<TranslationChange>();
+        foreach (var value in values)
+        {
+            // Every publish rebuilds the entire branch from upstream, including previously published work.
+            // PendingRevision and the PR's LastPublishedRevision only describe delivery, not merging.
+            bool MatchesUpstream(string text, TranslationState state)
+            {
+                return text == value.LastImportedText && (format != TranslationFormat.Gettext ||
+                    state == TranslationState.NeedsTranslation == value.LastImportedFuzzy);
+            }
+
+            if (MatchesUpstream(value.Text, value.State))
+                continue;
+
+            var valueHistory = byValue[(value.Key, value.LanguageCode)]
+                .OrderBy(change => change.ProjectRevision).ThenBy(change => change.Id).ToArray();
+
+            // Exclude earlier contributions which have already reached upstream (or were reverted).
+            var baseline = Array.FindLastIndex(valueHistory,
+                change => MatchesUpstream(change.NewText, change.NewState));
+            changes.AddRange(valueHistory.Skip(baseline + 1));
+        }
+
+        return changes;
+    }
+
     private async Task Publish(TranslationProject project, string checkout, string token,
         TranslationSyncRun run, CancellationToken cancellationToken)
     {
@@ -186,11 +217,10 @@ public sealed class PublishTranslationProjectJob
         var languages = await database.TranslationProjectLanguages.AsNoTracking()
             .Where(l => l.ProjectId == project.Id && l.Enabled && l.LanguageCode != project.SourceLanguage)
             .OrderBy(l => l.LanguageCode).ToListAsync(cancellationToken);
-        var contributedSince = tracked?.LastPublishedRevision ?? 0;
-        var changes = await database.TranslationChanges.AsNoTracking()
-            .Where(c => c.ProjectId == project.Id && c.ProjectRevision > contributedSince &&
-                c.ProjectRevision <= snapshotRevision)
+        var history = await database.TranslationChanges.AsNoTracking()
+            .Where(c => c.ProjectId == project.Id && c.ProjectRevision <= snapshotRevision)
             .ToListAsync(cancellationToken);
+        var changes = UnmergedChanges(values, history, project.Format);
         var authors = await database.Users.AsNoTracking().Where(u =>
             changes.Select(c => c.ContributorUserId).Contains(u.Id)).ToDictionaryAsync(u => u.Id,
             cancellationToken);
