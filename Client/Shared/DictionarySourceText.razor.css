@@ -46,3 +46,12 @@
 .dictionary-tooltip-entry + .dictionary-tooltip-entry {
     margin-top: 0.5rem;
 }
+
+.dictionary-untranslatable {
+    background: rgba(13, 202, 240, 0.2);
+    box-shadow: inset 0 0 0 1px #087990;
+}
+
+.dictionary-untranslatable:focus {
+    outline-color: #087990;
+}

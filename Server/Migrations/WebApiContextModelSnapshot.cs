@@ -4479,6 +4479,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("last_edited_by_user_id");
 
+                    b.Property<bool>("Untranslatable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("untranslatable");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

@@ -96,6 +96,7 @@ public class TranslationDictionariesController : Controller
                 State = TranslationState.NeedsTranslation,
                 SourceLanguageCode = "en",
                 IsLanguageSpecific = false,
+                Untranslatable = term.Untranslatable,
             });
         var languageTerms = database.DictionaryLanguageTerms.AsNoTracking()
             .Where(t => t.DictionaryId == id && t.LanguageCode == language)
@@ -110,6 +111,7 @@ public class TranslationDictionariesController : Controller
                 State = TranslationState.Translated,
                 SourceLanguageCode = term.LanguageCode,
                 IsLanguageSpecific = true,
+                Untranslatable = false,
             });
 
         var termsQuery = sourceTerms.Concat(languageTerms);
@@ -258,6 +260,7 @@ public class TranslationDictionariesController : Controller
         {
             DictionaryId = request.DictionaryId, Word = word, Context = context,
             Explanation = request.Explanation, LastEditedByUserId = actor.Id,
+            Untranslatable = request.Untranslatable,
         };
         await database.DictionaryTerms.AddAsync(term);
 
@@ -302,7 +305,8 @@ public class TranslationDictionariesController : Controller
         if (term == null)
             return NotFound();
 
-        var changed = term.Word != word || term.Context != context || term.Explanation != request.Explanation;
+        var changed = term.Word != word || term.Context != context || term.Explanation != request.Explanation ||
+            term.Untranslatable != request.Untranslatable;
         if (!changed)
             return NoContent();
 
@@ -315,7 +319,8 @@ public class TranslationDictionariesController : Controller
 
         database.ActionLogEntries.Add(new ActionLogEntry(
             $"Updated source dictionary term in dictionary {request.DictionaryId}",
-            $"{request.Word} ({request.Context}) -> {word} ({context}); explanation: {request.Explanation}")
+            $"{request.Word} ({request.Context}) -> {word} ({context}); explanation: {request.Explanation}; " +
+            $"untranslatable: {request.Untranslatable}")
         {
             PerformedById = actor.Id,
         });
@@ -339,6 +344,7 @@ public class TranslationDictionariesController : Controller
                 Word = word,
                 Context = context,
                 Explanation = request.Explanation,
+                Untranslatable = request.Untranslatable,
                 LastEditedByUserId = actor.Id,
             };
             updatedTerm.BumpUpdatedAt();
@@ -372,6 +378,7 @@ public class TranslationDictionariesController : Controller
             return NoContent();
         }
 
+        term.Untranslatable = request.Untranslatable;
         term.Explanation = request.Explanation;
         term.LastEditedByUserId = actor.Id;
         term.BumpUpdatedAt();
@@ -533,6 +540,12 @@ public class TranslationDictionariesController : Controller
             return this.WorkingForbid("You don't have permission to translate in this dictionary");
         if (request.LanguageCode == "en")
             return Forbid();
+
+        if (await database.DictionaryTerms.AnyAsync(term => term.DictionaryId == request.DictionaryId &&
+                term.Word == request.Word && term.Context == request.Context && term.Untranslatable))
+        {
+            return BadRequest("This term is a proper name or a similar special term and must not be translated");
+        }
 
         var state = request.State;
         if (!Enum.IsDefined(state))

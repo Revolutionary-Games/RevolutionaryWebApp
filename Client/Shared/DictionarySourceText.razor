@@ -10,11 +10,19 @@
         }
         else
         {
-            <span class="dictionary-highlight" tabindex="0">@piece.Text<span class="dictionary-tooltip"
-                                                                           role="tooltip">@foreach (var term in piece.Terms)
+            <span
+                class="dictionary-highlight @(piece.Terms.Any(term => term.Untranslatable) ? "dictionary-untranslatable" : null)"
+                tabindex="0">@piece.Text<span class="dictionary-tooltip"
+                                              role="tooltip">@foreach (var term in piece.Terms)
                     {
                         <span class="dictionary-tooltip-entry">
-                            <strong>@(string.IsNullOrEmpty(term.TargetText) ? "Not translated" : term.TargetText)</strong>
+                            <strong>@(term.Untranslatable ? term.Word :
+                                string.IsNullOrEmpty(term.TargetText) ? "Not translated" : term.TargetText)</strong>
+                            @if (term.Untranslatable)
+                            {
+                                <span>Do not translate: this is a name or similar special term in this context.</span>
+                                <span>@term.SourceExplanation</span>
+                            }
                             @if (!string.IsNullOrWhiteSpace(term.Context))
                             {
                                 <span>(@term.Context)</span>
@@ -66,4 +74,5 @@
                 .Select(match => match.Term).ToArray()));
         }
     }
+
 }

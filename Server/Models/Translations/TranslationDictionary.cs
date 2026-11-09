@@ -60,6 +60,12 @@ public class DictionaryTerm : ISoftDeletable, IUpdateNotifications, IHasUpdatedA
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
 
+    /// <summary>
+    ///   If true, this is meant to be not translated. For example used for terms like "Harmony" which can refer to a
+    ///   name of a software library.
+    /// </summary>
+    public bool Untranslatable { get; set; }
+
     [MaxLength(500)]
     public string? Explanation { get; set; }
 
@@ -87,9 +93,10 @@ public class DictionaryTerm : ISoftDeletable, IUpdateNotifications, IHasUpdatedA
             DictionaryId = DictionaryId,
             Word = Word,
             Context = Context,
+            Untranslatable = Untranslatable,
             SourceExplanation = Explanation,
-            TargetExplanation = translation?.Explanation,
-            TargetText = translation?.Text ?? string.Empty,
+            TargetExplanation = Untranslatable ? null : translation?.Explanation,
+            TargetText = Untranslatable ? Word : translation?.Text ?? string.Empty,
             State = translation?.State ?? TranslationState.NeedsTranslation,
             LastEditedByUserId = translation?.LastEditedByUserId,
         };

@@ -51,6 +51,8 @@ public sealed class DictionaryTermDTO : IIdentifiable
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
 
+    public bool Untranslatable { get; set; }
+
     [MaxLength(4000)]
     public string? SourceExplanation { get; set; }
 
@@ -115,6 +117,8 @@ public sealed class CreateDictionaryTermRequest
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
 
+    public bool Untranslatable { get; set; }
+
     [MaxLength(4000)]
     public string? Explanation { get; set; }
 }
@@ -132,6 +136,8 @@ public sealed class SaveDictionaryTermRequest
 
     [MaxLength(250)]
     public string Context { get; set; } = string.Empty;
+
+    public bool Untranslatable { get; set; }
 
     [Required]
     [MaxLength(250)]

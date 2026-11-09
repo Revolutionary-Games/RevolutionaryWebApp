@@ -16,6 +16,12 @@
         <p class="small">@Term.SourceExplanation</p>
     }
 
+    @if (Term.Untranslatable)
+    {
+        <p class="text-info">Do not translate this term in this context: it is a name or similar special term.
+            Keep its original spelling in every language.</p>
+    }
+
     @if (Term.IsLanguageSpecific)
     {
         <span class="badge text-bg-secondary">
@@ -71,6 +77,13 @@
         <label class="form-label mt-2" for="@($"explanation-{controlId}")">English explanation</label>
         <textarea id="@($"explanation-{controlId}")" class="form-control" @bind="explanation"
                   @bind:after="NotifyDirtyState"></textarea>
+        <div class="form-check mt-2">
+            <input id="@($"untranslatable-{controlId}")" type="checkbox" class="form-check-input"
+                   @bind="untranslatable" @bind:after="NotifyDirtyState"/>
+            <label class="form-check-label" for="@($"untranslatable-{controlId}")">
+                Do not translate (name or similar special term)
+            </label>
+        </div>
         <Button class="mt-2" ButtonStyle="outline-primary" Enabled="@(!saving)" Spinner="@saving"
                 OnPressed="@Save">Save Term
         </Button>
@@ -120,6 +133,8 @@
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
     private bool saving;
+    private bool untranslatable;
+    private bool loadedUntranslatable;
     private string loadedWord = string.Empty;
     private string loadedContext = string.Empty;
     private string loadedLanguage = string.Empty;
@@ -152,9 +167,10 @@
 
     private bool CanEditTarget => UserInfo.AcceptedTranslator && UserInfo.HasAccessLevel(GroupType.User);
 
-    private bool CanSaveTerm => LanguageCode == "en" ? CanManage : CanEditTarget;
+    private bool CanSaveTerm => LanguageCode == "en" ? CanManage : CanEditTarget && !Term.Untranslatable;
 
-    private bool IsDirty => text != loadedTargetText || explanation != loadedTargetExplanation || state != loadedState ||
+    private bool IsDirty => untranslatable != loadedUntranslatable || text != loadedTargetText ||
+        explanation != loadedTargetExplanation || state != loadedState ||
         (Term.IsLanguageSpecific && sourceWord != loadedSourceWord) ||
         ((Term.IsLanguageSpecific || LanguageCode == "en") && context != loadedEntryContext);
 
@@ -184,12 +200,14 @@
         }
         else
         {
-            text = Term.TargetText;
+            text = Term.Untranslatable ? Term.Word : Term.TargetText;
             sourceWord = string.Empty;
             context = Term.Context;
             explanation = Term.TargetExplanation;
         }
 
+        untranslatable = Term.Untranslatable;
+        loadedUntranslatable = untranslatable;
         state = Term.State;
         loadedTargetText = text;
         loadedSourceWord = sourceWord;
@@ -232,6 +250,7 @@
             messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
             if (response.IsSuccessStatusCode)
             {
+                loadedUntranslatable = untranslatable;
                 loadedTargetText = text;
                 loadedSourceWord = sourceWord;
                 loadedTargetExplanation = explanation;
@@ -272,6 +291,7 @@
                 DictionaryId = Term.DictionaryId,
                 Word = Term.Word,
                 Context = Term.Context,
+                Untranslatable = untranslatable,
                 NewWord = text,
                 NewContext = context,
                 Explanation = explanation,

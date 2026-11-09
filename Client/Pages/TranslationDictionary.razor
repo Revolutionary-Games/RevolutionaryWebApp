@@ -134,6 +134,16 @@ else
         <label for="new-term-explanation" class="form-label">English explanation</label>
         <textarea id="new-term-explanation" class="form-control" @bind="newExplanation"></textarea>
     </div>
+    @if (CanManage)
+    {
+        <div class="form-check mb-2">
+            <input id="new-term-untranslatable" type="checkbox" class="form-check-input" @bind="newUntranslatable"/>
+            <label for="new-term-untranslatable" class="form-check-label">
+                Do not translate (name or similar special term)
+            </label>
+        </div>
+    }
+
     <Button ButtonStyle="outline-primary" Enabled="@(!isSubmittingTerm)" Spinner="@isSubmittingTerm"
             OnPressed="@SubmitTerm">
         @(CanManage ? "Add term" : "Request term")
@@ -179,6 +189,7 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     private bool pendingTermListUpdate;
     private long? registeredDictionaryId;
     private bool updateWarning;
+    private bool newUntranslatable;
     private bool isSubmittingTerm;
     private bool isSubmittingLanguageTerm;
     private bool updateReceivedDuringSubmission;
@@ -204,13 +215,13 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
 
     private bool CanEditTargetDictionary => UserInfo.AcceptedTranslator && UserInfo.HasAccessLevel(GroupType.User);
 
-    private bool HasUnsavedChanges => dirtyEditors.Count > 0 || !string.IsNullOrEmpty(newWord) ||
+    private bool HasUnsavedChanges => newUntranslatable || dirtyEditors.Count > 0 || !string.IsNullOrEmpty(newWord) ||
         !string.IsNullOrEmpty(newContext) || !string.IsNullOrEmpty(newExplanation) ||
         !string.IsNullOrEmpty(newLanguageWord) || !string.IsNullOrEmpty(newLanguageSourceWord) ||
         !string.IsNullOrEmpty(newLanguageContext) ||
         !string.IsNullOrEmpty(newLanguageExplanation);
 
-    private bool HasNewTermInput => !string.IsNullOrEmpty(newWord) || !string.IsNullOrEmpty(newContext) ||
+    private bool HasNewTermInput => newUntranslatable || !string.IsNullOrEmpty(newWord) || !string.IsNullOrEmpty(newContext) ||
         !string.IsNullOrEmpty(newExplanation) || !string.IsNullOrEmpty(newLanguageWord) ||
         !string.IsNullOrEmpty(newLanguageSourceWord) ||
         !string.IsNullOrEmpty(newLanguageContext) || !string.IsNullOrEmpty(newLanguageExplanation);
@@ -490,6 +501,7 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
 
     private async Task DiscardEditsAndReload()
     {
+        newUntranslatable = false;
         newWord = string.Empty;
         newContext = string.Empty;
         newExplanation = null;
@@ -512,6 +524,7 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
         {
             DictionaryId = DictionaryId, Word = newWord, Context = newContext,
             Explanation = newExplanation,
+            Untranslatable = CanManage && newUntranslatable,
         };
         var endpoint = CanManage ?
             "api/v1/translationDictionaries/terms" :
@@ -529,6 +542,7 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
             messageType = response.IsSuccessStatusCode ? SiteNoticeType.Success : SiteNoticeType.Danger;
             if (response.IsSuccessStatusCode)
             {
+                newUntranslatable = false;
                 newWord = string.Empty;
                 newContext = string.Empty;
                 newExplanation = null;
