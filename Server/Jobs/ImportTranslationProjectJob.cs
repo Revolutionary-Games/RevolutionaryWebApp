@@ -161,7 +161,7 @@ public class ImportTranslationProjectJob
 
         sourceLanguage.Enabled = true;
         var languages = await database.TranslationProjectLanguages
-            .Where(l => l.ProjectId == project.Id && l.Enabled && l.LanguageCode != project.SourceLanguage)
+            .Where(l => l.ProjectId == project.Id && l.LanguageCode != project.SourceLanguage)
             .ToListAsync(cancellationToken);
         foreach (var discovered in DiscoverLanguages(checkout, project.TranslationFilePattern!,
                      project.SourceLanguage))
@@ -180,9 +180,6 @@ public class ImportTranslationProjectJob
             languages.Add(language);
         }
 
-        if (languages.Count == 0)
-            throw new InvalidOperationException("No translation language files matched the configured pattern");
-
         var sourcePath = ResolveFile(checkout, project.SourceFilePattern!);
         var sourceContent = await File.ReadAllTextAsync(sourcePath, cancellationToken);
         var englishPath = ResolveFile(checkout,
@@ -200,8 +197,15 @@ public class ImportTranslationProjectJob
             var localePath = ResolveFile(checkout, language.FilePath ??
                 project.TranslationFilePattern.Replace("{language}", language.LanguageCode,
                     StringComparison.Ordinal));
-            if (!File.Exists(localePath))
-                throw new FileNotFoundException("Configured translation file is missing", localePath);
+            var enabled = File.Exists(localePath);
+            if (language.Enabled != enabled)
+            {
+                language.Enabled = enabled;
+                language.UpdatedAt = DateTime.UtcNow;
+            }
+
+            if (!enabled)
+                continue;
 
             var localeContent = await File.ReadAllTextAsync(localePath, cancellationToken);
             var parsed = project.Format switch
@@ -412,6 +416,13 @@ public class ImportTranslationProjectJob
                     }
                 }
             }
+        }
+
+        // With no target catalogs there is no parsed source-key set to compare against.
+        if (!languages.Any(language => language.Enabled))
+        {
+            await database.SaveChangesAsync(cancellationToken);
+            return;
         }
 
         var vanished = await database.TranslationUnits.Where(u => u.ProjectId == project.Id && u.Active &&

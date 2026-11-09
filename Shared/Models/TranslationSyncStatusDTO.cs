@@ -15,4 +15,6 @@ public sealed class TranslationSyncStatusDTO
 
     [MaxLength(4000)]
     public string? LastRunError { get; set; }
+
+    public DateTime? LastRunStatusChangedAt { get; set; }
 }

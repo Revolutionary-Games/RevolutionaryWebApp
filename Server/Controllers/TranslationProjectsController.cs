@@ -263,7 +263,7 @@ public class TranslationProjectsController : Controller
             return NotFound();
 
         var pending = await database.TranslationValues.AsNoTracking()
-            .Where(value => value.ProjectId == id && value.PendingRevision != null)
+            .Where(value => value.ProjectId == id && value.Language.Enabled && value.PendingRevision != null)
             .Select(value => value.PendingSince).ToListAsync(cancellationToken);
         var pr = await database.TranslationPullRequests.AsNoTracking()
             .FirstOrDefaultAsync(item => item.ProjectId == id, cancellationToken);
@@ -277,6 +277,7 @@ public class TranslationProjectsController : Controller
             PullRequestNumber = pr?.Number,
             PullRequestOpen = pr?.Open ?? false,
             LastRunStatus = run?.Status,
+            LastRunStatusChangedAt = run?.CompletedAt ?? run?.StartedAt,
             LastRunError = run?.Error,
         };
     }

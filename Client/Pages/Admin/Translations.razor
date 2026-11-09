@@ -191,7 +191,14 @@
                 }
                 @if (syncStatus.LastRunStatus != null)
                 {
-                    <p>Latest sync: @syncStatus.LastRunStatus @syncStatus.LastRunError</p>
+                    <p>
+                        Latest sync: @syncStatus.LastRunStatus
+                        @if (syncStatus.LastRunStatusChangedAt is { } changedAt)
+                        {
+                            <span>(<RecentTimeShortener Time="@changedAt" ShortDisplayCutoff="@TimeSpan.Zero"/>)</span>
+                        }
+                        @syncStatus.LastRunError
+                    </p>
                 }
             </div>
         }

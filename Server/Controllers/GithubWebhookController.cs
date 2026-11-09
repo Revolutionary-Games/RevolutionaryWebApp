@@ -120,6 +120,16 @@ public class GithubWebhookController : Controller
 
                 bool matched = false;
 
+                // Queue imports independently of CI processing and tracked translation PRs.
+                foreach (var translationProject in await database.TranslationProjects.Where(p =>
+                             p.Enabled && p.RepositoryFullName == data.Repository.FullName &&
+                             data.Ref == "refs/heads/" + p.SourceBranch).ToListAsync())
+                {
+                    matched = true;
+                    jobClient.Enqueue<ImportTranslationProjectJob>(x =>
+                        x.Execute(translationProject.Id, CancellationToken.None));
+                }
+
                 // Detect if this triggers any builds
                 foreach (var project in await database.CiProjects.Where(p =>
                              p.ProjectType == CIProjectType.Github && p.Enabled && !p.Deleted &&
@@ -149,15 +159,6 @@ public class GithubWebhookController : Controller
 
                     jobClient.Enqueue<CheckAndStartCIBuild>(x =>
                         x.Execute(build.CiProjectId, build.CiBuildId, CancellationToken.None));
-                }
-
-                foreach (var translationProject in await database.TranslationProjects.Where(p =>
-                             p.Enabled && p.RepositoryFullName == data.Repository.FullName &&
-                             data.Ref == "refs/heads/" + p.SourceBranch).ToListAsync())
-                {
-                    matched = true;
-                    jobClient.Enqueue<ImportTranslationProjectJob>(x =>
-                        x.Execute(translationProject.Id, CancellationToken.None));
                 }
 
                 if (!matched)

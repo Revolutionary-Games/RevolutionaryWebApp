@@ -134,12 +134,12 @@ public sealed class PublishTranslationProjectJob
         }
 
         if (await database.TranslationImportConflicts.AnyAsync(c => c.ProjectId == project.Id &&
-                c.ResolvedAt == null, cancellationToken))
+                c.ResolvedAt == null && c.Value.Language.Enabled, cancellationToken))
         {
             throw new InvalidOperationException("Resolve translation import conflicts before publishing");
         }
 
-        var values = await database.TranslationValues.Where(v => v.ProjectId == project.Id)
+        var values = await database.TranslationValues.Where(v => v.ProjectId == project.Id && v.Language.Enabled)
             .ToListAsync(cancellationToken);
         var pending = values.Where(v => v.PendingRevision != null).ToArray();
         var snapshotRevision = project.CurrentRevision;
