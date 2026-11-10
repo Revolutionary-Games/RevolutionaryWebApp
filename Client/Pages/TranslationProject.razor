@@ -107,8 +107,8 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
                 </div>
                 <div class="mb-3 col-md-8">
                     <label class="form-label" for="translationSourceText">English source text</label>
-                    <CustomInputText id="translationSourceText" class="form-control"
-                                     @bind-Value="newKeyRequest.SourceText"/>
+                    <CustomInputTextArea id="translationSourceText" class="form-control" rows="4"
+                                         @bind-Value="newKeyRequest.SourceText"/>
                 </div>
             </div>
             <ValidationSummary/>

@@ -162,7 +162,8 @@
                     </div>
                     <div class="input-group mb-2">
                         <input class="form-control" placeholder="Translation key" @bind="newKey"/>
-                        <input class="form-control" placeholder="English source text" @bind="newSourceText"/>
+                        <textarea class="form-control" placeholder="English source text" rows="4"
+                                  @bind="newSourceText"></textarea>
                         <Button ButtonStyle="outline-primary" Enabled="@(processingOperation == null)"
                                 Spinner="@(processingOperation == "key")" OnPressed="@AddKey">
                             Add source key
