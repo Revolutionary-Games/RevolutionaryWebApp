@@ -463,10 +463,10 @@ else
                 @foreach (var term in dictionaryMatches)
                 {
                     var isSourceLanguage = data.LanguageCode == project?.SourceLanguage;
-                    var dictionaryLink = $"translations/dictionaries/{term.DictionaryId}?search=" +
-                        Uri.EscapeDataString(term.SourceWord ?? term.Word);
+                    var dictionaryLink = $"translations/dictionaries/{term.DictionaryId}?";
                     if (!isSourceLanguage)
-                        dictionaryLink += $"&language={Uri.EscapeDataString(LanguageCode)}";
+                        dictionaryLink += $"language={Uri.EscapeDataString(LanguageCode)}&";
+                    dictionaryLink += $"search={Uri.EscapeDataString(term.SourceWord ?? term.Word)}";
                     <div class="border-bottom mb-2">
                         <strong>@term.Word</strong>
                         @if (!string.IsNullOrWhiteSpace(term.Context))
