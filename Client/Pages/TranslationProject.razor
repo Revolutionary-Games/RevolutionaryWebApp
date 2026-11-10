@@ -120,6 +120,15 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
     </div>
 }
 
+@if (project != null)
+{
+    <p class="mt-4">
+        <NavLink href="@($"translations/{Uri.EscapeDataString(Slug)}/engage")">
+            View the engagement page for this project
+        </NavLink>
+    </p>
+}
+
 <DevCenterTitle>@(project?.Name ?? Slug) translations</DevCenterTitle>
 
 @code {
