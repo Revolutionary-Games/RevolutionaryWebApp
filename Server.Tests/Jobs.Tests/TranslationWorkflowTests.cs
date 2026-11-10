@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Tests.Jobs.Tests;
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -47,9 +48,12 @@ public class TranslationWorkflowTests
             SourceFilePattern = format == TranslationFormat.Gettext ? "template.pot" : "en.resx",
             TranslationFilePattern = "{language}." + extension,
         };
-        var user = new User("translator@example.com", "Translator");
+        var user = new User("translator@example.com", "Translator") { DisplayName = "Source translator" };
         user.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.SourceTextTranslator));
-        var secondUser = new User("second@example.com", "Second translator");
+        var secondUser = new User("second@example.com", "Second translator")
+        {
+            UseEmailInTranslationCredits = true,
+        };
         secondUser.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
         database.TranslationProjects.Add(project);
         database.Users.Add(user);
@@ -234,7 +238,29 @@ public class TranslationWorkflowTests
                     .ToDictionary(entry => entry.Key);
                 Assert.False(gettextEntries["CONFIRM_BUTTON"].Fuzzy);
                 Assert.False(gettextEntries["CANCEL_BUTTON"].Fuzzy);
-                Assert.True(gettextEntries["HELP_BUTTON"].Fuzzy);
+                Assert.False(gettextEntries["HELP_BUTTON"].Fuzzy);
+                Assert.Contains($"\"Last-Translator: Source translator <noreply+{user.Id}@example.com>\\n\"",
+                    finalEnglish);
+                Assert.DoesNotContain(user.Email, finalEnglish);
+                Assert.Contains("\"Last-Translator: Second translator <second@example.com>\\n\"", finalFinnish);
+
+                // Source invalidation changes German flags without a credited translator.
+                var finalGerman = await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "de.po"));
+                Assert.True(GettextTranslationParser.Parse(template, finalEnglish, finalGerman)
+                    .Single(entry => entry.Key == "CONFIRM_BUTTON").Fuzzy);
+                Assert.Contains("\"Last-Translator: Previous translator <previous@example.com>\\n\"", finalGerman);
+                Assert.DoesNotContain("DevCenter Translations", finalGerman);
+
+                foreach (var language in new[] { "en", "fi" })
+                {
+                    var latestChange = await database.TranslationChanges.Where(change =>
+                        change.ProjectId == project.Id && change.Key == "CONFIRM_BUTTON" &&
+                        change.LanguageCode == language).MaxAsync(change => change.CreatedAt);
+                    Assert.Contains("\"PO-Revision-Date: " +
+                        latestChange.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + "+0000\\n\"",
+                        language == "en" ? finalEnglish : finalFinnish);
+                }
+
                 Assert.Equal(template, await File.ReadAllTextAsync(Path.Combine(checkout.FullName, "template.pot")));
             }
             else
@@ -261,7 +287,7 @@ public class TranslationWorkflowTests
             });
 
             await repository.Received(1).CommitFile(checkout.FullName, "en." + extension, "Update en translations",
-                Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.UserName),
+                Arg.Is<Dictionary<string, string>>(environment => environment["GIT_AUTHOR_NAME"] == user.DisplayName),
                 CancellationToken.None);
             await repository.Received(1).CommitFile(checkout.FullName, "fi." + extension, "Update fi translations",
                 Arg.Is<Dictionary<string, string>>(environment =>
@@ -320,7 +346,7 @@ public class TranslationWorkflowTests
                     project.SourceBranch, CancellationToken.None);
                 await repository.Received(1).CommitFile(checkout.FullName, "en." + extension,
                     "Update en translations", Arg.Is<Dictionary<string, string>>(environment =>
-                        environment["GIT_AUTHOR_NAME"] == user.UserName), CancellationToken.None);
+                        environment["GIT_AUTHOR_NAME"] == user.DisplayName), CancellationToken.None);
                 await repository.Received(1).CommitFile(checkout.FullName, "fi." + extension,
                     "Update fi translations", Arg.Is<Dictionary<string, string>>(environment =>
                         environment["GIT_AUTHOR_NAME"] == secondUser.UserName), CancellationToken.None);
@@ -374,6 +400,7 @@ public class TranslationWorkflowTests
                 msgid ""
                 msgstr ""
                 "Content-Type: text/plain; charset=UTF-8\n"
+                "Last-Translator: Previous translator <previous@example.com>\n"
 
                 #: Buttons.cs:1
                 msgid "CONFIRM_BUTTON"

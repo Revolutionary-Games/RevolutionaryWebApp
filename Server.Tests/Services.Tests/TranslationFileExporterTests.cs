@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 
+using System;
 using System.Linq;
 using Server.Models.Translations;
 using Server.Services;
@@ -31,6 +32,182 @@ public class TranslationFileExporterTests
         value.State = TranslationState.Verified;
         var verified = TranslationFileExporter.ExportGettext(template, output, [value]);
         Assert.False(Assert.Single(GettextTranslationParser.Parse(template, english, verified)).Fuzzy);
+    }
+
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("#, fuzzy\n", "")]
+    public void GettextExportDoesNotMarkEmptyTranslationsFuzzy(string flags, string expectedFlags)
+    {
+        const string entry = "msgid \"EMPTY\"\nmsgstr \"\"\n";
+        var value = new TranslationValue
+        {
+            Key = "EMPTY", Text = string.Empty, State = TranslationState.NeedsTranslation,
+        };
+
+        Assert.Equal(expectedFlags + entry,
+            TranslationFileExporter.ExportGettext(entry, flags + entry, [value]));
+    }
+
+    [Theory]
+    [InlineData("#, fuzzy\n", "")]
+    [InlineData("#, fuzzy\n#,\n", "")]
+    [InlineData("#, c-format, fuzzy\n", "#, c-format\n")]
+    public void GettextExportRemovesEmptyFlagLines(string flags, string expectedFlags)
+    {
+        const string entry = "msgid \"HELLO\"\nmsgstr \"Hei\"\n";
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Hei", State = TranslationState.Verified,
+        };
+
+        Assert.Equal(expectedFlags + entry,
+            TranslationFileExporter.ExportGettext(entry, flags + entry, [value]));
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void GettextExportPreservesHeaderCommentsWrappingAndLineEndings(string newline)
+    {
+        var target = ("# Translations template for Thrive.\n# Copyright (C) 2026 Revolutionary Games Studio\n" +
+                "# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.\n#\nmsgid \"\"\nmsgstr \"\"\n" +
+                "\"Content-Type: text/plain; charset=UTF-8\\n\"\n\n" +
+                "#. Greeting\nmsgid \"HELLO\"\nmsgstr \"Hei\"\n\n" +
+                "msgid \"UNCHANGED\"\nmsgstr \"\"\n\"Hyvää \"\n\"päivää\"\n")
+            .Replace("\n", newline);
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+
+        Assert.Equal(target.Replace("Hei", "Terve"),
+            TranslationFileExporter.ExportGettext(target, target, [value]));
+    }
+
+    [Fact]
+    public void GettextExportPreservesObsoleteTranslationsAndTheirComments()
+    {
+        const string active = "msgid \"HELLO\"\nmsgstr \"Hei\"\n";
+        const string obsolete = "\n# Keep old translation\n#, fuzzy\n" +
+            "#~ msgid \"PASSED_FULFILLED_CONDITION\"\n#~ msgstr \"ja\"\n" +
+            "\n#~ msgctxt \"old context\"\n#~ msgid \"HELLO\"\n#~ msgstr \"Old hello\"\n";
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+
+        Assert.Equal(active.Replace("Hei", "Terve") + obsolete,
+            TranslationFileExporter.ExportGettext(active, active + obsolete, [value]));
+    }
+
+    [Fact]
+    public void GettextExportChangesMultilineContextTranslationAndKeepsOtherPluralForms()
+    {
+        const string target = "msgctxt \"menu\"\nmsgid \"ONE\"\nmsgid_plural \"MANY\"\n" +
+            "msgstr[0] \"One\"\nmsgstr[1] \"Many\"\n";
+        var value = new TranslationValue
+        {
+            Key = "menu\u0004ONE", Text = "First line\nSecond \"line\"", State = TranslationState.Translated,
+        };
+
+        var output = TranslationFileExporter.ExportGettext(target, target, [value]);
+        var entry = Assert.Single(GettextTranslationParser.Parse(target, target, output));
+        Assert.Equal(value.Text, entry.TargetText);
+        Assert.Contains("msgstr[1] \"Many\"", output);
+        Assert.Equal(output, TranslationFileExporter.ExportGettext(target, output, [value]));
+    }
+
+    [Fact]
+    public void GettextExportAddsMissingTranslationWithoutRegeneratingExistingEntries()
+    {
+        const string template = "msgid \"NEW\"\nmsgstr \"\"\n";
+        const string target = "# Keep formatting\nmsgid \"EXISTING\"\nmsgstr \"Old\"\n";
+        var value = new TranslationValue
+        {
+            Key = "NEW", Text = "New text", State = TranslationState.NeedsTranslation,
+        };
+
+        var output = TranslationFileExporter.ExportGettext(template, target, [value]);
+        Assert.Equal(target + "\n#, fuzzy\nmsgid \"NEW\"\nmsgstr \"New text\"\n", output);
+        Assert.Equal(output, TranslationFileExporter.ExportGettext(template, output, [value]));
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void GettextExportUpdatesOnlyRevisionHeaderWithLatestChangeTimestamp(string newline)
+    {
+        var target = ("# Header comment\nmsgid \"\"\nmsgstr \"\"\n" +
+            "\"Language: fi\\n\"\n" +
+            "\"PO-Revision-Date: 2020-01-02 03:04+0200\\n\"\n" +
+            "\"Last-Translator: Henri Hyyryläinen\\n\"\n" +
+            "\"Content-Type: text/plain; charset=UTF-8\\n\"\n\n" +
+            "msgid \"HELLO\"\nmsgstr \"Hei\"\n").Replace("\n", newline);
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+        var latestChange = new DateTime(2026, 11, 10, 14, 35, 42, DateTimeKind.Utc);
+
+        var output = TranslationFileExporter.ExportGettext(target, target, [value], latestChange);
+        Assert.Equal(target.Replace("Hei", "Terve")
+            .Replace("2020-01-02 03:04+0200", "2026-11-10 14:35+0000"), output);
+        Assert.Equal(output, TranslationFileExporter.ExportGettext(target, output, [value], latestChange.AddDays(1)));
+    }
+
+    [Fact]
+    public void GettextExportAddsMissingRevisionHeaderAfterExistingHeaders()
+    {
+        const string target = "msgid \"\"\nmsgstr \"\"\n\"Language: fi\\n\"\n\n" +
+            "msgid \"HELLO\"\nmsgstr \"Hei\"\n";
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+
+        var output = TranslationFileExporter.ExportGettext(target, target, [value],
+            new DateTime(2026, 11, 10, 14, 35, 0, DateTimeKind.Utc));
+        Assert.Equal(target.Replace("Hei", "Terve").Replace("\"Language: fi\\n\"",
+            "\"Language: fi\\n\"\n\"PO-Revision-Date: 2026-11-10 14:35+0000\\n\""), output);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void GettextExportUpdatesOnlyLastTranslatorAndPreservesHeaderOrder(string newline)
+    {
+        var target = ("# Header comment\nmsgid \"\"\nmsgstr \"\"\n" +
+            "\"Language: fi\\n\"\n\"Last-Translator: Old translator <old@example.com>\\n\"\n" +
+            "\"PO-Revision-Date: 2020-01-02 03:04+0200\\n\"\n" +
+            "\"Content-Type: text/plain; charset=UTF-8\\n\"\n\n" +
+            "msgid \"HELLO\"\nmsgstr \"Hei\"\n").Replace("\n", newline);
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+
+        var output = TranslationFileExporter.ExportGettext(target, target, [value],
+            lastTranslator: "New \"translator\" <noreply+1@example.com>");
+        Assert.Equal(target.Replace("Hei", "Terve").Replace("Old translator <old@example.com>",
+            """New \"translator\" <noreply+1@example.com>"""), output);
+    }
+
+    [Fact]
+    public void GettextExportAddsMissingLastTranslatorHeader()
+    {
+        const string target = "msgid \"\"\nmsgstr \"\"\n\"Language: fi\\n\"\n\n" +
+            "msgid \"HELLO\"\nmsgstr \"Hei\"\n";
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+
+        var output = TranslationFileExporter.ExportGettext(target, target, [value],
+            lastTranslator: "Translator <noreply+1@example.com>");
+        Assert.Equal(target.Replace("Hei", "Terve").Replace("\"Language: fi\\n\"",
+            "\"Language: fi\\n\"\n\"Last-Translator: Translator <noreply+1@example.com>\\n\""),
+            output);
     }
 
     [Fact]

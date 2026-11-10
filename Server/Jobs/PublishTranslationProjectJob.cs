@@ -100,6 +100,15 @@ public sealed class PublishTranslationProjectJob
         return name.Replace('\r', ' ').Replace('\n', ' ').Replace('<', ' ').Replace('>', ' ');
     }
 
+    private static User[] Contributors(IEnumerable<TranslationChange> changes,
+        IReadOnlyDictionary<long, User> authors)
+    {
+        return changes.Where(change => change.CountsAsContribution && change.ContributorUserId != null)
+            .GroupBy(change => change.ContributorUserId!.Value).OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key).Select(group => authors.GetValueOrDefault(group.Key))
+            .OfType<User>().ToArray();
+    }
+
     private static string SafeFile(string checkout, string relativePath)
     {
         var root = Path.GetFullPath(checkout) + Path.DirectorySeparatorChar;
@@ -234,7 +243,10 @@ public sealed class PublishTranslationProjectJob
         var sourceFullPath = SafeFile(checkout, sourcePath);
         var sourceOriginal = await File.ReadAllTextAsync(sourceFullPath, cancellationToken);
         var sourceOutput = project.Format == TranslationFormat.Gettext ?
-            TranslationFileExporter.ExportGettext(sourceContent, sourceOriginal, sourceValues) :
+            TranslationFileExporter.ExportGettext(sourceContent, sourceOriginal, sourceValues,
+                changes.Where(change => change.LanguageCode == project.SourceLanguage)
+                    .Max(change => (DateTime?)change.CreatedAt),
+                LastTranslator(project.SourceLanguage, changes, authors)) :
             TranslationFileExporter.ExportResx(sourceContent, sourceContent, sourceValues);
 
         if (project.Format == TranslationFormat.Gettext)
@@ -280,7 +292,9 @@ public sealed class PublishTranslationProjectJob
             var content = project.Format switch
             {
                 TranslationFormat.Gettext => TranslationFileExporter.ExportGettext(sourceContent,
-                    original, localeValues),
+                    original, localeValues, changes.Where(change => change.LanguageCode == language.LanguageCode)
+                        .Max(change => (DateTime?)change.CreatedAt),
+                    LastTranslator(language.LanguageCode, changes, authors)),
                 TranslationFormat.Resx => TranslationFileExporter.ExportResx(sourceContent,
                     original, localeValues),
                 _ => throw new NotSupportedException("Manual projects do not publish to GitHub"),
@@ -390,17 +404,13 @@ public sealed class PublishTranslationProjectJob
             return false;
         }
 
-        var contributors = languageChanges.Where(change => change.CountsAsContribution &&
-                change.ContributorUserId != null)
-            .GroupBy(change => change.ContributorUserId!.Value).OrderByDescending(group => group.Count())
-            .ThenBy(group => group.Key).Select(group => authors.GetValueOrDefault(group.Key))
-            .Where(user => user != null).ToArray();
+        var contributors = Contributors(languageChanges, authors);
         var primary = contributors.FirstOrDefault();
         var message = new StringBuilder($"Update {languageCode} translations");
         foreach (var coauthor in contributors.Skip(1))
         {
-            message.Append("\n\nCo-authored-by: ").Append(CreditName(coauthor!)).Append(" <")
-                .Append(CreditEmail(coauthor!)).Append('>');
+            message.Append("\n\nCo-authored-by: ").Append(CreditName(coauthor)).Append(" <")
+                .Append(CreditEmail(coauthor)).Append('>');
         }
 
         var environment = new Dictionary<string, string>
@@ -414,6 +424,15 @@ public sealed class PublishTranslationProjectJob
         // TODO: Allow each translation project to configure whether commit checks should run.
         await repository.CommitFile(checkout, path, message.ToString(), environment, cancellationToken);
         return true;
+    }
+
+    private string? LastTranslator(string languageCode, IEnumerable<TranslationChange> changes,
+        IReadOnlyDictionary<long, User> authors)
+    {
+        var primary = Contributors(changes.Where(change => change.LanguageCode == languageCode), authors)
+            .FirstOrDefault();
+        return primary == null ?
+            null : $"{CreditName(primary)} <{CreditEmail(primary)}>";
     }
 
     private string CreditEmail(User user)
