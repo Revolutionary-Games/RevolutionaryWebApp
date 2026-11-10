@@ -196,7 +196,7 @@ else
                 </li>
                 <li class="nav-item">
                     <Button ButtonStyle="link" class="@(tab == "nearby" ? "nav-link active" : "nav-link")"
-                            OnPressed="ShowNearby">Nearby languages
+                            OnPressed="ShowNearby">Other Languages
                     </Button>
                 </li>
             </ul>
@@ -400,7 +400,7 @@ else
                     @if (loadingNearby)
                     {
                         <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading nearby languages...</span>
+                            <span class="visually-hidden">Loading other languages...</span>
                         </div>
                     }
                     @foreach (var nearbyItem in nearby)
@@ -820,7 +820,7 @@ else
         }
         catch (Exception e)
         {
-            message = $"Failed to load nearby translations: {e.Message}";
+            message = $"Failed to load translations in other languages: {e.Message}";
             messageType = SiteNoticeType.Danger;
         }
         finally
