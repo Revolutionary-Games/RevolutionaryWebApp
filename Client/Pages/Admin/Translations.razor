@@ -179,7 +179,7 @@
                 <p>Pending translations: @syncStatus.PendingTranslations
                     @if (syncStatus.OldestPendingAt != null)
                     {
-                        <span>(oldest: @syncStatus.OldestPendingAt.Value.ToString("u"))</span>
+                        <span class="ms-1">(oldest: @syncStatus.OldestPendingAt.Value.ToString("g"))</span>
                     }
                 </p>
                 @if (syncStatus.PullRequestNumber != null)
