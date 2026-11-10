@@ -1,7 +1,10 @@
 @page "/profiles/{Username}"
 @inject HttpClient Http
+@inject Services.CurrentUserInfo UserInfo
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Models
+@inherits UserInfoReactingComponent
+@implements IDisposable
 
 <h3>User profile</h3>
 <SingleResourceDisplayer Error="@error" Loading="@loading" HasData="@(profile != null)">
@@ -12,6 +15,10 @@
         @if (!string.IsNullOrEmpty(profile.DisplayName))
         {
             <p><strong>Name:</strong> @profile.DisplayName</p>
+        }
+        @if (UserInfo.InfoReady && UserInfo.Info?.Id == profile.Id)
+        {
+            <p><NavLink href="me">View my full profile</NavLink></p>
         }
         <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" AutoRedirectIfNotLoggedIn="@false">
             <NavLink href="@($"users/{profile.Id}")">Account details</NavLink>
