@@ -87,7 +87,8 @@ else
                 {
                     <label for="source-explanation" class="form-label d-block mt-3">Explanation for translators</label>
                     <textarea @ref="explanationInput" id="source-explanation" class="form-control" rows="3"
-                              maxlength="4000" placeholder="Explain the meaning, context, or how to translate this source text…"
+                              maxlength="4000"
+                              placeholder="Explain the meaning, context, or how to translate this source text…"
                               @bind="editExplanation" @bind:event="oninput"
                               @onkeydown="HandleExplanationKeyDown"></textarea>
                 }
@@ -313,12 +314,13 @@ else
                             Add a comment (Markdown; mention users with @@name)
                         </label>
                         <CommentEditor Id="new-comment" Rows="3" @bind-Value="newComment"
-                                       Disabled="@(processingAction != null)" />
+                                       Disabled="@(processingAction != null)"/>
 
                         @if (data.LanguageCode != project?.SourceLanguage)
                         {
                             <label for="comment-scope" class="form-label">Who should see this discussion?</label>
-                            <select id="comment-scope" class="form-select mb-2" disabled="@(processingAction != null)" @bind="commentScope">
+                            <select id="comment-scope" class="form-select mb-2" disabled="@(processingAction != null)"
+                                    @bind="commentScope">
                                 <option value="language">Only @data.LanguageCode translators</option>
                                 <option value="everyone">Everyone, including @project?.SourceLanguage contributors
                                 </option>
@@ -331,7 +333,8 @@ else
                                 and developers can understand your comment.</p>
                         }
 
-                        <TranslationCommentSubscription @ref="commentSubscription" @key="(data.ProjectId, data.LanguageCode)"
+                        <TranslationCommentSubscription @ref="commentSubscription"
+                                                        @key="(data.ProjectId, data.LanguageCode)"
                                                         ProjectId="@data.ProjectId" LanguageCode="@data.LanguageCode"
                                                         SourceLanguage="@project!.SourceLanguage"
                                                         ForEveryone="@(commentScope == "everyone")"
@@ -420,6 +423,7 @@ else
                             <span class="visually-hidden">Loading other languages...</span>
                         </div>
                     }
+
                     @foreach (var nearbyItem in nearby)
                     {
                         <p>
@@ -458,8 +462,11 @@ else
                 <h6>Dictionary Words</h6>
                 @foreach (var term in dictionaryMatches)
                 {
-                    var dictionaryLink = $"translations/dictionaries/{term.DictionaryId}?language=" +
-                        $"{Uri.EscapeDataString(LanguageCode)}&search={Uri.EscapeDataString(term.SourceWord ?? term.Word)}";
+                    var isSourceLanguage = data.LanguageCode == project?.SourceLanguage;
+                    var dictionaryLink = $"translations/dictionaries/{term.DictionaryId}?search=" +
+                        Uri.EscapeDataString(term.SourceWord ?? term.Word);
+                    if (!isSourceLanguage)
+                        dictionaryLink += $"&language={Uri.EscapeDataString(LanguageCode)}";
                     <div class="border-bottom mb-2">
                         <strong>@term.Word</strong>
                         @if (!string.IsNullOrWhiteSpace(term.Context))
@@ -472,7 +479,8 @@ else
                         }
                         <div>
                             <a href="@dictionaryLink">
-                                @(string.IsNullOrEmpty(term.TargetText) ? "Not translated — add translation" : term.TargetText)
+                                @(isSourceLanguage                                           ? "View in dictionary" :
+                                string.IsNullOrEmpty(term.TargetText) ? "Not translated — add translation" : term.TargetText)
                             </a>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(term.SourceExplanation))
