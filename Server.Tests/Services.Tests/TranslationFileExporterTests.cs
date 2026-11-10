@@ -206,7 +206,7 @@ public class TranslationFileExporterTests
         var output = TranslationFileExporter.ExportGettext(target, target, [value],
             lastTranslator: "Translator <noreply+1@example.com>");
         Assert.Equal(target.Replace("Hei", "Terve").Replace("\"Language: fi\\n\"",
-            "\"Language: fi\\n\"\n\"Last-Translator: Translator <noreply+1@example.com>\\n\""),
+                "\"Language: fi\\n\"\n\"Last-Translator: Translator <noreply+1@example.com>\\n\""),
             output);
     }
 
