@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Shared.Services;
 
+using System;
 using System.Linq;
 using Markdig;
 using Markdig.Syntax;
@@ -7,7 +8,7 @@ using Markdig.Syntax.Inlines;
 using Utilities;
 
 /// <summary>
-///   Provides markdown rendering with XSS sanitation
+///   Provides Markdown rendering with XSS sanitation
 /// </summary>
 public class MarkdownService
 {
@@ -79,20 +80,18 @@ public class MarkdownService
             if (insideLink)
                 continue;
 
-            // Skip anything that cannot have mentions
-            if (!literal.Content.Match("@"))
-                continue;
-
-            // So that we don't have to convert a bunch of useless stuff to strings
-            var text = literal.Content.ToString();
+            // Match directly on the slice so blocks without mentions need no string allocations.
+            var text = literal.Content.AsSpan();
             int offset = 0;
-            foreach (System.Text.RegularExpressions.Match match in Usernames.MentionPattern.Matches(text))
+            foreach (var match in Usernames.MentionPattern.EnumerateMatches(text))
             {
                 if (match.Index > offset)
-                    literal.InsertBefore(new LiteralInline(text.Substring(offset, match.Index - offset)));
+                    literal.InsertBefore(new LiteralInline(text.Slice(offset, match.Index - offset).ToString()));
 
-                var link = new LinkInline("/profiles/" + match.Groups[1].Value, string.Empty);
-                link.AppendChild(new LiteralInline(match.Value));
+                // The pattern matches @ followed by the username, so skip @ for the profile URL.
+                var link = new LinkInline(string.Concat("/profiles/".AsSpan(),
+                    text.Slice(match.Index + 1, match.Length - 1)), string.Empty);
+                link.AppendChild(new LiteralInline(text.Slice(match.Index, match.Length).ToString()));
                 literal.InsertBefore(link);
                 offset = match.Index + match.Length;
             }
@@ -101,7 +100,7 @@ public class MarkdownService
                 continue;
 
             if (offset < text.Length)
-                literal.InsertBefore(new LiteralInline(text.Substring(offset)));
+                literal.InsertBefore(new LiteralInline(text[offset..].ToString()));
             literal.Remove();
         }
 

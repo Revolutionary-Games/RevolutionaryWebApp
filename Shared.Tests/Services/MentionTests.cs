@@ -11,6 +11,7 @@ public class MentionTests
     [InlineData("hello @user-name", "<a href=\"/profiles/user-name\">@user-name</a>")]
     [InlineData("`@username`", "<code>@username</code>")]
     [InlineData("[**@username**](https://example.com)", "href=\"https://example.com\"")]
+    [InlineData("This is @example's profile", "<a href=\"/profiles/example\">@example</a>")]
     public void MentionsRespectMarkdownStructure(string markdown, string expected)
     {
         var service = new MarkdownService(new HtmlSanitizerService(),
