@@ -27,6 +27,10 @@ textarea {
     resize: vertical;
 }
 
+textarea:not(:focus) {
+    border-color: var(--bs-border-color, #ced4da);
+}
+
 .mention-highlights {
     position: absolute;
     inset: 0;
