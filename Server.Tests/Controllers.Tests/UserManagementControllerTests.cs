@@ -22,6 +22,50 @@ using Xunit;
 public class UserManagementControllerTests
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ProfilesExposeOnlyPublicFieldsAndStaffCanInspect(bool loggedIn, bool moderator)
+    {
+        await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
+            Substitute.For<IModelUpdateNotificationSender>());
+        var target = new User("target@example.com", "username") { DisplayName = "Full Name" };
+        target.ProcessGroupDataFromLoadedGroups();
+        var actor = new User("actor@example.com", "actor");
+        if (moderator)
+            actor.Groups.Add(new UserGroup(GroupType.ContentModerator, "Moderator"));
+        actor.ProcessGroupDataFromLoadedGroups();
+        database.Users.AddRange(target, actor);
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        if (loggedIn)
+            context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        context.Items[AppInfo.AuthenticationScopeRestrictionMiddleWareKey] = AuthenticationScopeRestriction.None;
+        var controller = new UserManagementController(Substitute.For<ILogger<UserManagementController>>(), database,
+            Substitute.For<IHubContext<NotificationsHub, INotifications>>())
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+
+        var profile = (await controller.GetPublicProfile("username")).Value!;
+        Assert.Equal(target.UserName, profile.Name);
+        Assert.Equal(target.CreatedAt, profile.CreatedAt);
+        Assert.Equal(loggedIn ? "Full Name" : null, profile.DisplayName);
+        if (loggedIn)
+        {
+            var list = await controller.GetList("UserName", SortDirection.Ascending, 1, 10, null);
+            if (moderator)
+                Assert.NotNull(list.Value);
+            else
+                Assert.IsType<ForbidResult>(list.Result);
+
+            if (!moderator)
+                Assert.IsType<NotFoundResult>((await controller.GetUser(target.Id)).Result);
+        }
+    }
+
+    [Theory]
     [InlineData(false, false, " New Name ", "New Name")]
     [InlineData(false, false, "   ", null)]
     [InlineData(true, true, "New Name", "New Name")]
