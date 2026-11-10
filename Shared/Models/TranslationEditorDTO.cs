@@ -40,6 +40,12 @@ public sealed class TranslationEditorDTO
     [MaxLength(4000)]
     public string? Description { get; set; }
 
+    /// <summary>
+    ///   Explanation that is managed on the website, and doesn't go into formats
+    /// </summary>
+    [MaxLength(4000)]
+    public string? Explanation { get; set; }
+
     [MaxLength(4000)]
     public string? SourceLocations { get; set; }
 
@@ -91,6 +97,9 @@ public sealed class TranslationSaveRequest
 
     [MaxLength(20000)]
     public string Text { get; set; } = string.Empty;
+
+    [MaxLength(4000)]
+    public string? Explanation { get; set; }
 
     public TranslationState State { get; set; } = TranslationState.Translated;
 

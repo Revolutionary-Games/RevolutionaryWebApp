@@ -248,6 +248,8 @@ public class ImportTranslationProjectJob
                     unit.Position = position;
                 ++position;
                 unit.Active = true;
+
+                // Explanation is maintained on the website; these formats do not supply it.
                 unit.Description = entry.Description;
                 unit.SourceLocations = entry.SourceLocations;
 

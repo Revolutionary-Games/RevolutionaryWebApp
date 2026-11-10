@@ -220,6 +220,7 @@ public class TranslationEditorController : Controller
             State = value.State,
             Version = value.Version,
             Description = unit.Description,
+            Explanation = unit.Explanation,
             SourceLocations = unit.SourceLocations,
             Position = unit.Position,
             TextIndex = textIndex,

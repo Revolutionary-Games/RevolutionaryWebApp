@@ -242,6 +242,9 @@ public class TranslationUnit : IUpdateNotifications
     public string? Description { get; set; }
 
     [MaxLength(4000)]
+    public string? Explanation { get; set; }
+
+    [MaxLength(4000)]
     public string? SourceLocations { get; set; }
 
     [MaxLength(64)]
