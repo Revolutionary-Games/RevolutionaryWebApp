@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -19,6 +18,7 @@ using Models.Translations;
 using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
+using Shared.Utilities;
 using Utilities;
 
 [APIKeyScope(APIKeyScope.Translations)]
@@ -755,11 +755,7 @@ public class TranslationDictionariesController : Controller
 
     private static bool DictionaryWordMatches(string sourceText, string word)
     {
-        if (string.IsNullOrWhiteSpace(word))
-            return false;
-
-        return Regex.IsMatch(sourceText, $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(word)}(?![\p{{L}}\p{{N}}])",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+        return DictionaryWordMatcher.FindMatches(sourceText, word).Any();
     }
 
     private void AddSourceTermUpdateNotifications(IEnumerable<DictionaryTermTranslation> translations, long actorId,

@@ -7,6 +7,22 @@ using Xunit;
 
 public class DictionarySourceTextTests : BunitContext
 {
+    [Theory]
+    [InlineData("Achievement", "Achievements", "Achievement")]
+    [InlineData("box", "boxes", "box")]
+    [InlineData("colony", "colonies", "colon")]
+    public void HighlightsPluralStemAndPreservesSourceText(string word, string text, string stem)
+    {
+        var cut = Render<DictionarySourceText>(parameters => parameters
+            .Add(p => p.Text, text)
+            .Add(p => p.Terms, [new DictionaryTermDTO { Word = word, TargetText = "Translation" }]));
+
+        Assert.Single(cut.FindAll(".dictionary-highlight"));
+        cut.Find(".dictionary-tooltip").Remove();
+        Assert.Equal(stem, cut.Find(".dictionary-highlight").TextContent);
+        Assert.Equal(text, cut.Find("#source-text").TextContent);
+    }
+
     [Fact]
     public void UntranslatableTermsHaveDistinctHighlightAndExplainTheirContext()
     {

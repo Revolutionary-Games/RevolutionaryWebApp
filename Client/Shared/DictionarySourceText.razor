@@ -1,5 +1,6 @@
 @using System.Text.RegularExpressions
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Utilities
 
 <div id="source-text" class="form-control dictionary-source-text"
      aria-label="@($"{LanguageCode} source text")">@foreach (var piece in pieces)
@@ -63,9 +64,7 @@
             if (string.IsNullOrWhiteSpace(word))
                 continue;
 
-            foreach (Match match in Regex.Matches(Text,
-                         $@"(?<![\p{{L}}\p{{N}}]){Regex.Escape(word)}(?![\p{{L}}\p{{N}}])",
-                         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            foreach (Match match in DictionaryWordMatcher.FindMatches(Text, word))
             {
                 matches.Add((match.Index, match.Index + match.Length, term));
             }
