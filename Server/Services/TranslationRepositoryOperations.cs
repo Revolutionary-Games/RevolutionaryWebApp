@@ -18,6 +18,7 @@ public class TranslationRepositoryOperations
         await GitRunHelpers.FetchRef(checkout, $"refs/heads/{branch}", cancellationToken);
         await GitRunHelpers.Checkout(checkout, $"origin/{branch}", true, cancellationToken, true);
         await GitRunHelpers.Clean(checkout, cancellationToken);
+        await GitRunHelpers.UpdateSubmodules(checkout, true, true, cancellationToken);
         return await GitRunHelpers.GetCurrentCommit(checkout, cancellationToken);
     }
 
