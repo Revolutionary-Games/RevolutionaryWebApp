@@ -216,6 +216,9 @@ public class SignupsController : Controller
                 $"Password must be between {AppInfo.MinPasswordLength} and {AppInfo.MaxPasswordLength} characters.");
         }
 
+        if (!Shared.Utilities.Usernames.IsValid(request.UserName))
+            return BadRequest("Username must contain 2–50 ASCII letters, numbers, underscores or hyphens");
+
         var normalizedUserName = Normalization.NormalizeUserName(request.UserName);
         if (normalizedUserName != request.UserName)
         {

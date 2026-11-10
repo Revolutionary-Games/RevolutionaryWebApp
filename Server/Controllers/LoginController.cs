@@ -712,7 +712,16 @@ public class LoginController : SSOLoginController
         email = email?.Trim();
 
         var displayName = username?.Trim();
-        username = Normalization.NormalizeUserName(username ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(username))
+            return (GetInvalidSsoParametersResult(), false);
+
+        username = Normalization.NormalizeUserName(username).Replace('.', '_');
+        if (!Shared.Utilities.Usernames.IsValid(username))
+        {
+            // Hopefully no website people want to log in with accept too long usernames
+            Logger.LogWarning("Username returned to SSO is invalid: {Username}", username);
+            return (GetInvalidSsoParametersResult(), false);
+        }
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(username))
             return (GetInvalidSsoParametersResult(), false);
