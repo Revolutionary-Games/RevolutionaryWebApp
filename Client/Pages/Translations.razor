@@ -1,4 +1,5 @@
 @page "/translations"
+@using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
@@ -12,6 +13,12 @@
 
 <TranslationAgreementWarning/>
 <h3>Translation Projects</h3>
+
+<AccessLimited RequiredAccess="GroupType.RestrictedUser" AutoRedirectIfNotLoggedIn="false">
+    <AccessMissingContent>
+        <StatusMessageShower Message="You need to log in before you can translate." Type="SiteNoticeType.Info"/>
+    </AccessMissingContent>
+</AccessLimited>
 
 @if (!string.IsNullOrEmpty(Error))
 {
