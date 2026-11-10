@@ -17,7 +17,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 ///   Applies MVC authorization filters before output-cache lookups. Lifetimes and query variation remain controlled
-///   by the endpoint's output-cache configuration. Register as a base policy to protect all cached endpoints.
+///   by the endpoint's output-cache configuration. Used by the opt-in "Authenticated" policy for endpoints
+///   that return the same response to all callers passing their access attributes.
 /// </summary>
 public sealed class AuthorizationOutputCachePolicy : IOutputCachePolicy
 {
@@ -73,29 +74,16 @@ public sealed class AuthorizationOutputCachePolicy : IOutputCachePolicy
             context.AllowCacheStorage = false;
             http.Items[CacheDeniedKey] = true;
 
-            // Endpoint policies run after base policies and can re-enable lookups. A unique variation also prevents
+            // Other composed policies can re-enable lookups. A unique variation also prevents
             // them from finding a cached success, leaving MVC to produce its normal authorization response.
             // Final prevention happens in ServeResponseAsync.
             context.CacheVaryByRules.VaryByValues["authorization-denied"] = Guid.NewGuid().ToString("N");
             return;
         }
 
-        // The application's authentication lives in HttpContext.Items, outside ASP.NET's default cache checks.
-        // Even authorized endpoints can return different data for different callers (in theory, if we aren't careful
-        // with them). In general user-customized endpoints shouldn't be cached.
-
-        // We don't restrict by user as the attributes are meant to protect it. And any customized endpoints should
-        // not use caching.
-        /*var user = http.AuthenticatedUser();
-        context.CacheVaryByRules.VaryByValues["user"] = user?.Id.ToString() ?? "anonymous";
-        context.CacheVaryByRules.VaryByValues["scope"] = user != null ?
-            http.AuthenticatedUserRestriction().ToString() :
-            "none";*/
-
-        // Sessions shouldn't vary results.
-        // context.CacheVaryByRules.VaryByValues["session"] = http.AuthenticatedUserSession()?.Id.ToString() ?? "none";
-
-        // API keys can have different scopes
+        // Authorized callers share responses. Endpoints with per-user output or custom access checks in the action
+        // must not use this policy: cached hits bypass the action.
+        // Access keys remain separate; API-key scope checks run in authentication middleware before output caching.
         context.CacheVaryByRules.VaryByValues["access-key"] = http.AuthenticatedAccessKey()?.Id.ToString() ?? "none";
     }
 

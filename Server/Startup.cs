@@ -169,7 +169,7 @@ public class Startup
             // or doesn't do any of these dangerous things.
             // Also note that this does not cache per user. Only filtering based on the access attributes. So all users
             // with access get the same results.
-            options.AddPolicy("Authenticated", new AuthorizationOutputCachePolicy());
+            options.AddPolicy("Authenticated", policy => policy.AddPolicy<AuthorizationOutputCachePolicy>());
 
             // Note the default or these policies do not check access!
             options.AddPolicy("ShortLived", builder =>
