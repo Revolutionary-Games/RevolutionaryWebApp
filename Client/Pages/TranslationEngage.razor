@@ -1,0 +1,166 @@
+@page "/translations/engage/{Slug}"
+@page "/translations/{Slug}/engage"
+@using System.Net
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Client.Utilities
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<DevCenterTitle>Get involved in @(project?.Name ?? Slug)!</DevCenterTitle>
+
+<StatusMessageShower Message="@loadError"/>
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (project != null && loadError == null)
+{
+    <div class="py-4">
+        <h1 class="text-center">Get involved in <strong>@project.Name</strong></h1>
+        <p class="lead mb-5 text-center">
+            Help bring @project.Name to more people by translating it into your language.
+            You can contribute right here in your browser.
+        </p>
+
+        @if (languages.Length > 0)
+        {
+            <div class="row text-center my-4">
+                <div class="col-sm-4 mb-3">
+                    <strong class="display-6">@languages[0].Total.ToString("N0")</strong>
+                    <div>Strings to translate</div>
+                </div>
+                <div class="col-sm-4 mb-3">
+                    <strong class="display-6">@languages.Length</strong>
+                    <div>Languages</div>
+                </div>
+                <div class="col-sm-4 mb-3">
+                    <strong class="display-6">@Completion.ToString("P1")</strong>
+                    <div>Translated</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="text-center">No languages have been configured yet.</p>
+        }
+
+        <p class="text-center">
+            To contribute translations,
+            <NavLink href="login">sign in or create an account</NavLink>, then accept the
+            <NavLink href="translations/agreement">translator agreement</NavLink>.
+            Choose a language below to get started.
+        </p>
+        <p class="text-center">
+            See the <a href="https://wiki.revolutionarygamesstudio.com/wiki/Translation_Guidelines">
+                translation guidelines</a> for tips on contributing.
+        </p>
+
+        @if (project.ClosedForMaintenance)
+        {
+            <p class="text-center">
+                Translations are temporarily closed for maintenance. You can still browse the project.
+            </p>
+        }
+
+        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+            @if (SuggestedLanguage is { } language)
+            {
+                <a class="btn btn-primary btn-lg" href="@LanguageUrl(language)">
+                    Translate into @(LanguageNameHelper.GetDisplayName(language.LanguageCode) ?? language.DisplayName)
+                </a>
+            }
+            <a class="btn btn-secondary btn-lg" href="@($"translations/{Uri.EscapeDataString(Slug)}")">
+                View project languages
+            </a>
+        </div>
+    </div>
+}
+
+@code {
+    private TranslationProjectDTO? project;
+    private TranslationLanguageDTO[] languages = [];
+    private string[] preferredLanguages = [];
+    private string? loadError;
+    private bool loading;
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private TranslationLanguageDTO? SuggestedLanguage =>
+        TranslationLanguageMatcher.FindMatch(languages, preferredLanguages);
+
+    private double Completion
+    {
+        get
+        {
+            var total = languages.Sum(language => (long)language.Total);
+            return total == 0 ?
+                0 :
+                Math.Clamp(languages.Sum(language =>
+                    (long)language.Translated + language.Verified) / (double)total, 0, 1);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var slug = Slug;
+        loading = true;
+        loadError = null;
+        project = null;
+        languages = [];
+
+        try
+        {
+            var projectUrl = $"api/v1/translations/projects/{Uri.EscapeDataString(slug)}";
+            var loadedProject = await Http.GetFromJsonAsync<TranslationProjectDTO>(projectUrl);
+            var loadedLanguages = await Http.GetFromJsonAsync<TranslationLanguageDTO[]>($"{projectUrl}/languages");
+            if (Slug != slug)
+                return;
+
+            project = loadedProject;
+            languages = loadedLanguages ?? [];
+            if (project == null)
+                loadError = "Translation project could not be found.";
+        }
+        catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.NotFound)
+        {
+            if (Slug == slug)
+                loadError = "Translation project could not be found.";
+        }
+        catch (Exception e)
+        {
+            if (Slug == slug)
+                loadError = $"Could not load translation project: {e.Message}";
+        }
+        finally
+        {
+            if (Slug == slug)
+                loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            preferredLanguages = await JS.InvokeAsync<string[]>("getPreferredLanguages");
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+            // Language detection is optional; the project language list is always available.
+        }
+    }
+
+    private string LanguageUrl(TranslationLanguageDTO language)
+    {
+        return $"translations/{Uri.EscapeDataString(Slug)}/{Uri.EscapeDataString(language.LanguageCode)}";
+    }
+
+}
