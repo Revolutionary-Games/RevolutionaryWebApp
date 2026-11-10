@@ -432,15 +432,6 @@ else
             {
                 <p>@data.Description</p>
             }
-            @if (!string.IsNullOrWhiteSpace(data.SourceLocations))
-            {
-                <h6>Source locations</h6>
-                @* TODO: add a navigation link to GitHub source if this project uses it / probably should have a
-                URL template setting in the project model which could be used here to substitute the location.
-                Or maybe upon reading translations data the reader code could build the full links and this should
-                make a clickable link if it starts with https (open in new tab, though? *@
-                <pre class="small text-wrap">@data.SourceLocations</pre>
-            }
             @if (dictionaryMatches.Length > 0)
             {
                 <h6>Dictionary Words</h6>
@@ -469,6 +460,15 @@ else
                         }
                     </div>
                 }
+            }
+            @if (!string.IsNullOrWhiteSpace(data.SourceLocations))
+            {
+                <h6>Source locations</h6>
+                @* TODO: add a navigation link to GitHub source if this project uses it / probably should have a
+                URL template setting in the project model which could be used here to substitute the location.
+                Or maybe upon reading translations data the reader code could build the full links and this should
+                make a clickable link if it starts with https (open in new tab, though? *@
+                <pre class="small text-wrap">@data.SourceLocations</pre>
             }
             <hr/>
             <h6>Key created</h6>
