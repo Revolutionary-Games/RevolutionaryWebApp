@@ -129,14 +129,28 @@ public class TranslationWorkflowTests
                 ControllerContext = new ControllerContext { HttpContext = context },
             };
 
+            var initialVersion = source.Version;
+            var explanationOnly = await editor.Save(new TranslationSaveRequest
+            {
+                ProjectId = project.Id, Key = confirm.Key, LanguageCode = "en",
+                Text = source.Text, State = source.State, Version = source.Version,
+                Explanation = "Confirms the current selection.",
+            });
+            Assert.Equal("Confirms the current selection.", explanationOnly.Value!.Explanation);
+            Assert.NotEqual(initialVersion, source.Version);
+            Assert.Equal(1, confirm.SourceRevision);
+            Assert.Equal(TranslationState.Translated, target.State);
+            Assert.Null(source.PendingRevision);
+
             // Exercise the same saves as the UI, including invalidation after a source edit.
             var editedSource = await editor.Save(new TranslationSaveRequest
             {
                 ProjectId = project.Id, Key = confirm.Key, LanguageCode = "en",
-                Text = "Confirm selection", Version = source.Version,
+                Text = "Confirm selection", Explanation = "Confirms the current selection.", Version = source.Version,
             });
             Assert.NotNull(editedSource.Value);
             Assert.Equal("Confirm selection", editedSource.Value.Text);
+            Assert.Equal("Confirms the current selection.", editedSource.Value.Explanation);
             Assert.Equal(2, confirm.SourceRevision);
             Assert.Equal(TranslationState.NeedsTranslation, target.State);
             Assert.NotNull(source.PendingRevision);
@@ -144,10 +158,12 @@ public class TranslationWorkflowTests
             var editedTarget = await editor.Save(new TranslationSaveRequest
             {
                 ProjectId = project.Id, Key = confirm.Key, LanguageCode = "fi",
-                Text = "Vahvista valinta", Version = target.Version,
+                Text = "Vahvista valinta", Explanation = "Target editors cannot replace this.",
+                Version = target.Version,
             });
             Assert.NotNull(editedTarget.Value);
             Assert.Equal("Vahvista valinta", editedTarget.Value.Text);
+            Assert.Equal("Confirms the current selection.", editedTarget.Value.Explanation);
             Assert.Equal("Confirm selection", target.SourceTextTranslatedFrom);
             Assert.Equal(confirm.SourceRevision, target.SourceRevisionTranslatedFrom);
             Assert.Equal(TranslationState.Translated, target.State);

@@ -79,17 +79,23 @@ public class ImportTranslationProjectJobTests
             var value = await database.TranslationValues.SingleAsync(item => item.LanguageCode == "fi");
             Assert.Equal("Hei", value.Text);
 
+            var unit = await database.TranslationUnits.SingleAsync();
+            unit.Explanation = "Shown on the confirmation button.";
+            await database.SaveChangesAsync();
+
             File.Delete(targetPath);
             for (var replay = 0; replay < 2; ++replay)
             {
                 await (Task)importFiles.Invoke(job, [project, checkout.FullName, "removed", CancellationToken.None])!;
+                Assert.Equal("Shown on the confirmation button.", unit.Explanation);
                 Assert.False(language.Enabled);
                 Assert.Equal("Hei", value.Text);
-                Assert.True(await database.TranslationUnits.AllAsync(unit => unit.Active));
+                Assert.True(await database.TranslationUnits.AllAsync(u => u.Active));
             }
 
             await File.WriteAllTextAsync(targetPath, target.Replace("Hei", "Terve", StringComparison.Ordinal));
             await (Task)importFiles.Invoke(job, [project, checkout.FullName, "restored", CancellationToken.None])!;
+            Assert.Equal("Shown on the confirmation button.", unit.Explanation);
             Assert.True(language.Enabled);
             Assert.Equal("Terve", value.Text);
             Assert.Same(value, await database.TranslationValues.SingleAsync(item => item.LanguageCode == "fi"));

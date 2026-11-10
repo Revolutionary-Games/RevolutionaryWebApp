@@ -291,6 +291,9 @@ public class TranslationEditorController : Controller
                 "Translation changed since this page was loaded. Please copy your work and then reload the page.");
         }
 
+        var explanationChanged = request.LanguageCode == project.SourceLanguage &&
+            unit.Explanation != request.Explanation;
+
         var oldText = value.Text;
         var oldState = value.State;
         var previousEditor = value.LastEditedByUserId;
@@ -304,13 +307,16 @@ public class TranslationEditorController : Controller
         if (state == TranslationState.Verified && !TranslationPermissions.CanVerify(groups))
             return this.WorkingForbid("You don't have permission to verify translations");
 
-        if (!textChanged && oldState == state)
+        if (!textChanged && !explanationChanged && oldState == state)
             return await Get(request.ProjectId, request.Key, request.LanguageCode, HttpContext.RequestAborted);
+
+        if (explanationChanged)
+            unit.Explanation = request.Explanation;
 
         value.Text = request.Text;
         value.State = state;
         value.Version = Guid.NewGuid();
-        if (textChanged)
+        if (textChanged || explanationChanged)
         {
             value.LastEditedByUserId = actor.Id;
             value.LastEditedAt = DateTime.UtcNow;
@@ -337,7 +343,7 @@ public class TranslationEditorController : Controller
         }
 
         var revision = ++project.CurrentRevision;
-        if (project.Format != TranslationFormat.Manual)
+        if (project.Format != TranslationFormat.Manual && (textChanged || oldState != state))
         {
             value.PendingRevision = revision;
             value.PendingSince ??= DateTime.UtcNow;
@@ -347,7 +353,7 @@ public class TranslationEditorController : Controller
         await database.TranslationChanges.AddAsync(new TranslationChange
         {
             ProjectId = project.Id, Key = unit.Key, LanguageCode = value.LanguageCode,
-            ActorUserId = actor.Id, Kind = textChanged ?
+            ActorUserId = actor.Id, Kind = textChanged || explanationChanged ?
                 TranslationChangeKind.UserEdit :
                 TranslationChangeKind.StateChanged,
             ContributorUserId = textChanged && state != TranslationState.NeedsTranslation ? actor.Id : null,
