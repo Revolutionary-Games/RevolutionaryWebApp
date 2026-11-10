@@ -159,6 +159,10 @@ public class MaintenanceController : Controller
         yield return ("clearOldCIImages", "Mark all CI images for deletion, and schedule cleanup in 90 days",
             StartClearOldCIImages);
 
+        yield return ("cleanDuplicateDictionaryLanguages",
+            "Remove empty duplicate dictionary entries for equivalent languages; fail if multiple entries contain " +
+            "translations or explanations", StartCleanDuplicateDictionaryLanguages);
+
         // Not required for now
         // yield return ("importWordPress", "Import WordPress posts (from temp/wordpress-import)",
         //     StartWordPressImportPosts);
@@ -192,5 +196,11 @@ public class MaintenanceController : Controller
     private static void StartClearOldCIImages(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<ClearOldCIImagesPrepareJob>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartCleanDuplicateDictionaryLanguages(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<CleanDuplicateDictionaryLanguagesJob>(x => x.Execute(operationId, CancellationToken.None));
     }
 }
