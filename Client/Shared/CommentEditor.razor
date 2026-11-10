@@ -1,0 +1,122 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Utilities
+@inject HttpClient Http
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div @ref="root" class="comment-editor">
+    <div class="editor-surface">
+        <div class="mention-highlights" aria-hidden="true"></div>
+        <textarea id="@Id" class="form-control" rows="@Rows" placeholder="@Placeholder"
+                  aria-label="@Label" aria-autocomplete="list" aria-controls="@(Id + "-suggestions")"
+                  spellcheck="false" disabled="@Disabled"></textarea>
+    </div>
+    <div id="@(Id + "-suggestions")" class="mention-suggestions" role="listbox" aria-label="Username suggestions" hidden></div>
+</div>
+<StatusMessageShower Message="@error" Type="@SiteNoticeType.Warning" />
+
+@code {
+    private ElementReference root;
+    private IJSObjectReference? module;
+    private IJSObjectReference? editor;
+    private DotNetObjectReference<CommentEditor>? reference;
+    private string? error;
+    private int requestVersion;
+    private bool disposed;
+
+    [Parameter]
+    public string Id { get; set; } = "comment-" + Guid.NewGuid().ToString("N");
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public int Rows { get; set; } = 4;
+
+    [Parameter]
+    public string Placeholder { get; set; } = "Comment text (use Markdown formatting)";
+
+    [Parameter]
+    public string Label { get; set; } = "Comment";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [JSInvokable]
+    public async Task EditorChanged(string text, string? query)
+    {
+        var version = ++requestVersion;
+        Value = text;
+        await ValueChanged.InvokeAsync(text);
+        error = null;
+        await Task.Delay(250);
+        if (disposed || version != requestVersion || editor == null)
+            return;
+
+        try
+        {
+            var names = Usernames.MentionPattern.Matches(text).Select(m => m.Groups[1].Value).Distinct().ToList();
+            var validNames = new List<string>();
+            foreach (var batch in names.Chunk(10))
+            {
+                using var response = await Http.PostAsJsonAsync("api/v1/UserManagement/mentions", batch);
+                response.EnsureSuccessStatusCode();
+                validNames.AddRange(await response.Content.ReadFromJsonAsync<List<string>>() ?? []);
+            }
+
+            var suggestions = new List<string>();
+            if (query is { Length: >= 3 } && Usernames.IsValid(query))
+            {
+                suggestions = await Http.GetFromJsonAsync<List<string>>(
+                    $"api/v1/UserManagement/mentionSuggestions?query={Uri.EscapeDataString(query)}") ?? [];
+            }
+
+            if (!disposed && version == requestVersion)
+                await editor.InvokeVoidAsync("update", validNames, suggestions, query);
+        }
+        catch (Exception)
+        {
+            if (!disposed && version == requestVersion)
+                error = "Could not check usernames. Edit the mention to try again.";
+        }
+
+        if (!disposed)
+            await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        ++requestVersion;
+        if (editor != null)
+        {
+            await editor.InvokeVoidAsync("dispose");
+            await editor.DisposeAsync();
+        }
+
+        reference?.Dispose();
+        if (module != null)
+            await module.DisposeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/commentEditor.js");
+            reference = DotNetObjectReference.Create(this);
+            editor = await module.InvokeAsync<IJSObjectReference>("create", root, reference, Value,
+                Usernames.MentionPattern.ToString());
+
+            if (!string.IsNullOrEmpty(Value))
+                await EditorChanged(Value, null);
+        }
+        else if (editor != null)
+        {
+            await editor.InvokeVoidAsync("setValue", Value);
+        }
+    }
+}

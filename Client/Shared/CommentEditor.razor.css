@@ -1,0 +1,74 @@
+.comment-editor {
+    position: relative;
+    margin-bottom: .5rem;
+}
+
+.editor-surface {
+    position: relative;
+    background: var(--bs-body-bg, white);
+    border-radius: .375rem;
+}
+
+textarea, .mention-highlights {
+    font: inherit;
+    line-height: 1.5;
+    letter-spacing: normal;
+    padding: .375rem .75rem;
+    border: 1px solid transparent;
+    border-radius: .375rem;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    tab-size: 4;
+}
+
+textarea {
+    position: relative;
+    background: transparent !important;
+    resize: vertical;
+}
+
+.mention-highlights {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    color: transparent;
+    pointer-events: none;
+}
+
+.mention-highlights ::deep mark {
+    color: transparent;
+    padding: 0;
+    border-radius: 0;
+    background: #d3ebff;
+}
+
+.mention-highlights ::deep mark.invalid {
+    background: #ffbcbc;
+}
+
+.mention-suggestions {
+    position: absolute;
+    z-index: 1050;
+    width: min(18rem, 100%);
+    max-height: 15rem;
+    overflow-y: auto;
+    background: var(--bs-body-bg, white);
+    border: 1px solid var(--bs-border-color, #ccc);
+    border-radius: .25rem;
+    box-shadow: 0 .25rem .75rem #0003;
+}
+
+.mention-suggestions ::deep button {
+    display: block;
+    width: 100%;
+    border: 0;
+    padding: .35rem .75rem;
+    text-align: left;
+    color: var(--bs-body-color, #212529);
+    background: transparent;
+}
+
+.mention-suggestions ::deep button[aria-selected="true"] {
+    background: #d3ebff;
+    color: #212529;
+}
