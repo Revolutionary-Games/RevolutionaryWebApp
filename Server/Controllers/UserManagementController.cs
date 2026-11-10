@@ -12,6 +12,7 @@ using BlazorPagination;
 using Filters;
 using Hubs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -55,6 +56,22 @@ public class UserManagementController : Controller
             return NotFound();
 
         return users[0];
+    }
+
+    [HttpGet("mentionSuggestions")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    [OutputCache(PolicyName = "Authenticated", Duration = 300)]
+    public async Task<ActionResult<List<string>>> GetMentionSuggestions(
+        [Required] [StringLength(50, MinimumLength = 3)] string query)
+    {
+        if (!Shared.Utilities.Usernames.IsValid(query) || query.Length < 3)
+            return BadRequest("Type at least 3 username characters");
+
+        var term = query.ToLowerInvariant();
+        return await database.Users.AsNoTracking().Where(u => u.UserName.ToLower().Contains(term))
+            .GroupBy(u => u.UserName).Where(g => g.Count() == 1).Select(g => g.Key)
+            .OrderByDescending(name => name.ToLower().StartsWith(term)).ThenBy(name => name)
+            .Take(10).ToListAsync(HttpContext.RequestAborted);
     }
 
     [HttpPost("mentions")]

@@ -164,7 +164,14 @@ public class Startup
             options.UseCaseSensitivePaths = true;
             options.MaximumBodySize = GlobalConstants.MEBIBYTE * 4;
 
-            // TODO: policies?
+            // NOTE: this protects in general with access attributes, however any custom checks won't be protected.
+            // Thus, any endpoint adding output cache needs to be carefully inspected to make sure it rejects caching
+            // or doesn't do any of these dangerous things.
+            // Also note that this does not cache per user. Only filtering based on the access attributes. So all users
+            // with access get the same results.
+            options.AddPolicy("Authenticated", new AuthorizationOutputCachePolicy());
+
+            // Note the default or these policies do not check access!
             options.AddPolicy("ShortLived", builder =>
                 builder.Expire(TimeSpan.FromSeconds(30)));
         });
