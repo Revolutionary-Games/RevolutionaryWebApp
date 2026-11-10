@@ -18,6 +18,10 @@ function getCurrentURL() {
     return window.location.href;
 }
 
+function getPreferredLanguages() {
+    return navigator.languages?.length ? Array.from(navigator.languages) : [navigator.language];
+}
+
 function getCSRFToken() {
     return document.getElementById("csrfUserToken").value;
 }
