@@ -6,11 +6,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Models;
 using Services;
 using Shared.Models.Enums;
+using Utilities;
 
 /// <summary>
 ///   Sends a grouped reminder for notifications still unread after the quiet period.
@@ -21,13 +23,16 @@ public class DigestUnreadNotificationsJob : IJob
     private readonly ApplicationDbContext database;
     private readonly IMailQueue mailQueue;
     private readonly IConfiguration configuration;
+    private readonly ITimeLimitedDataProtector tokenProtector;
 
     public DigestUnreadNotificationsJob(ApplicationDbContext database, IMailQueue mailQueue,
-        IConfiguration configuration)
+        IConfiguration configuration, IDataProtectionProvider dataProtectionProvider)
     {
         this.database = database;
         this.mailQueue = mailQueue;
         this.configuration = configuration;
+        tokenProtector = dataProtectionProvider.CreateProtector(EmailPreferenceToken.ProtectionPurpose)
+            .ToTimeLimitedDataProtector();
     }
 
     public async Task Execute(CancellationToken cancellationToken)
@@ -82,10 +87,14 @@ public class DigestUnreadNotificationsJob : IJob
                     .Append(System.Net.WebUtility.HtmlEncode(inboxUrl))
                     .Append("\">notifications</a>.</p>");
 
+                var withFooter = await EmailHelpers.GenerateFooterAsync(database, tokenProtector, configuration,
+                    user.Email, EmailReason.Notifications, user.Id, htmlBody.ToString(), body.ToString(), null,
+                    cancellationToken);
+
                 await mailQueue.SendEmail(new MailRequest(user.Email, "Unread notifications", EmailReason.Notifications)
                 {
-                    HtmlBody = htmlBody.ToString(),
-                    PlainTextBody = body.ToString(),
+                    HtmlBody = withFooter.Html,
+                    PlainTextBody = withFooter.Plain,
                     RecipientUserId = user.Id,
                 }, cancellationToken);
             }
