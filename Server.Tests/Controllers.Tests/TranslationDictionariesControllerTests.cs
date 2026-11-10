@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -117,6 +118,65 @@ public class TranslationDictionariesControllerTests
             DictionaryId = 1, Word = "Ladle", Context = "library", LanguageCode = "fi", Text = "Kauha",
         }));
         Assert.Equal("Old translation", (await database.DictionaryTermTranslations.SingleAsync()).Text);
+    }
+
+    [Theory]
+    [InlineData("zh_CN", "zh-Hans")]
+    [InlineData("zh-Hant", "zh_TW")]
+    [InlineData("pt_BR", "pt-BR")]
+    [InlineData("pt-BR", "pt_BR")]
+    public async Task EquivalentLanguagesShareTranslationsAndEdits(string storedCode, string requestedCode)
+    {
+        await using var database = CreateDatabase();
+        var actor = new User("translator@example.com", "Translator");
+        actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User));
+        database.Users.Add(actor);
+        database.TranslationDictionaries.Add(new TranslationDictionary { Id = 1, Name = "Test" });
+        database.TranslationProjects.Add(new TranslationProject { Id = 1, DictionaryId = 1 });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+        {
+            ProjectId = 1, LanguageCode = storedCode,
+        });
+        database.TranslationProjectLanguages.Add(new TranslationProjectLanguage
+        {
+            ProjectId = 1, LanguageCode = requestedCode,
+        });
+        database.TranslationUnits.Add(new TranslationUnit { ProjectId = 1, Key = "cat", SourceText = "Cat" });
+        database.DictionaryTerms.Add(new DictionaryTerm { DictionaryId = 1, Word = "Cat" });
+        database.DictionaryTermTranslations.Add(new DictionaryTermTranslation
+        {
+            DictionaryId = 1, Word = "Cat", LanguageCode = storedCode, Text = "Translated cat",
+        });
+        database.DictionaryLanguageTerms.Add(new DictionaryLanguageTerm
+        {
+            DictionaryId = 1, LanguageCode = storedCode, Word = "Local cat", SourceWord = "Cat",
+        });
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var controller = new TranslationDictionariesController(NullLogger<TranslationDictionariesController>.Instance,
+            database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+
+        var result = await controller.Terms(1, language: requestedCode);
+        Assert.NotNull(result.Value);
+        Assert.Contains(result.Value.Results, term => term.TargetText == "Translated cat");
+        Assert.Contains(result.Value.Results, term => term.TargetText == "Local cat");
+        Assert.Single((await controller.Languages(1)).Value!);
+        var matches = (await controller.Matching(1, "cat", requestedCode, CancellationToken.None)).Value;
+        Assert.NotNull(matches);
+        Assert.Contains(matches, term => term.TargetText == "Translated cat");
+        Assert.Contains(matches, term => term.TargetText == "Local cat");
+        Assert.IsType<NoContentResult>(await controller.SaveTranslation(new SaveDictionaryTranslationRequest
+        {
+            DictionaryId = 1, Word = "Cat", LanguageCode = requestedCode, Text = "Updated cat",
+            State = TranslationState.Translated,
+        }));
+        var translation = Assert.Single(await database.DictionaryTermTranslations.ToListAsync());
+        Assert.Equal(storedCode, translation.LanguageCode);
+        Assert.Equal("Updated cat", translation.Text);
     }
 
     private static NotificationsEnabledDb CreateDatabase()

@@ -19,6 +19,7 @@ using Models.Translations;
 using Services;
 using Shared.Models;
 using Shared.Models.Enums;
+using Shared.Utilities;
 
 [APIKeyScope(APIKeyScope.Translations)]
 [ApiController]
@@ -329,12 +330,20 @@ public class TranslationProjectsController : Controller
         {
             var terms = await database.DictionaryTerms.AsNoTracking()
                 .Where(term => term.DictionaryId == dictionaryId).ToListAsync();
+            var equivalentCodes = DictionaryLanguageCodes.GetEquivalentCodes(code);
+            var existing = await database.DictionaryTermTranslations.IgnoreQueryFilters()
+                .Where(term => term.DictionaryId == dictionaryId && equivalentCodes.Contains(term.LanguageCode))
+                .Select(term => new { term.Word, term.Context }).ToListAsync();
+            var existingKeys = existing.Select(term => (term.Word, term.Context)).ToHashSet();
             foreach (var term in terms)
             {
+                if (existingKeys.Contains((term.Word, term.Context)))
+                    continue;
+
                 await database.DictionaryTermTranslations.AddAsync(new DictionaryTermTranslation
                 {
                     DictionaryId = dictionaryId, Word = term.Word, Context = term.Context,
-                    LanguageCode = code, State = TranslationState.NeedsTranslation,
+                    LanguageCode = DictionaryLanguageCodes.Normalize(code), State = TranslationState.NeedsTranslation,
                 });
             }
         }

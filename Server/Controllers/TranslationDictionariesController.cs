@@ -55,7 +55,7 @@ public class TranslationDictionariesController : Controller
         var languages = await database.TranslationProjects.Where(p => p.DictionaryId == id)
             .Join(database.TranslationProjectLanguages, p => p.Id, l => l.ProjectId,
                 (p, l) => l.LanguageCode).Distinct().OrderBy(code => code).ToArrayAsync();
-        return languages;
+        return languages.Select(DictionaryLanguageCodes.Normalize).Distinct().OrderBy(code => code).ToArray();
     }
 
     [CountContribution(100)]
@@ -84,6 +84,8 @@ public class TranslationDictionariesController : Controller
         if (!await database.TranslationDictionaries.AnyAsync(item => item.Id == id))
             return NotFound();
 
+        var languageCodes = DictionaryLanguageCodes.GetEquivalentCodes(language);
+        var preferredLanguage = DictionaryLanguageCodes.Normalize(language);
         var sourceTerms = database.DictionaryTerms.AsNoTracking().Where(t => t.DictionaryId == id)
             .Select(term => new DictionaryTermDTO
             {
@@ -99,7 +101,7 @@ public class TranslationDictionariesController : Controller
                 Untranslatable = term.Untranslatable,
             });
         var languageTerms = database.DictionaryLanguageTerms.AsNoTracking()
-            .Where(t => t.DictionaryId == id && t.LanguageCode == language)
+            .Where(t => t.DictionaryId == id && languageCodes.Contains(t.LanguageCode))
             .Select(term => new DictionaryTermDTO
             {
                 DictionaryId = id,
@@ -143,9 +145,11 @@ public class TranslationDictionariesController : Controller
         var words = pageTerms.Select(t => t.Word).Distinct().ToArray();
         var contexts = pageTerms.Select(t => t.Context).Distinct().ToArray();
         var targets = await database.DictionaryTermTranslations.AsNoTracking().Where(t =>
-            t.DictionaryId == id && t.LanguageCode == language && words.Contains(t.Word) &&
+            t.DictionaryId == id && languageCodes.Contains(t.LanguageCode) && words.Contains(t.Word) &&
             contexts.Contains(t.Context)).ToListAsync();
-        var targetMap = targets.ToDictionary(t => (t.Word, t.Context));
+        var targetMap = targets.OrderBy(t => t.Text.Length == 0).ThenBy(t => t.LanguageCode != preferredLanguage)
+            .ThenBy(t => t.LanguageCode, StringComparer.Ordinal).GroupBy(t => (t.Word, t.Context))
+            .ToDictionary(group => group.Key, group => group.First());
         foreach (var term in pageTerms)
         {
             if (term.Untranslatable)
@@ -169,6 +173,8 @@ public class TranslationDictionariesController : Controller
     public async Task<ActionResult<DictionaryTermDTO[]>> Matching(long projectId, string key, string language,
         CancellationToken cancellationToken)
     {
+        var languageCodes = DictionaryLanguageCodes.GetEquivalentCodes(language);
+        var preferredLanguage = DictionaryLanguageCodes.Normalize(language);
         var project = await database.TranslationProjects.AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == projectId && p.Enabled, cancellationToken);
         var unit = await database.TranslationUnits.AsNoTracking()
@@ -194,7 +200,7 @@ public class TranslationDictionariesController : Controller
             .ToListAsync(cancellationToken);
         var matchingTerms = terms.Where(term => DictionaryWordMatches(unit.SourceText, term.Word)).ToList();
         var languageTerms = await database.DictionaryLanguageTerms.AsNoTracking()
-            .Where(term => term.DictionaryId == project.DictionaryId && term.LanguageCode == language &&
+            .Where(term => term.DictionaryId == project.DictionaryId && languageCodes.Contains(term.LanguageCode) &&
                 term.SourceWord != string.Empty)
             .ToListAsync(cancellationToken);
         var matchingLanguageTerms = languageTerms
@@ -206,10 +212,13 @@ public class TranslationDictionariesController : Controller
             var words = matchingTerms.Select(term => term.Word).Distinct().ToArray();
             var contexts = matchingTerms.Select(term => term.Context).Distinct().ToArray();
             var target = await database.DictionaryTermTranslations.AsNoTracking()
-                .Where(term => term.DictionaryId == project.DictionaryId && term.LanguageCode == language &&
+                .Where(term => term.DictionaryId == project.DictionaryId && languageCodes.Contains(term.LanguageCode) &&
                     words.Contains(term.Word) && contexts.Contains(term.Context))
                 .ToListAsync(cancellationToken);
-            targetMap = target.ToDictionary(term => (term.Word, term.Context));
+            targetMap = target.OrderBy(term => term.Text.Length == 0)
+                .ThenBy(term => term.LanguageCode != preferredLanguage)
+                .ThenBy(term => term.LanguageCode, StringComparer.Ordinal).GroupBy(term => (term.Word, term.Context))
+                .ToDictionary(group => group.Key, group => group.First());
         }
 
         var matches = matchingTerms.Select(term =>
@@ -277,7 +286,7 @@ public class TranslationDictionariesController : Controller
                 (p, l) => new { l.LanguageCode, p.SourceLanguage })
             .Where(row => row.LanguageCode != row.SourceLanguage)
             .Select(row => row.LanguageCode).Distinct().ToListAsync();
-        foreach (var language in languages)
+        foreach (var language in languages.Select(DictionaryLanguageCodes.Normalize).Distinct())
         {
             await database.DictionaryTermTranslations.AddAsync(new DictionaryTermTranslation
             {
@@ -410,6 +419,8 @@ public class TranslationDictionariesController : Controller
     [RequireTranslatorAgreement]
     public async Task<IActionResult> AddLanguageTerm([FromBody] CreateDictionaryLanguageTermRequest request)
     {
+        var languageCodes = DictionaryLanguageCodes.GetEquivalentCodes(request.LanguageCode);
+        request.LanguageCode = DictionaryLanguageCodes.Normalize(request.LanguageCode);
         var actor = HttpContext.AuthenticatedUserOrThrow();
 
         if (!TranslationPermissions.CanEditTargetDictionary(actor.AccessCachedGroupsOrThrow()))
@@ -432,13 +443,13 @@ public class TranslationDictionariesController : Controller
 
         var languageIsConfigured = await database.TranslationProjects.Where(p => p.DictionaryId == request.DictionaryId)
             .Join(database.TranslationProjectLanguages, p => p.Id, l => l.ProjectId,
-                (p, l) => l.LanguageCode).AnyAsync(code => code == request.LanguageCode);
+                (p, l) => l.LanguageCode).AnyAsync(code => languageCodes.Contains(code));
         if (!languageIsConfigured)
             return BadRequest("Language is not configured for this dictionary");
 
         if (await database.DictionaryLanguageTerms.IgnoreQueryFilters()
                 .AnyAsync(t => t.DictionaryId == request.DictionaryId &&
-                    t.LanguageCode == request.LanguageCode && t.Word == word && t.Context == context))
+                    languageCodes.Contains(t.LanguageCode) && t.Word == word && t.Context == context))
         {
             return Conflict("Dictionary term already exists for this language and context (but might be deleted)");
         }
@@ -466,6 +477,7 @@ public class TranslationDictionariesController : Controller
     [RequireTranslatorAgreement]
     public async Task<IActionResult> SaveLanguageTerm([FromBody] SaveDictionaryLanguageTermRequest request)
     {
+        var languageCodes = DictionaryLanguageCodes.GetEquivalentCodes(request.LanguageCode);
         var actor = HttpContext.AuthenticatedUserOrThrow();
 
         if (!TranslationPermissions.CanEditTargetDictionary(actor.AccessCachedGroupsOrThrow()))
@@ -481,9 +493,11 @@ public class TranslationDictionariesController : Controller
         if (sourceWord.Length == 0)
             return BadRequest("Source language word cannot be empty");
 
-        var term = await database.DictionaryLanguageTerms.FirstOrDefaultAsync(item =>
-            item.DictionaryId == request.DictionaryId && item.LanguageCode == request.LanguageCode &&
-            item.Word == request.Word && item.Context == request.Context);
+        var term = await database.DictionaryLanguageTerms
+            .OrderBy(item => item.LanguageCode != request.LanguageCode).ThenBy(item => item.LanguageCode)
+            .FirstOrDefaultAsync(item =>
+                item.DictionaryId == request.DictionaryId && languageCodes.Contains(item.LanguageCode) &&
+                item.Word == request.Word && item.Context == request.Context);
         if (term == null)
             return NotFound();
 
@@ -495,7 +509,7 @@ public class TranslationDictionariesController : Controller
         if ((term.Word != word || term.Context != context) &&
             await database.DictionaryLanguageTerms.IgnoreQueryFilters()
                 .AnyAsync(t => t.DictionaryId == request.DictionaryId &&
-                    t.LanguageCode == request.LanguageCode && t.Word == word && t.Context == context))
+                    languageCodes.Contains(t.LanguageCode) && t.Word == word && t.Context == context))
         {
             return Conflict("Dictionary term already exists for this language and context");
         }
@@ -508,7 +522,7 @@ public class TranslationDictionariesController : Controller
             var updatedTerm = new DictionaryLanguageTerm
             {
                 DictionaryId = request.DictionaryId,
-                LanguageCode = request.LanguageCode,
+                LanguageCode = term.LanguageCode,
                 Word = word,
                 SourceWord = sourceWord,
                 Context = context,
@@ -542,6 +556,8 @@ public class TranslationDictionariesController : Controller
     [RequireTranslatorAgreement]
     public async Task<IActionResult> SaveTranslation([FromBody] SaveDictionaryTranslationRequest request)
     {
+        var languageCodes = DictionaryLanguageCodes.GetEquivalentCodes(request.LanguageCode);
+        request.LanguageCode = DictionaryLanguageCodes.Normalize(request.LanguageCode);
         var actor = HttpContext.AuthenticatedUserOrThrow();
 
         if (!TranslationPermissions.CanEditTargetDictionary(actor.AccessCachedGroupsOrThrow()))
@@ -563,9 +579,12 @@ public class TranslationDictionariesController : Controller
         if (state != TranslationState.NeedsTranslation && string.IsNullOrWhiteSpace(request.Text))
             return BadRequest("Empty dictionary translations need translation");
 
-        var value = await database.DictionaryTermTranslations.FirstOrDefaultAsync(item =>
-            item.DictionaryId == request.DictionaryId && item.Word == request.Word &&
-            item.Context == request.Context && item.LanguageCode == request.LanguageCode);
+        var value = await database.DictionaryTermTranslations
+            .OrderBy(item => item.Text == string.Empty)
+            .ThenBy(item => item.LanguageCode != request.LanguageCode).ThenBy(item => item.LanguageCode)
+            .FirstOrDefaultAsync(item =>
+                item.DictionaryId == request.DictionaryId && item.Word == request.Word &&
+                item.Context == request.Context && languageCodes.Contains(item.LanguageCode));
         if (value == null)
             return NotFound();
 
@@ -689,7 +708,7 @@ public class TranslationDictionariesController : Controller
                 (p, l) => new { p.SourceLanguage, l.LanguageCode })
             .Where(pair => pair.LanguageCode != pair.SourceLanguage)
             .Select(pair => pair.LanguageCode).Distinct().ToListAsync();
-        foreach (var language in languages)
+        foreach (var language in languages.Select(DictionaryLanguageCodes.Normalize).Distinct())
         {
             await database.DictionaryTermTranslations.AddAsync(new DictionaryTermTranslation
             {
