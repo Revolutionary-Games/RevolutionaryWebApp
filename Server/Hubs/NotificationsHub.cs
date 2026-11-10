@@ -413,6 +413,8 @@ public class NotificationsHub : Hub<INotifications>
                 return RequireAccessLevel(GroupType.Admin, user) || RequireGroup(GroupType.DictionaryManager, user);
 
             case NotificationGroups.UserListUpdated:
+                return RequireAccessLevel(GroupType.Admin, user) || RequireGroup(GroupType.ContentModerator, user);
+
             case NotificationGroups.PatronListUpdated:
             case NotificationGroups.AccessKeyListUpdated:
             case NotificationGroups.ControlledServerListUpdated:
@@ -484,16 +486,24 @@ public class NotificationsHub : Hub<INotifications>
 
             // Early return if the user is not an admin and not looking at themselves, this prevents user id
             // enumeration from this endpoint
-            if (user?.Id != id && !RequireAccessLevel(GroupType.Admin, user))
+            if (user?.Id != id && !RequireAccessLevel(GroupType.Admin, user) &&
+                !(groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo) &&
+                    RequireGroup(GroupType.ContentModerator, user)))
+            {
                 return false;
+            }
 
             // Can't join non-existent user groups
             if (!GetTargetModelFromGroup(groupName, database.Users, out var item))
                 return false;
 
-            // Admins can see all user info
-            if (RequireAccessLevel(GroupType.Admin, user))
+            // Staff can inspect account details.
+            if (RequireAccessLevel(GroupType.Admin, user) ||
+                (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo) &&
+                    RequireGroup(GroupType.ContentModerator, user)))
+            {
                 return true;
+            }
 
             // People can see their own info
             return item!.Id == user?.Id;
@@ -930,9 +940,9 @@ public class NotificationsHub : Hub<INotifications>
             return RequireAccessLevel(GroupType.Admin, user);
         }
 
-        // Only admins see this
+        // Staff can inspect account details.
         if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
-            return RequireAccessLevel(GroupType.Admin, user);
+            return RequireAccessLevel(GroupType.Admin, user) || RequireGroup(GroupType.ContentModerator, user);
 
         // Unknown groups are not allowed
         return false;

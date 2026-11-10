@@ -29,7 +29,7 @@
     }
 </div>
 
-<AccessLimited RequiredAccess="GroupType.Admin" RedirectOnInsufficientPermission="@true">
+<AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" RedirectOnInsufficientPermission="@true">
     @if (!string.IsNullOrEmpty(Error))
     {
         <div class="alert alert-danger" role="alert">
@@ -123,7 +123,7 @@
 
     public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
-        if (!currentUserGroups.HasGroup(GroupType.Admin))
+        if (!currentUserGroups.HasGroup(GroupType.Admin) && !currentUserGroups.HasGroup(GroupType.ContentModerator))
             return;
 
         groups.Add(NotificationGroups.UserListUpdated);

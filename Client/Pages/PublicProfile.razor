@@ -1,0 +1,57 @@
+@page "/profiles/{Username}"
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Models
+
+<h3>User profile</h3>
+<SingleResourceDisplayer Error="@error" Loading="@loading" HasData="@(profile != null)">
+    @if (profile != null)
+    {
+        <p><strong>Username:</strong> @profile.Name</p>
+        <p><strong>Joined:</strong> @profile.CreatedAt.ToLocalTime().ToString("g")</p>
+        @if (!string.IsNullOrEmpty(profile.DisplayName))
+        {
+            <p><strong>Name:</strong> @profile.DisplayName</p>
+        }
+        <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" AutoRedirectIfNotLoggedIn="@false">
+            <NavLink href="@($"users/{profile.Id}")">Account details</NavLink>
+        </AccessLimited>
+    }
+</SingleResourceDisplayer>
+
+<DevCenterTitle>User @Username Profile</DevCenterTitle>
+
+@code {
+    private PublicUserProfile? profile;
+    private string? error;
+    private bool loading;
+    private int requestVersion;
+
+    [Parameter]
+    public string Username { get; set; } = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var version = ++requestVersion;
+        loading = true;
+        error = null;
+        profile = null;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<PublicUserProfile>(
+                $"api/v1/UserManagement/profile/{Uri.EscapeDataString(Username)}");
+            if (version == requestVersion)
+                profile = result;
+        }
+        catch (Exception e)
+        {
+            if (version == requestVersion)
+                error = $"Could not load user profile: {e.Message}";
+        }
+        finally
+        {
+            if (version == requestVersion)
+                loading = false;
+        }
+    }
+}

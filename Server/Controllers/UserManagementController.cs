@@ -40,12 +40,45 @@ public class UserManagementController : Controller
         this.notifications = notifications;
     }
 
+    [HttpGet("profile/{username}")]
+    public async Task<ActionResult<PublicUserProfile>> GetPublicProfile(string username)
+    {
+        bool loggedIn = HttpContext.AuthenticatedUser() != null;
+        var users = await database.Users.AsNoTracking().Where(u => u.UserName == username)
+            .Select(u => new PublicUserProfile
+            {
+                Id = u.Id, Name = u.UserName, CreatedAt = u.CreatedAt,
+                DisplayName = loggedIn ? u.DisplayName : null,
+            }).Take(2).ToListAsync();
+
+        if (users.Count != 1)
+            return NotFound();
+
+        return users[0];
+    }
+
+    [HttpPost("mentions")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
+    public async Task<ActionResult<List<string>>> ResolveMentions([FromBody] List<string> names)
+    {
+        if (names.Count > 10 || names.Any(n => !Shared.Utilities.Usernames.IsValid(n)))
+            return BadRequest("Request at most 10 valid usernames");
+
+        var matches = await database.Users.AsNoTracking().Where(u => names.Contains(u.UserName))
+            .Select(u => u.UserName).ToListAsync();
+        return matches.GroupBy(n => n).Where(g => g.Count() == 1).Select(g => g.Key).ToList();
+    }
+
+    // This implements a custom access filter
     [HttpGet]
-    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
-    public async Task<PagedResult<UserInfo>> GetList([Required] string sortColumn,
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
+    public async Task<ActionResult<PagedResult<UserInfo>>> GetList([Required] string sortColumn,
         [Required] SortDirection sortDirection, [Required] [Range(1, int.MaxValue)] int page,
         [Required] [Range(1, 100)] int pageSize, [FromQuery] string? search)
     {
+        if (!CanViewUserDetails())
+            return Forbid();
+
         IQueryable<User> query;
 
         bool suspendedSearch = false;
@@ -103,22 +136,19 @@ public class UserManagementController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
     public async Task<ActionResult<UserDTO>> GetUser([Required] long id)
     {
-        bool admin =
-            HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None);
-
         var user = await database.Users.AsNoTracking().Where(u => u.Id == id).Include(u => u.AssociationMember)
             .Include(u => u.ContributionCount).FirstOrDefaultAsync();
 
         if (user == null)
             return NotFound();
 
-        // Has to be an admin or looking at their own data
-        if (!admin && HttpContext.AuthenticatedUser()!.Id != user.Id)
+        // Staff can inspect accounts; users can inspect their own data.
+        if (!CanViewUserDetails() && HttpContext.AuthenticatedUser()!.Id != user.Id)
             return NotFound();
 
         await user.ComputeUserGroups(database);
 
-        return user.GetDTO(admin ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        return user.GetDTO(CanViewUserDetails() ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
     }
 
     [HttpPut("{id:long}/name")]
@@ -496,6 +526,13 @@ public class UserManagementController : Controller
         }
 
         return true;
+    }
+
+    [NonAction]
+    private bool CanViewUserDetails()
+    {
+        return HttpContext.HasAuthenticatedUserWithGroup(GroupType.Admin, AuthenticationScopeRestriction.None) ||
+            HttpContext.HasAuthenticatedUserWithGroup(GroupType.ContentModerator, AuthenticationScopeRestriction.None);
     }
 
     [NonAction]

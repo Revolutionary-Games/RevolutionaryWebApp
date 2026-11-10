@@ -13,7 +13,7 @@
     <SingleResourceDisplayer Error="@Error" Loading="@Loading" HasData="@(Data != null)">
         @if (Data != null)
         {
-            <UserInfoPageContent User="@Data" ShowSelfIdentification="@true" />
+            <UserInfoPageContent User="@Data" ShowSelfIdentification="@true"/>
         }
     </SingleResourceDisplayer>
 </AccessLimited>
@@ -21,6 +21,7 @@
 <DevCenterTitle>User @Id</DevCenterTitle>
 
 @code {
+
     protected override Task<UserDTO?> StartQuery()
     {
         return Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{Id}");
@@ -28,10 +29,14 @@
 
     public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
-        if(currentUserGroups.HasGroup(GroupType.Admin))
+        if (currentUserGroups.HasGroup(GroupType.Admin) || currentUserGroups.HasGroup(GroupType.ContentModerator))
+        {
             groups.Add(NotificationGroups.UserUpdatedPrefixAdminInfo + Id);
-
-        groups.Add(NotificationGroups.UserUpdatedPrefix + Id);
+        }
+        else
+        {
+            groups.Add(NotificationGroups.UserUpdatedPrefix + Id);
+        }
     }
 
     public async ValueTask DisposeAsync()

@@ -1,5 +1,5 @@
 @{
-    #pragma warning disable 108,114 // invalid warning for razor override
+#pragma warning disable 108,114 // invalid warning for razor override
 }
 @inject CurrentUserInfo CurrentUserInfo
 @inject HttpClient Http
@@ -32,10 +32,10 @@
 
     @if (LookingAtSelf)
     {
-        <UserTokenControls HasThisToken="@User.HasLfsToken" TokenType="LFS" TokenCreateAPI="api/v1/Tokens/lfs/self" />
+        <UserTokenControls HasThisToken="@User.HasLfsToken" TokenType="LFS" TokenCreateAPI="api/v1/Tokens/lfs/self"/>
     }
 
-    <AccessLimited RequiredAccess="GroupType.Admin">
+    <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator">
         <li><strong>Admin</strong>: @User.Groups.HasAccessLevel(GroupType.Admin)</li>
         <li><strong>Developer</strong>: @User.Groups.HasAccessLevel(GroupType.Developer)</li>
         <li><strong>Restricted</strong>: @User.Groups.HasGroup(GroupType.RestrictedUser)</li>
@@ -59,50 +59,53 @@
 
 @if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
 {
-    <UserNameEditor @key="User.Id" User="@User" />
+    <UserNameEditor @key="User.Id" User="@User"/>
 }
 
-<h4>Launcher Links</h4>
+@if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
+{
+    <h4>Launcher Links</h4>
 
-<AccessLimited RequiredGroup="GroupType.PatreonSupporter" OrHasOverride="GroupType.Developer">
-    <p>
-        You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center
-        features from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your
-        account is meant for your personally use only. Please do not share your account.
-    </p>
+    <AccessLimited RequiredGroup="GroupType.PatreonSupporter" OrHasOverride="GroupType.Developer">
+        <p>
+            You can link up to @AppInfo.DefaultMaxLauncherLinks Thrive Launchers to your account to access dev center
+            features from the launcher. By linking a launcher you can access devbuilds. Linking the launcher to your
+            account is meant for your personally use only. Please do not share your account.
+        </p>
 
-    <LauncherLinkList UserId="@User.Id" />
-</AccessLimited>
-
-<StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult" />
-
-<div>
-    <AccessLimited RequiredAccess="GroupType.User">
-        @if (LookingAtSelf)
-        {
-            <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
-                    Spinner="@gettingLauncherLinkCode" OnPressed="@StartLauncherLink">
-                Link Launcher
-            </Button>
-        }
+        <LauncherLinkList UserId="@User.Id"/>
     </AccessLimited>
 
-    <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@(!clearingAllLinks)" Spinner="@clearingAllLinks"
-            OnPressed="@ClearLauncherLinksOnUser">
-        Unlink All Launchers
-    </Button>
-</div>
+    <StatusMessageShower Message="@linkResult" Type="@linkResultType" OnClosed="@HideLinkResult"/>
 
-<h4 class="mt-2">Sessions</h4>
+    <div>
+        <AccessLimited RequiredAccess="GroupType.User">
+            @if (LookingAtSelf)
+            {
+                <Button class="mb-2" ButtonStyle="success" Enabled="@(!gettingLauncherLinkCode)"
+                        Spinner="@gettingLauncherLinkCode" OnPressed="@StartLauncherLink">
+                    Link Launcher
+                </Button>
+            }
+        </AccessLimited>
 
-<UserSessions Id="@User.Id" LookingAtSelf="@LookingAtSelf"/>
+        <Button class="mx-1 mb-2" ButtonStyle="danger" Enabled="@(!clearingAllLinks)" Spinner="@clearingAllLinks"
+                OnPressed="@ClearLauncherLinksOnUser">
+            Unlink All Launchers
+        </Button>
+    </div>
 
-<p class="mt-2">
-    <small>
-        Note: forum login sessions are not listed here but logging out everywhere will work for them once login for
-        them is handled through this website.
-    </small>
-</p>
+    <h4 class="mt-2">Sessions</h4>
+
+    <UserSessions Id="@User.Id" LookingAtSelf="@LookingAtSelf"/>
+
+    <p class="mt-2">
+        <small>
+            Note: forum login sessions are not listed here but logging out everywhere will work for them once login for
+            them is handled through this website.
+        </small>
+    </p>
+}
 
 <h4 class="mt-3">Groups</h4>
 
@@ -154,7 +157,8 @@
         {
             <p>This user is currently a board member.</p>
         }
-    } else if (User.HasBeenBoardMember)
+    }
+    else if (User.HasBeenBoardMember)
     {
         @if (LookingAtSelf)
         {
@@ -182,38 +186,41 @@ else
 
 <AccessLimited RequiredAccess="GroupType.Admin">
     Association membership can be edited <NavLink href="/association/members">here</NavLink>.
-    <br />
-    <br />
+    <br/>
+    <br/>
 </AccessLimited>
 
 <h4>Actions</h4>
 
-<StatusMessageShower Message="@actionResult" Type="@actionResultType" />
+<StatusMessageShower Message="@actionResult" Type="@actionResultType"/>
 
 @if (LookingAtSelf)
 {
     <p>You can logout everywhere with a button in the "Sessions" section.</p>
-    <br />
+    <br/>
 }
 
 <AccessLimited RequiredAccess="GroupType.Admin">
     <p>Force logout action is in the "Sessions" section.</p>
-    <br />
+    <br/>
     <Button class="mb-1" ButtonStyle="danger" Enabled="@CanClearTokens" Spinner="@clearingTokens"
             OnPressed="@ClearTokensOnUser">
         Force Clear Tokens (and keys)
     </Button>
-    <br />
+    <br/>
 
     @if (!LookingAtSelf)
     {
         <UserSuspensionControls User="@User"/>
     }
 
-    <br />
+    <br/>
 </AccessLimited>
 
-<APIKeys User="@User" LookingAtSelf="@LookingAtSelf" />
+@if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
+{
+    <APIKeys User="@User" LookingAtSelf="@LookingAtSelf"/>
+}
 
 @code {
 
@@ -362,4 +369,5 @@ else
 
         await InvokeAsync(StateHasChanged);
     }
+
 }

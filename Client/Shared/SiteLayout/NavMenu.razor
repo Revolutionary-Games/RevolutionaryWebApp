@@ -121,12 +121,14 @@
                 </NavLink>
             </li>-->
         </AccessLimited>
-        <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
+        <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftUsersButton" class="nav-link" href="users">
                     <i class="fa-solid fa-users-viewfinder nav-icon"></i> Users
                 </NavLink>
             </li>
+        </AccessLimited>
+        <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
             <li class="nav-item px-3">
                 <NavLink id="leftAdminButton" class="nav-link" href="admin">
                     <i class="fa-solid fa-gears nav-icon"></i> Admin
