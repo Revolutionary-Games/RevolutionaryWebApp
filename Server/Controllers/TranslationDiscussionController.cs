@@ -2,7 +2,6 @@ namespace RevolutionaryWebApp.Server.Controllers;
 
 using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Authorization;
 using Filters;
@@ -13,6 +12,7 @@ using Models;
 using Models.Translations;
 using Shared.Models;
 using Shared.Models.Enums;
+using Shared.Utilities;
 using Utilities;
 
 [APIKeyScope(APIKeyScope.Comments)]
@@ -20,9 +20,6 @@ using Utilities;
 [Route("api/v1/[controller]")]
 public class TranslationDiscussionController : Controller
 {
-    private static readonly Regex MentionPattern = new(@"(?<!\w)@([A-Za-z0-9_-]{2,50})",
-        RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
-
     private readonly ILogger<TranslationDiscussionController> logger;
     private readonly NotificationsEnabledDb database;
 
@@ -164,7 +161,7 @@ public class TranslationDiscussionController : Controller
             });
         }
 
-        var names = MentionPattern.Matches(request.RawMarkdown).Select(match => match.Groups[1].Value)
+        var names = Usernames.MentionPattern.Matches(request.RawMarkdown).Select(match => match.Groups[1].Value)
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var users = await database.Users.Where(user => names.Contains(user.UserName))
             .Select(user => new { user.Id, user.UserName }).ToListAsync();
