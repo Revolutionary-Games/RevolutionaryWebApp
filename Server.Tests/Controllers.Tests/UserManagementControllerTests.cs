@@ -56,9 +56,13 @@ public class UserManagementControllerTests
         {
             var list = await controller.GetList("UserName", SortDirection.Ascending, 1, 10, null);
             if (moderator)
+            {
                 Assert.NotNull(list.Value);
+            }
             else
+            {
                 Assert.IsType<ForbidResult>(list.Result);
+            }
 
             if (!moderator)
                 Assert.IsType<NotFoundResult>((await controller.GetUser(target.Id)).Result);
