@@ -23,6 +23,8 @@
 @implements INotificationHandler<TranslationDictionaryLanguagesUpdated>
 @implements IAsyncDisposable
 
+<NavigationLock ConfirmExternalNavigation="@HasUnsavedChanges" OnBeforeInternalNavigation="ConfirmNavigation"/>
+
 <TranslationAnnouncementBanner Slug="@Slug" @key="Slug"/>
 <TranslationAgreementWarning/>
 @if (data == null && message == null)
@@ -583,6 +585,8 @@ else
         (editText != data.Text || editState != data.State ||
             (data.LanguageCode == project?.SourceLanguage && editExplanation != data.Explanation));
 
+    private bool HasUnsavedChanges => HasLocalChanges || drafts.Keys.Any(key => key != Key);
+
     private string TextProgress => data?.TextIndex is { } index ? $"{index} of {data.TotalTexts}" : "Removed";
 
     private bool CanEditTranslation => UserInfo.AcceptedTranslator && data != null && data.Active &&
@@ -752,6 +756,24 @@ else
 
         await UpdateNotificationRegistration();
         await Load();
+    }
+
+    private async Task ConfirmNavigation(LocationChangingContext context)
+    {
+        if (!HasUnsavedChanges)
+            return;
+
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmAction.Name), "the translation editor" },
+            { nameof(ConfirmAction.ActionVerb), "leave" },
+            { nameof(ConfirmAction.AcceptButton), "Leave" },
+            { nameof(ConfirmAction.ExtraInfo), "You have unsaved changes. Leaving may lose your edits." },
+        };
+
+        var modal = Modal.Show<ConfirmAction>("Unsaved translation changes", parameters);
+        if ((await modal.Result).Cancelled)
+            context.PreventNavigation();
     }
 
     private async Task UpdateNotificationRegistration()
@@ -1158,7 +1180,13 @@ else
             return;
 
         if (HasLocalChanges)
+        {
             drafts[Key] = (editText, editState, editExplanation);
+        }
+        else
+        {
+            drafts.Remove(Key);
+        }
 
         var url = $"api/v1/translationEditor/neighbor?projectId={project.Id}" +
             $"&language={Uri.EscapeDataString(LanguageCode)}&key={Uri.EscapeDataString(Key)}" +
