@@ -34,24 +34,24 @@ public interface IMailQueue : IMailSender
 /// </summary>
 public abstract class BaseEmailConfig
 {
-    protected readonly string fromAddress;
-    protected readonly string senderName;
-    protected readonly string emailPassword;
-    protected readonly string host;
-    protected readonly short port;
-    protected readonly bool requireTls;
+    protected readonly string FromAddress;
+    protected readonly string SenderName;
+    protected readonly string EmailPassword;
+    protected readonly string Host;
+    protected readonly short Port;
+    protected readonly bool RequireTls;
 
     protected BaseEmailConfig(IConfiguration configuration)
     {
-        fromAddress = configuration["Email:FromAddress"] ?? string.Empty;
-        senderName = configuration["Email:Name"] ?? string.Empty;
-        emailPassword = configuration["Email:Password"] ?? string.Empty;
-        host = configuration["Email:Host"] ?? string.Empty;
-        port = Convert.ToInt16(configuration["Email:Port"]);
-        requireTls = Convert.ToBoolean(configuration["Email:RequireTls"]);
+        FromAddress = configuration["Email:FromAddress"] ?? string.Empty;
+        SenderName = configuration["Email:Name"] ?? string.Empty;
+        EmailPassword = configuration["Email:Password"] ?? string.Empty;
+        Host = configuration["Email:Host"] ?? string.Empty;
+        Port = Convert.ToInt16(configuration["Email:Port"]);
+        RequireTls = Convert.ToBoolean(configuration["Email:RequireTls"]);
 
-        if (string.IsNullOrEmpty(fromAddress) || string.IsNullOrEmpty(senderName) || string.IsNullOrEmpty(host) ||
-            port == 0)
+        if (string.IsNullOrEmpty(FromAddress) || string.IsNullOrEmpty(SenderName) || string.IsNullOrEmpty(Host) ||
+            Port == 0)
         {
             Configured = false;
             return;
@@ -104,8 +104,8 @@ public class MailSender : BaseEmailConfig, IMailSender
                 request.Recipient);
         }
 
-        var sender = MailboxAddress.Parse(fromAddress);
-        sender.Name = senderName;
+        var sender = MailboxAddress.Parse(FromAddress);
+        sender.Name = SenderName;
 
         var builder = new BodyBuilder { HtmlBody = request.HtmlBody, TextBody = request.PlainTextBody };
 
@@ -142,18 +142,18 @@ public class MailSender : BaseEmailConfig, IMailSender
 
         SecureSocketOptions connectMode = SecureSocketOptions.StartTls;
 
-        if (!requireTls)
+        if (!RequireTls)
             connectMode = SecureSocketOptions.StartTlsWhenAvailable;
 
         // When using ssl port, switch to SSL mode
-        if (port == 465)
+        if (Port == 465)
             connectMode = SecureSocketOptions.SslOnConnect;
 
-        await smtp.ConnectAsync(host, port, connectMode, cancellationToken);
+        await smtp.ConnectAsync(Host, Port, connectMode, cancellationToken);
 
         // Only authenticate if we have a password set
-        if (!string.IsNullOrEmpty(emailPassword))
-            await smtp.AuthenticateAsync(fromAddress, emailPassword, cancellationToken);
+        if (!string.IsNullOrEmpty(EmailPassword))
+            await smtp.AuthenticateAsync(FromAddress, EmailPassword, cancellationToken);
 
         logger.LogInformation("Sending email to {Recipient} with category {Category}", request.Recipient,
             request.Category);
