@@ -1,6 +1,7 @@
 @page "/translations/{Slug}/{LanguageCode}/edit"
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Utilities
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
@@ -13,6 +14,7 @@
 @inject NavigationManager Navigation
 @inject NotificationHandler NotificationHandler
 @inject CurrentUserInfo UserInfo
+@implements INotificationHandler<TranslationProjectUpdated>
 @implements INotificationHandler<TranslationValueUpdated>
 @implements INotificationHandler<TranslationUnitUpdated>
 @implements INotificationHandler<TranslationHistoryUpdated>
@@ -495,11 +497,24 @@ else
             @if (!string.IsNullOrWhiteSpace(data.SourceLocations))
             {
                 <h6>Source locations</h6>
-                @* TODO: add a navigation link to GitHub source if this project uses it / probably should have a
-                URL template setting in the project model which could be used here to substitute the location.
-                Or maybe upon reading translations data the reader code could build the full links and this should
-                make a clickable link if it starts with https (open in new tab, though? *@
-                <pre class="small text-wrap">@data.SourceLocations</pre>
+                <ul class="list-unstyled small text-break">
+                    @foreach (var location in data.SourceLocations.Split('\n', StringSplitOptions.RemoveEmptyEntries |
+                                      StringSplitOptions.TrimEntries))
+                    {
+                        var sourceUrl = TranslationSourceLinks.CreateUrl(project?.SourceLocationBaseUrl,
+                            project?.SourceLocationUrlTemplate, location);
+                        <li>
+                            @if (sourceUrl != null)
+                            {
+                                <a href="@sourceUrl" target="_blank" rel="noopener noreferrer">@location</a>
+                            }
+                            else
+                            {
+                                @location
+                            }
+                        </li>
+                    }
+                </ul>
             }
             <hr/>
             <h6>Key created</h6>
@@ -598,6 +613,26 @@ else
     private bool CanAcceptSuggestions => UserInfo.AcceptedTranslator && CanUseTranslationDiscussion && data != null && data.Active &&
         (data.LanguageCode != project?.SourceLanguage || data.CanEditSource);
 
+    public async Task Handle(TranslationProjectUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.ProjectId != project?.Id)
+            return;
+
+        try
+        {
+            project = await Http.GetFromJsonAsync<TranslationProjectDTO>($"api/v1/translations/projects/" +
+                Uri.EscapeDataString(Slug), cancellationToken);
+            await NotificationHandler.NotifyWantedGroupsChanged();
+        }
+        catch (Exception e)
+        {
+            message = $"Error loading translation project: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     public Task Handle(TranslationValueUpdated notification, CancellationToken cancellationToken)
     {
         if (!IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode))
@@ -654,6 +689,7 @@ else
     {
         if (project != null)
         {
+            groups.Add(NotificationGroups.TranslationProjectUpdatedPrefix + project.Id);
             groups.Add(NotificationGroups.TranslationKeyScopeUpdated(project.Id, Key));
             groups.Add(NotificationGroups.TranslationScopeUpdated(project.Id, Key, LanguageCode));
             if (LanguageCode != project.SourceLanguage)
