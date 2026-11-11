@@ -23,7 +23,7 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.14" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.14" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.15" />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.9.6" />
     <!-- workaround for EF depending on really old codeanalysis until C# SDK 9 -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
