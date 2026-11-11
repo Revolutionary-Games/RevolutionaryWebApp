@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -415,6 +416,8 @@ public class Startup
             app.UseResponseCompression();
         }
 
+        ApplyTranslationPageRemapping(app);
+
         // Routing has to be initialised before the rate limiter is invoked
         app.UseRouting();
 
@@ -589,6 +592,18 @@ public class Startup
         // The ID here needs to match what it was previously automatically to not create duplicate jobs when deploying
         // to an existing instance
         RecurringJob.AddOrUpdate<T>($"{typeof(T).Name}.Execute", x => x.Execute(CancellationToken.None), schedule);
+    }
+
+    private void ApplyTranslationPageRemapping(IApplicationBuilder app)
+    {
+        var baseUrl = Configuration.GetBaseUrl();
+
+        app.UseRewriter(new RewriteOptions()
+            .AddRedirect(@"^translations/projects/thrive/thrive-game/([^/]+)/?$",
+                new Uri(baseUrl, "translations/thrive/$1").ToString(), StatusCodes.Status301MovedPermanently)
+            .AddRedirect(@"^translations/projects/thrive/thrive-launcher/([^/]+)/?$",
+                new Uri(baseUrl, "translations/thrive-launcher/$1").ToString(),
+                StatusCodes.Status301MovedPermanently));
     }
 
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
