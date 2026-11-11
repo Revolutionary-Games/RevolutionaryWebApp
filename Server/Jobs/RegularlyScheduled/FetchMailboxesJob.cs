@@ -76,7 +76,7 @@ public class FetchMailboxesJob : IJob
             return;
         }
 
-        using var client = new ImapClient();
+        await using var client = new ImapClient();
 
         try
         {

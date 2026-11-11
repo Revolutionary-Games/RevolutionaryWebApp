@@ -138,7 +138,7 @@ public class MailSender : BaseEmailConfig, IMailSender
 
         email.To.Add(MailboxAddress.Parse(request.Recipient));
 
-        using var smtp = new SmtpClient();
+        await using var smtp = new SmtpClient();
 
         SecureSocketOptions connectMode = SecureSocketOptions.StartTls;
 
