@@ -5,6 +5,17 @@ using Microsoft.Extensions.Configuration;
 
 public static class ConfigurationHelpers
 {
+    /// <summary>
+    ///   Gets the configured base URL, which must end with a trailing slash.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Startup validates the trailing slash requirement through <see cref="Services.RedirectVerifier"/>.
+    ///     This method does not add a trailing slash or validate that requirement itself.
+    ///   </para>
+    /// </remarks>
+    /// <param name="configuration">The configuration to read from</param>
+    /// <returns>The configured base URL with a trailing slash when startup validation has succeeded</returns>
     public static Uri GetBaseUrl(this IConfiguration configuration)
     {
         return new Uri(configuration["BaseUrl"] ?? throw new InvalidOperationException("Base url is missing"));

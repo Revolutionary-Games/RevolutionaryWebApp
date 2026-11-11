@@ -635,6 +635,7 @@ public class Startup
         AddJobHelper<PurgeDeletedTranslationResourcesJob>(configurationSection["PurgeDeletedTranslationResources"]);
         AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);
         AddJobHelper<ReportPendingDictionaryRequestsJob>(configurationSection["ReportPendingDictionaryRequests"]);
+        AddJobHelper<ReportSourceTranslationSuggestionsJob>(configurationSection["ReportSourceTranslationSuggestions"]);
         AddJobHelper<ScheduleTranslationPublishesJob>(configurationSection["ScheduleTranslationPublishes"]);
         AddJobHelper<MonitorTranslationPullRequestsJob>(configurationSection["MonitorTranslationPullRequests"]);
         AddJobHelper<ReconcileTranslationRepositoriesJob>(configurationSection["ReconcileTranslationRepositories"]);

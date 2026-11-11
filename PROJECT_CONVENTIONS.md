@@ -337,6 +337,8 @@ For implementation details and additional cases, see
 
 Using NotificationsEnabledDb enables all models with `IUpdateNotifications` to automatically send notifications upon DB save.
 
+To get the base URL, use `configuration.GetBaseUrl()`.
+
 ## API and model boundaries
 
 - Keep request/response types used by both client and server in `Shared/`.
