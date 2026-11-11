@@ -30,15 +30,18 @@ public class ReportPendingDictionaryRequestsJob : IJob
 
         var pending = await database.DictionaryTermRequests.AsNoTracking()
             .Where(request => request.Approved == null)
-            .GroupBy(request => request.DictionaryId)
-            .Select(group => new { DictionaryId = group.Key, Count = group.Count() })
+            .GroupBy(request => new { request.DictionaryId, request.Dictionary.Name })
+            .Select(group => new { group.Key.DictionaryId, group.Key.Name, Count = group.Count() })
+            .OrderBy(dictionary => dictionary.Name).ThenBy(dictionary => dictionary.DictionaryId)
             .ToListAsync(cancellationToken);
         if (pending.Count == 0)
             return;
 
         var baseUrl = configuration["BaseUrl"]?.TrimEnd('/') ?? string.Empty;
-        var message = "Pending dictionary term requests:\n" + string.Join("\n",
-                pending.Select(group => $"- Dictionary {group.DictionaryId}: {group.Count}")) +
+        var message = $"Pending dictionary entry requests: {pending.Sum(dictionary => dictionary.Count)}\n" +
+            string.Join("\n",
+                pending.Select(dictionary => $"- {dictionary.Name}: {dictionary.Count} — " +
+                    $"{baseUrl}/translations/dictionaries/{dictionary.DictionaryId}")) +
             $"\nReview: {baseUrl}/translations/dictionaryRequests";
         jobs.Enqueue<SendDiscordWebhookMessageJob>(job =>
             job.Execute("TranslationRequests", message, CancellationToken.None));
