@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Server.Services;
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -977,7 +978,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
             if (!string.IsNullOrEmpty(rawDate))
             {
-                if (!DateTime.TryParse(rawDate, out var parsed))
+                if (!DateTime.TryParse(rawDate, CultureInfo.InvariantCulture, out var parsed))
                 {
                     logger.LogError("Failed to parse wiki modified date from: {RawDate}", rawDate);
                 }
