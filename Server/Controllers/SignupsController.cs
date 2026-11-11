@@ -77,6 +77,9 @@ public class SignupsController : Controller
         if (await database.Users.AsNoTracking().AnyAsync(u => u.Email == request.Email))
             return BadRequest("There is already an account associated with the given email");
 
+        if (await RegistrationBlocks.IsBlocked(database, request.Email, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status403Forbidden, "Registration is not allowed with these details");
+
         var normalized = Normalization.NormalizeEmail(request.Email);
 
         if (await database.Users.AsNoTracking().AnyAsync(u => u.NormalizedEmail == normalized))
@@ -197,6 +200,9 @@ public class SignupsController : Controller
         if (pending == null)
             return BadRequest("Invalid or expired token (requesting a new email invalidates old links)");
 
+        if (await RegistrationBlocks.IsBlocked(database, pending.Email, remoteAddress))
+            return StatusCode(StatusCodes.Status403Forbidden, "Registration is not allowed with these details");
+
         // Make sure an account doesn't already exist now
         if (await database.Users.AsNoTracking().AnyAsync(
                 u => u.NormalizedEmail == pending.NormalizedEmail || u.Email == pending.Email,
@@ -235,6 +241,7 @@ public class SignupsController : Controller
         var user = new User(pending.Email, request.UserName)
         {
             Local = true,
+            LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(remoteAddress),
             DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName?.Trim(),
         };
 

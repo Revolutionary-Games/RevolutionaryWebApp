@@ -3,6 +3,7 @@
 }
 @inject CurrentUserInfo CurrentUserInfo
 @inject HttpClient Http
+@using System.Globalization
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Client.Services
@@ -56,6 +57,17 @@
 
     </AccessLimited>
 </ul>
+@if (User.MutedUntil > DateTime.UtcNow)
+{
+    <p class="text-danger">
+        Contributions restricted until @User.MutedUntil.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture).
+    </p>
+}
+@if (LookingAtSelf || CurrentUserInfo.IsAdmin || CurrentUserInfo.HasGroup(GroupType.ContentModerator))
+{
+    <UserRecentActivity UserId="@User.Id" @key="User.Id"/>
+}
+
 
 @if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
 {

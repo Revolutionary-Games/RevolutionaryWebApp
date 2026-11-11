@@ -50,6 +50,8 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<TranslationUnit>(entity =>
         {
             entity.HasKey(u => new { u.ProjectId, u.Key });
+            entity.HasOne(unit => unit.CreatedByUser).WithMany().HasForeignKey(unit => unit.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.Property(u => u.CreatedAt).HasDefaultValueSql("timezone('utc', now())");
             entity.HasOne(u => u.Project).WithMany(p => p.Units).HasForeignKey(u => u.ProjectId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -113,6 +115,7 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<TranslationSuggestionVote>(entity =>
         {
             entity.HasKey(v => new { v.SuggestionId, v.UserId });
+            entity.Property(v => v.CreatedAt).HasDefaultValue(System.DateTime.UnixEpoch);
             entity.ToTable(t => t.HasCheckConstraint("translation_suggestion_vote_value_check", "value IN (-1, 1)"));
             entity.HasOne(v => v.Suggestion).WithMany(s => s.Votes).HasForeignKey(v => v.SuggestionId)
                 .OnDelete(DeleteBehavior.Cascade);

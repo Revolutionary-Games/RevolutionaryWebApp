@@ -198,7 +198,8 @@ public class TranslationEditorController : Controller
         var canVerify = groups != null && TranslationPermissions.CanVerify(groups);
         var comments = await database.TranslationComments.CountAsync(c => c.ProjectId == projectId &&
                 c.Key == key && (c.LanguageCode == language ||
-                    (language != project.SourceLanguage && c.LanguageCode == project.SourceLanguage)) && !c.Deleted,
+                    (language != project.SourceLanguage && c.LanguageCode == project.SourceLanguage)) && !c.Deleted &&
+                (groups != null || !c.Reported),
             cancellationToken);
         var suggestions = await database.TranslationSuggestions.CountAsync(s => s.ProjectId == projectId &&
                 s.Key == key && s.LanguageCode == language && s.Status == TranslationSuggestionStatus.Open,
@@ -291,6 +292,7 @@ public class TranslationEditorController : Controller
                 "Translation changed since this page was loaded. Please copy your work and then reload the page.");
         }
 
+        var oldExplanation = unit.Explanation;
         var explanationChanged = request.LanguageCode == project.SourceLanguage &&
             unit.Explanation != request.Explanation;
 
@@ -358,6 +360,7 @@ public class TranslationEditorController : Controller
                 TranslationChangeKind.StateChanged,
             ContributorUserId = textChanged && state != TranslationState.NeedsTranslation ? actor.Id : null,
             OldText = oldText, NewText = value.Text, OldState = oldState, NewState = state,
+            OldExplanation = oldExplanation, NewExplanation = unit.Explanation,
             SourceRevision = unit.SourceRevision, ProjectRevision = project.CurrentRevision,
             CountsAsContribution = textChanged && !string.IsNullOrWhiteSpace(request.Text) &&
                 state != TranslationState.NeedsTranslation,

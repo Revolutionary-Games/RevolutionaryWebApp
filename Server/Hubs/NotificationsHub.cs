@@ -944,6 +944,9 @@ public class NotificationsHub : Hub<INotifications>
         if (groupName.StartsWith(NotificationGroups.UserUpdatedPrefixAdminInfo))
             return RequireAccessLevel(GroupType.Admin, user) || RequireGroup(GroupType.ContentModerator, user);
 
+        if (groupName == NotificationGroups.ModerationQueue)
+            return RequireAccessLevel(GroupType.Admin, user) || RequireGroup(GroupType.ContentModerator, user);
+
         // Unknown groups are not allowed
         return false;
     }

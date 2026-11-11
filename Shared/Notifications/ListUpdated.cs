@@ -227,3 +227,7 @@ public class MediaFolderContentsUpdated : SerializedNotification
 public class RemoteRunnersUpdated : ListUpdated<RemoteRunnerDTO>
 {
 }
+
+public class UserReportListUpdated : ListUpdated<UserReportDTO>
+{
+}

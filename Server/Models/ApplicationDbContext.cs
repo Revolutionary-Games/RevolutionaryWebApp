@@ -118,6 +118,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<DictionaryTermTranslation> DictionaryTermTranslations { get; set; } = null!;
     public DbSet<DictionaryTermRequest> DictionaryTermRequests { get; set; } = null!;
     public DbSet<TranslationSubscription> TranslationSubscriptions { get; set; } = null!;
+    public DbSet<ModerationUploadDeletion> ModerationUploadDeletions { get; set; } = null!;
+    public DbSet<ModerationRevision> ModerationRevisions { get; set; } = null!;
+
+    public DbSet<UserReport> UserReports { get; set; } = null!;
+    public DbSet<UserReportNote> UserReportNotes { get; set; } = null!;
+    public DbSet<RegistrationBlock> RegistrationBlocks { get; set; } = null!;
+
     public DbSet<UserNotification> UserNotifications { get; set; } = null!;
     public DbSet<TranslationSyncRun> TranslationSyncRuns { get; set; } = null!;
     public DbSet<TranslationPullRequest> TranslationPullRequests { get; set; } = null!;
@@ -304,6 +311,27 @@ public class ApplicationDbContext : DbContext
                 .WithOne(p => p.EmailPreferences)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<UserReport>(entity =>
+        {
+            entity.HasOne(report => report.ReporterUser).WithMany().HasForeignKey(report => report.ReporterUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(report => report.TargetUser).WithMany().HasForeignKey(report => report.TargetUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(report => report.ResolvedByUser).WithMany().HasForeignKey(report => report.ResolvedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+        modelBuilder.Entity<UserReportNote>(entity =>
+        {
+            entity.HasOne(note => note.Report).WithMany(report => report.Notes).HasForeignKey(note => note.ReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(note => note.AuthorUser).WithMany().HasForeignKey(note => note.AuthorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+        modelBuilder.Entity<ModerationRevision>().HasOne(revision => revision.User).WithMany()
+            .HasForeignKey(revision => revision.UserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<RegistrationBlock>().HasOne(block => block.TargetUser).WithMany()
+            .HasForeignKey(block => block.TargetUserId).OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<UserContributionCount>(entity =>
         {

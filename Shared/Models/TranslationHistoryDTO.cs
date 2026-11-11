@@ -33,6 +33,7 @@ public sealed class TranslationCommentDTO
 {
     public long Id { get; set; }
     public long AuthorUserId { get; set; }
+    public bool Reported { get; set; }
 
     [MaxLength(35)]
     public string LanguageCode { get; set; } = string.Empty;
