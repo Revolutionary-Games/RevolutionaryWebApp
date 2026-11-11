@@ -174,3 +174,4 @@ development configuration, logs, or credentials.
   reversible migration for schema changes.
 - Run focused tests first, then the relevant build or full checks before
   handing off the change.
+- Any `if` statement that has an else clause or so long condition that it is on multiple lines, needs to use braces as per project style.
