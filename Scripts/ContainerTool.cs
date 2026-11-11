@@ -13,7 +13,7 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
         ColourConsole.WriteInfoLine($"Selected image type to build: {options.Image}");
     }
 
-    protected override string ExportFileNameBase => options.Image switch
+    protected override string ExportFileNameBase => Options.Image switch
     {
         ImageType.CI => "devcenter-ci",
         ImageType.Builder => "devcenter-builder",
@@ -22,7 +22,7 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
 
     protected override string ImagesAndConfigsFolder => "./";
 
-    protected override (string BuildRelativeFolder, string? TargetToStopAt) DefaultImageToBuild => options.Image switch
+    protected override (string BuildRelativeFolder, string? TargetToStopAt) DefaultImageToBuild => Options.Image switch
     {
         ImageType.CI => ("docker_ci", null),
         ImageType.Builder => (".", "builder"),
@@ -30,7 +30,7 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
     };
 
     protected override string ImageNameBase => $"thrive/{ExportFileNameBase}";
-    protected override bool SaveByDefault => options.Image != ImageType.Builder;
+    protected override bool SaveByDefault => Options.Image != ImageType.Builder;
 
     protected override Task<bool> PostCheckBuild(string tagOrId)
     {
@@ -39,7 +39,7 @@ public class ContainerTool : ContainerToolBase<Program.ContainerOptions>
 
     protected override IEnumerable<string> ImagesToPullIfTheyAreOld()
     {
-        if (options.Image == ImageType.Builder)
+        if (Options.Image == ImageType.Builder)
         {
             // ReSharper disable once StringLiteralTypo
             yield return "almalinux:9";
