@@ -500,6 +500,10 @@ public class TranslationProjectsController : Controller
         project.SourceBranch = format == TranslationFormat.Manual ? null : request.SourceBranch;
         project.SourceFilePattern = format == TranslationFormat.Manual ? null : request.SourceFilePath;
         project.TranslationFilePattern = format == TranslationFormat.Manual ? null : request.TranslationFilePattern;
+        project.SourceLocationBaseUrl = string.IsNullOrWhiteSpace(request.SourceLocationBaseUrl) ?
+            null : request.SourceLocationBaseUrl;
+        project.SourceLocationUrlTemplate = string.IsNullOrWhiteSpace(request.SourceLocationUrlTemplate) ?
+            null : request.SourceLocationUrlTemplate;
         project.DictionaryId = request.DictionaryId;
         project.Enabled = request.Enabled;
     }
@@ -520,6 +524,16 @@ public class TranslationProjectsController : Controller
             request.SourceLanguage.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch is not '-' and not '_'))
         {
             error = "Slug, name, and source language are required";
+            return false;
+        }
+
+        if ((!string.IsNullOrWhiteSpace(request.SourceLocationBaseUrl) &&
+                !TranslationSourceLinks.IsValidBaseUrl(request.SourceLocationBaseUrl)) ||
+            !TranslationSourceLinks.IsValidTemplate(request.SourceLocationUrlTemplate))
+        {
+            error = "Source location base URL must be an HTTP(S) directory URL ending in / without a query or " +
+                "fragment. The template must start with {path}, optionally followed by a query or fragment " +
+                "containing {line}.";
             return false;
         }
 

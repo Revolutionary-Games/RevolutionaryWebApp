@@ -20,7 +20,7 @@ namespace RevolutionaryWebApp.Server.Migrations
             modelBuilder
                 .UseCollation("en_GB.UTF-8")
                 .HasAnnotation("Npgsql:DatabaseTemplate", "template0")
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -4959,6 +4959,16 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(35)
                         .HasColumnType("character varying(35)")
                         .HasColumnName("source_language");
+
+                    b.Property<string>("SourceLocationBaseUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("source_location_base_url");
+
+                    b.Property<string>("SourceLocationUrlTemplate")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("source_location_url_template");
 
                     b.Property<string>("TranslationFilePattern")
                         .HasMaxLength(500)

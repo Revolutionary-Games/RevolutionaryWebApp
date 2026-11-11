@@ -39,6 +39,18 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
     [MaxLength(35)]
     public string SourceLanguage { get; set; } = "en";
 
+    /// <summary>
+    ///   Directory URL against which relative source locations are resolved.
+    /// </summary>
+    [MaxLength(2000)]
+    public string? SourceLocationBaseUrl { get; set; }
+
+    /// <summary>
+    ///   Relative URL template using {path} and {line}; defaults to {path}#L{line}.
+    /// </summary>
+    [MaxLength(500)]
+    public string? SourceLocationUrlTemplate { get; set; }
+
     public TranslationFormat Format { get; set; }
     public long? DictionaryId { get; set; }
     public TranslationDictionary? Dictionary { get; set; }
@@ -90,6 +102,8 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             Name = Name,
             SourceLanguage = SourceLanguage,
             Format = Format,
+            SourceLocationBaseUrl = SourceLocationBaseUrl,
+            SourceLocationUrlTemplate = SourceLocationUrlTemplate,
             RepositoryFullName = RepositoryFullName ?? string.Empty,
             SourceBranch = SourceBranch ?? string.Empty,
             SourceFilePath = SourceFilePattern ?? string.Empty,
@@ -121,6 +135,8 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             Name = Name,
             SourceLanguage = SourceLanguage,
             Format = Format,
+            SourceLocationBaseUrl = SourceLocationBaseUrl,
+            SourceLocationUrlTemplate = SourceLocationUrlTemplate,
             DictionaryId = DictionaryId,
             Announcement = announcement,
             ClosedForMaintenance = ClosedForMaintenance,
@@ -149,7 +165,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             nameof(Format), nameof(DictionaryId), nameof(MaintenanceClosed), nameof(ConflictClosed),
             nameof(AnnouncementMessage), nameof(AnnouncementSeverity), nameof(AnnouncementEndsAt),
             nameof(RepositoryFullName), nameof(SourceBranch), nameof(SourceFilePattern),
-            nameof(TranslationFilePattern),
+            nameof(TranslationFilePattern), nameof(SourceLocationBaseUrl), nameof(SourceLocationUrlTemplate),
         ];
 
         if (!entry.Properties.Any(property => property.IsModified &&

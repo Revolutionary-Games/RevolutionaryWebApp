@@ -22,6 +22,18 @@ public sealed class TranslationProjectConfigurationDTO
     [MaxLength(35)]
     public string SourceLanguage { get; set; } = "en";
 
+    /// <summary>
+    ///   Directory URL against which relative source locations are resolved.
+    /// </summary>
+    [MaxLength(2000)]
+    public string? SourceLocationBaseUrl { get; set; }
+
+    /// <summary>
+    ///   Relative URL template using {path} and {line}; defaults to {path}#L{line}.
+    /// </summary>
+    [MaxLength(500)]
+    public string? SourceLocationUrlTemplate { get; set; }
+
     public TranslationFormat Format { get; set; } = TranslationFormat.Gettext;
 
     [MaxLength(240)]
