@@ -271,6 +271,9 @@ public class TranslationUnit : IUpdateNotifications
     [MaxLength(64)]
     public string SourceHash { get; set; } = string.Empty;
 
+    public long? CreatedByUserId { get; set; }
+    public User? CreatedByUser { get; set; }
+
     public long SourceRevision { get; set; }
     public bool Active { get; set; } = true;
     public int Position { get; set; }
@@ -399,6 +402,13 @@ public class TranslationChange : IUpdateNotifications
 
     public long? ActorUserId { get; set; }
     public long? ContributorUserId { get; set; }
+
+    [MaxLength(4000)]
+    public string? OldExplanation { get; set; }
+
+    [MaxLength(4000)]
+    public string? NewExplanation { get; set; }
+
     public TranslationChangeKind Kind { get; set; }
 
     [MaxLength(20000)]
@@ -412,6 +422,7 @@ public class TranslationChange : IUpdateNotifications
     public long SourceRevision { get; set; }
     public long ProjectRevision { get; set; }
     public bool CountsAsContribution { get; set; }
+    public DateTime? RevertedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public TranslationValue Value { get; set; } = null!;
@@ -458,6 +469,7 @@ public class TranslationComment : IUpdateNotifications, IDTOCreator<TranslationC
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? EditedAt { get; set; }
+    public bool Reported { get; set; }
     public bool Deleted { get; set; }
 
     public TranslationValue Value { get; set; } = null!;
@@ -471,6 +483,7 @@ public class TranslationComment : IUpdateNotifications, IDTOCreator<TranslationC
             AuthorUserId = AuthorUserId,
             LanguageCode = LanguageCode,
             RawMarkdown = RawMarkdown,
+            Reported = Reported,
             CreatedAt = CreatedAt,
         };
     }
@@ -535,6 +548,8 @@ public class TranslationSuggestionVote : IUpdateNotifications
     public long SuggestionId { get; set; }
     public long UserId { get; set; }
     public int Value { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public TranslationSuggestion Suggestion { get; set; } = null!;
     public User User { get; set; } = null!;

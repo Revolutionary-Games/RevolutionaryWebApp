@@ -14,6 +14,8 @@ public static class NotificationGroups
     public const string PrivateLFSUpdated = "LFS_Developer";
     public const string LFSItemUpdatedPrefix = "SLFS_";
 
+    public const string ModerationQueue = "ModerationQueue";
+
     public const string UserListUpdated = "Users";
     public const string UserUpdatedPrefix = "SUser_";
     public const string UserUpdatedPrefixAdminInfo = "SAUser_";

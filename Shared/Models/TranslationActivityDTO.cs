@@ -12,6 +12,7 @@ public sealed class TranslationActivityDTO
     public string LanguageCode { get; set; } = string.Empty;
     public long? UserId { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool Reported { get; set; }
     public string Description { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
     public TranslationState? State { get; set; }

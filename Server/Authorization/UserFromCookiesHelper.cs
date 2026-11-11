@@ -71,6 +71,8 @@ public static class UserFromCookiesHelper
                 // TODO: perform in a background job?
                 existingSession.LastUsed = now;
                 existingSession.LastUsedFrom = clientAddress;
+                existingSession.User.LastKnownIPAddress =
+                    Services.RegistrationBlocks.NormalizeAddress(clientAddress);
                 await database.SaveChangesAsync();
             }
         }

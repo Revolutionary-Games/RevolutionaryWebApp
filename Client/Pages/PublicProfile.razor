@@ -1,6 +1,7 @@
 @page "/profiles/{Username}"
 @inject HttpClient Http
 @inject Services.CurrentUserInfo UserInfo
+@using System.Globalization
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Models
 @inherits UserInfoReactingComponent
@@ -11,7 +12,9 @@
     @if (profile != null)
     {
         <p><strong>Username:</strong> @profile.Name</p>
-        <p><strong>Joined:</strong> @profile.CreatedAt.ToLocalTime().ToString("g")</p>
+        <p><strong>Joined:</strong>
+            @profile.CreatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)
+        </p>
         @if (!string.IsNullOrEmpty(profile.DisplayName))
         {
             <p><strong>Name:</strong> @profile.DisplayName</p>
@@ -19,6 +22,15 @@
         @if (UserInfo.InfoReady && UserInfo.Info?.Id == profile.Id)
         {
             <p><NavLink href="me">View my full profile</NavLink></p>
+        }
+        @if (UserInfo.InfoReady && UserInfo.Info?.Id != profile.Id)
+        {
+            <ReportButton Target="UserReportTarget.User" TargetId="@profile.Id" TargetName="@profile.Name"/>
+        }
+        @if (UserInfo.InfoReady && (UserInfo.Info?.Id == profile.Id || UserInfo.IsAdmin ||
+                                   UserInfo.HasGroup(GroupType.ContentModerator)))
+        {
+            <UserRecentActivity UserId="@profile.Id" @key="profile.Id"/>
         }
         <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" AutoRedirectIfNotLoggedIn="@false">
             <NavLink href="@($"users/{profile.Id}")">Account details</NavLink>

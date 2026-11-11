@@ -975,8 +975,12 @@ public class LoginController : SSOLoginController
             Logger.LogInformation("Creating new account for SSO login: {Email} developer: {DeveloperLogin}",
                 email, developerLogin);
 
+            if (await RegistrationBlocks.IsBlocked(Database, email, HttpContext.Connection.RemoteIpAddress))
+                return (StatusCode(403, "Account creation is not allowed with these details"), false);
+
             var newUser = new User(email, username)
             {
+                LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(HttpContext.Connection.RemoteIpAddress),
                 Local = false,
                 SsoSource = ssoType,
                 DisplayName = displayName,
@@ -1119,6 +1123,7 @@ public class LoginController : SSOLoginController
         if (user.TwoFactorAuthentication?.Enabled == true)
             return await BeginTwoFactorLogin(user, session, session.SsoReturnUrl);
 
+        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(HttpContext.Connection.RemoteIpAddress);
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
         string? returnUrl = session.SsoReturnUrl;

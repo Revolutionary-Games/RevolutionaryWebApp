@@ -27,4 +27,6 @@ public enum UserNotificationType
     TranslationSuggestionDeleted,
     TranslationProjectReopened,
     TranslationImportConflict,
+    ModerationReminder,
+    ModerationDailyReminder,
 }

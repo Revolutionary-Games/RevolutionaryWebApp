@@ -62,7 +62,7 @@ public sealed class ManualTranslationKeysController : Controller
         var createdAt = DateTime.UtcNow;
         var unit = new TranslationUnit
         {
-            ProjectId = projectId, Key = key, SourceText = source,
+            ProjectId = projectId, Key = key, SourceText = source, CreatedByUserId = actor.Id,
             Description = request.Description, SourceRevision = 1,
             SourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))),
             CreatedAt = createdAt,

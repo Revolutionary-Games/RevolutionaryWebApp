@@ -84,8 +84,9 @@ public class TranslationsController : Controller
                 .Select(user => (long?)user.Id).FirstOrDefaultAsync(cancellationToken) ?? -1;
         }
 
+        var loggedIn = HttpContext.AuthenticatedUser() != null;
         return await TranslationActivityQuery.Create(database, project, language, selected, userId)
-            .ToPagedResultAsync(page, 50);
+            .Where(item => loggedIn || !item.Reported).ToPagedResultAsync(page, 50);
     }
 
     [HttpGet("projects/{slug}/languages")]

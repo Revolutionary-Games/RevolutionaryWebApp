@@ -1,0 +1,62 @@
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared.Models
+
+<h4 class="mt-3">Recent activity</h4>
+<SingleResourceDisplayer Loading="@loading" Error="@error" HasData="@(activity != null)">
+    <p class="text-muted">Up to 100 recent contributions. This list may take 30 seconds to update.</p>
+    @if (activity?.Length == 0)
+    {
+        <p>No recent contributions.</p>
+    }
+    @if (activity != null)
+    {
+        <ul>
+            @foreach (var item in activity)
+            {
+                <li>
+                    <RecentTimeShortener Time="@item.CreatedAt"/>
+                    — <a href="@item.Path">@item.Description</a></li>
+            }
+        </ul>
+    }
+</SingleResourceDisplayer>
+
+@code {
+    private UserRecentActivityDTO[]? activity;
+    private string? error;
+    private bool loading;
+    private long loadedUserId;
+    private int requestVersion;
+
+    [Parameter]
+    public long UserId { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedUserId == UserId)
+            return;
+
+        loadedUserId = UserId;
+        var version = ++requestVersion;
+        loading = true;
+        error = null;
+        activity = null;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<UserRecentActivityDTO[]>($"api/v1/UserActivity/{UserId}");
+            if (version == requestVersion)
+                activity = result;
+        }
+        catch (Exception exception)
+        {
+            if (version == requestVersion)
+                error = $"Could not load activity: {exception.Message}";
+        }
+        finally
+        {
+            if (version == requestVersion)
+                loading = false;
+        }
+    }
+
+}

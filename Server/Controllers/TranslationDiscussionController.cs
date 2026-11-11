@@ -43,12 +43,14 @@ public class TranslationDiscussionController : Controller
         if (sourceLanguage == null)
             return NotFound();
 
+        var loggedIn = HttpContext.AuthenticatedUser() != null;
+
         // TODO: if anything ever gets more than a 500 comments, we will need pagination APIs and GUI
         var rows = await database.TranslationComments.AsNoTracking().Where(comment =>
                 comment.ProjectId == projectId && comment.Key == key &&
                 (comment.LanguageCode == language || (language != sourceLanguage &&
                     comment.LanguageCode == sourceLanguage)) &&
-                !comment.Deleted)
+                !comment.Deleted && (loggedIn || !comment.Reported))
             .OrderBy(comment => comment.CreatedAt).Take(500).ToListAsync();
         return rows.Select(comment => comment.GetDTO()).ToArray();
     }
@@ -84,15 +86,14 @@ public class TranslationDiscussionController : Controller
                 TargetPath = $"/translations/{project.Slug}/{comment.LanguageCode}/edit" +
                     $"?key={Uri.EscapeDataString(comment.Key)}",
             });
+        }
 
-            // Moderators deleting actions are only logged when they deleted someone else's comment
-            if (moderator)
+        if (moderator)
+        {
+            await database.AdminActions.AddAsync(new AdminAction($"Translation comment {id} deleted")
             {
-                await database.AdminActions.AddAsync(new AdminAction($"Translation comment {id} deleted")
-                {
-                    PerformedById = actor.Id,
-                });
-            }
+                PerformedById = actor.Id, TargetUserId = comment.AuthorUserId,
+            });
         }
         else
         {

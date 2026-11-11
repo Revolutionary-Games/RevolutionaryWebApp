@@ -29,6 +29,8 @@ public class UserDTO : ClientSideTimedModel
     public bool HasLfsToken { get; set; }
     public int TotalLauncherLinks { get; set; }
 
+    public DateTime? MutedUntil { get; set; }
+
     public DateTime? SuspendedUntil { get; set; }
     public string? SuspendedReason { get; set; }
     public bool SuspendedManually { get; set; }

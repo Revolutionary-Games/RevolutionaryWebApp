@@ -87,6 +87,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     [AllowSortingBy]
     public DateTime? SuspendedUntil { get; set; }
 
+    [MaxLength(45)]
+    public string? LastKnownIPAddress { get; set; }
+
+    public DateTime? MutedUntil { get; set; }
+
     public string? SuspendedReason { get; set; }
     public bool SuspendedManually { get; set; }
 
@@ -470,6 +475,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
             case RecordAccessLevel.Private:
             {
                 info.Email = Email;
+                info.MutedUntil = MutedUntil;
                 info.UseEmailInTranslationCredits = UseEmailInTranslationCredits;
                 info.AcceptedTranslator = AcceptedTranslator;
                 info.TotalLauncherLinks = TotalLauncherLinks;

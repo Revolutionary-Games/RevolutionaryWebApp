@@ -14,4 +14,5 @@ public enum TranslationChangeKind
     SourceChanged,
     StateChanged,
     SuggestionAccepted,
+    ModerationRevert,
 }

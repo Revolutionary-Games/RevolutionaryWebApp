@@ -354,6 +354,8 @@ public class Startup
         services.AddScoped<IGithubCommitStatusReporter, GithubCommitStatusReporter>();
         services.AddScoped<ITranslationGithubTokenProvider, TranslationGithubTokenProvider>();
         services.AddScoped<DiscordNotifications>();
+        services.AddScoped<ModerationSessionService>();
+        services.AddScoped<ModerationService>();
         services.AddScoped<IMailQueue, MailToQueueSender>();
         services.AddScoped<ICLASignatureStorage, CLASignatureStorage>();
         services.AddScoped<ICLAExemptions, CLAExemptions>();
@@ -669,6 +671,9 @@ public class Startup
         AddJobHelper<RecountTranslationSuggestionScoresJob>(configurationSection["RecountTranslationSuggestionScores"]);
         AddJobHelper<PurgeDeletedTranslationResourcesJob>(configurationSection["PurgeDeletedTranslationResources"]);
         AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);
+        AddJobHelper<PurgeModerationUploadsJob>(configurationSection["PurgeModerationUploads"]);
+        AddJobHelper<ReportModerationQueueJob>(configurationSection["ReportModerationQueue"]);
+        AddJobHelper<NotifyModerationQueueJob>(configurationSection["NotifyModerationQueue"]);
         AddJobHelper<ReportPendingDictionaryRequestsJob>(configurationSection["ReportPendingDictionaryRequests"]);
         AddJobHelper<ReportSourceTranslationSuggestionsJob>(configurationSection["ReportSourceTranslationSuggestions"]);
         AddJobHelper<ScheduleTranslationPublishesJob>(configurationSection["ScheduleTranslationPublishes"]);
