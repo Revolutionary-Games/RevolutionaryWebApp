@@ -73,7 +73,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly string botToken;
     private readonly ulong? primaryGuild;
     private readonly Uri wikiUrlBase;
-    private readonly Uri overallTranslationStatusUrl;
     private readonly Uri translationProgressUrl;
     private readonly Uri wikiDefaultPreviewImage;
     private readonly Uri progressFontUrl;
@@ -91,7 +90,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private Lazy<Task<FontCollection>>? fonts;
     private DisposableTimedResourceCache<Image>? progressBackgroundImage;
 
-    private DisposableTimedResourceCache<Image>? overallTranslationStatus;
     private DisposableTimedResourceCache<Image>? translationProgress;
 
     private DateTime? disconnectedSince;
@@ -114,8 +112,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         wikiUrlBase = new Uri(configuration["Discord:RevolutionaryBot:WikiBaseUrl"] ??
             throw new InvalidOperationException("Bot default variables need to exist when when not used"));
         translationProgressUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationProgressUrl"] ??
-            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
-        overallTranslationStatusUrl = new Uri(configuration["Discord:RevolutionaryBot:OverallTranslationStatusUrl"] ??
             throw new InvalidOperationException("Bot default variables need to exist when when not used"));
         wikiDefaultPreviewImage = new Uri(configuration["Discord:RevolutionaryBot:WikiDefaultPreviewImage"] ??
             throw new InvalidOperationException("Bot default variables need to exist when when not used"));
@@ -257,7 +253,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         client?.Dispose();
         githubMilestones?.Dispose();
         progressBackgroundImage?.Dispose();
-        overallTranslationStatus?.Dispose();
         translationProgress?.Dispose();
     }
 
@@ -291,11 +286,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         progressBackgroundImage =
             new DisposableTimedResourceCache<Image>(() => DownloadImage(progressImageUrl), TimeSpan.FromMinutes(15));
 
-        overallTranslationStatus =
-            new DisposableTimedResourceCache<Image>(() => DownloadImage(overallTranslationStatusUrl),
-                TimeSpan.FromMinutes(5));
         translationProgress = new DisposableTimedResourceCache<Image>(
-            () => DownloadSvg(translationProgressUrl), TimeSpan.FromMinutes(5));
+            () => DownloadSvg(translationProgressUrl), TimeSpan.FromMinutes(10));
 
         githubMilestones = new TimedResourceCache<List<GithubMilestone>>(async () =>
         {
@@ -715,20 +707,17 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task PerformSlowLanguagePart(SocketSlashCommand command)
     {
-        Image overallStatusImage;
         Image progressImage;
 
         try
         {
-            var overallWaitTask = overallTranslationStatus!.GetData();
             progressImage = await translationProgress!.GetData();
-            overallStatusImage = await overallWaitTask;
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Weblate connection error");
+            logger.LogError(e, "Translation progress connection error");
             await command.ModifyOriginalResponseAsync(properties =>
-                properties.Content = "Failed to get data from Weblate");
+                properties.Content = "Failed to get translation progress");
             return;
         }
 
@@ -738,37 +727,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         {
             try
             {
-                // We assume the overall status image is narrower
-                using var languagesImage = new Image<Rgb24>(progressImage.Width + 10,
-                    overallStatusImage.Height + progressImage.Height + 15);
-
-                // Clear everything to white first before drawing
-                languagesImage.ProcessPixelRows(accessor =>
-                {
-                    var white = new Rgb24(255, 255, 255);
-
-                    for (int y = 0; y < accessor.Height; ++y)
-                    {
-                        foreach (ref Rgb24 pixel in accessor.GetRowSpan(y))
-                        {
-                            pixel = white;
-                        }
-                    }
-                });
-
-                // ReSharper disable AccessToDisposedClosure
-                languagesImage.Mutate(x =>
-                {
-                    x.DrawImage(progressImage, new Point(5, overallStatusImage.Height + 10), 1);
-                });
-
-                languagesImage.Mutate(x =>
-                    x.DrawImage(overallStatusImage,
-                        new Point(languagesImage.Width / 2 - overallStatusImage.Width / 2, 5),
-                        1));
-
-                // ReSharper restore AccessToDisposedClosure
-                await languagesImage.SaveAsync(tempFileData, PngFormat.Instance);
+                await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
             }
             catch (Exception e)
             {
