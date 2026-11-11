@@ -599,9 +599,9 @@ public class Startup
         var baseUrl = Configuration.GetBaseUrl();
 
         app.UseRewriter(new RewriteOptions()
-            .AddRedirect(@"^translations/projects/thrive/thrive-game/([^/]+)/?$",
+            .AddRedirect("^translations/projects/thrive/thrive-game/([^/]+)/?$",
                 new Uri(baseUrl, "translations/thrive/$1").ToString(), StatusCodes.Status301MovedPermanently)
-            .AddRedirect(@"^translations/projects/thrive/thrive-launcher/([^/]+)/?$",
+            .AddRedirect("^translations/projects/thrive/thrive-launcher/([^/]+)/?$",
                 new Uri(baseUrl, "translations/thrive-launcher/$1").ToString(),
                 StatusCodes.Status301MovedPermanently));
     }
