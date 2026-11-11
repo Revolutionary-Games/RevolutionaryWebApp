@@ -20,12 +20,12 @@ public class ClearAllSlightlyInactiveSessions : MaintenanceJobBase
     {
         var deleteCutoff = DateTime.UtcNow - TimeSpan.FromHours(1);
 
-        database.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
+        Database.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
 
-        var deleted = await database.Database.ExecuteSqlInterpolatedAsync(
+        var deleted = await Database.Database.ExecuteSqlInterpolatedAsync(
             $"DELETE FROM sessions WHERE last_used < {deleteCutoff}", cancellationToken);
 
-        logger.LogInformation("Session maintenance for all slightly inactive sessions deleted: {Deleted} row(s)",
+        Logger.LogInformation("Session maintenance for all slightly inactive sessions deleted: {Deleted} row(s)",
             deleted);
         operationData.ExtendedDescription = $"Deleted {deleted} row(s)";
     }

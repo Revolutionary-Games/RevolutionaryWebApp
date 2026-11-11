@@ -526,7 +526,7 @@ public class UserManagementController : Controller
         foreach (var rune in name.EnumerateRunes())
         {
             // Variation selectors can turn otherwise ordinary characters into emoji presentations.
-            if (rune.Value is >= 0xFE00 and <= 0xFE0F or >= 0xE0100 and <= 0xE01EF)
+            if (rune.Value is (>= 0xFE00 and <= 0xFE0F) or (>= 0xE0100 and <= 0xE01EF))
                 return false;
 
             if (rune.Value is ' ' or '\'' or '-' or '.' or 0x2019 or 0x00B7 or 0x30FB)

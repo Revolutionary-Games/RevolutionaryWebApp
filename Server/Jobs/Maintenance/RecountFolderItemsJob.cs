@@ -23,10 +23,10 @@ public class RecountFolderItemsJob : MaintenanceJobBase
 
         // Due to needing to count items, we need to get the DB operation finished here so we load everything to memory
         // Hopefully there never is too many folders to fit into memory at once
-        foreach (var folder in await database.StorageItems.Where(i => i.Ftype == FileType.Folder)
+        foreach (var folder in await Database.StorageItems.Where(i => i.Ftype == FileType.Folder)
                      .ToListAsync(cancellationToken))
         {
-            var newCount = await database.StorageItems.CountAsync(i => i.ParentId == folder.Id, cancellationToken);
+            var newCount = await Database.StorageItems.CountAsync(i => i.ParentId == folder.Id, cancellationToken);
 
             if (newCount != folder.Size)
             {
@@ -37,9 +37,9 @@ public class RecountFolderItemsJob : MaintenanceJobBase
             }
         }
 
-        await database.SaveChangesAsync(cancellationToken);
+        await Database.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Recounting folder items updated: {UpdatedFolders} folders(s)",
+        Logger.LogInformation("Recounting folder items updated: {UpdatedFolders} folders(s)",
             updatedFolders);
 
         operationData.ExtendedDescription = $"Updated item counts for {updatedFolders} folder(s)";

@@ -26,12 +26,12 @@ public class CleanDuplicateDictionaryLanguagesJob : MaintenanceJobBase
     protected override async Task RunOperation(ExecutedMaintenanceOperation operationData,
         CancellationToken cancellationToken)
     {
-        await using var transaction = database.Database.IsRelational() ?
-            await database.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) :
+        await using var transaction = Database.Database.IsRelational() ?
+            await Database.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) :
             null;
 
-        var translations = await database.DictionaryTermTranslations.ToListAsync(cancellationToken);
-        var languageTerms = await database.DictionaryLanguageTerms.ToListAsync(cancellationToken);
+        var translations = await Database.DictionaryTermTranslations.ToListAsync(cancellationToken);
+        var languageTerms = await Database.DictionaryLanguageTerms.ToListAsync(cancellationToken);
         var redundant = new List<DictionaryTermTranslation>();
         var conflicts = new List<string>();
 
@@ -80,12 +80,12 @@ public class CleanDuplicateDictionaryLanguagesJob : MaintenanceJobBase
                 "or explanations for equivalent languages: " + string.Join("; ", conflicts));
         }
 
-        database.DictionaryTermTranslations.RemoveRange(redundant);
-        await database.SaveChangesAsync(cancellationToken);
+        Database.DictionaryTermTranslations.RemoveRange(redundant);
+        await Database.SaveChangesAsync(cancellationToken);
         if (transaction != null)
             await transaction.CommitAsync(cancellationToken);
 
         operationData.ExtendedDescription = $"Deleted {redundant.Count} duplicate dictionary translation row(s)";
-        logger.LogInformation("Dictionary language cleanup deleted {Deleted} duplicate row(s)", redundant.Count);
+        Logger.LogInformation("Dictionary language cleanup deleted {Deleted} duplicate row(s)", redundant.Count);
     }
 }

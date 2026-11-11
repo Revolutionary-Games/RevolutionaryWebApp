@@ -73,13 +73,13 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
         if (!Directory.Exists(baseFolder))
         {
-            logger.LogWarning("Folder to import WordPress from doesn't exist at {BaseFolder}", baseFolder);
+            Logger.LogWarning("Folder to import WordPress from doesn't exist at {BaseFolder}", baseFolder);
             operationData.Failed = true;
             operationData.ExtendedDescription = "Folder to import WordPress from doesn't exist";
             return;
         }
 
-        var mediaFolder = await database.MediaFolders
+        var mediaFolder = await Database.MediaFolders
             .Where(m => m.ParentFolderId == MediaFolder.WebsitePostsId && m.Name == "WordPress Import")
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -110,7 +110,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
             if (parts.Length != 4)
             {
-                logger.LogWarning("Invalid post name: {PostName}", post);
+                Logger.LogWarning("Invalid post name: {PostName}", post);
                 ++errors;
                 continue;
             }
@@ -123,16 +123,16 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
             if (string.IsNullOrWhiteSpace(permalink))
             {
-                logger.LogWarning("Invalid post permalink: {Permalink} ({PostName})", permalink, post);
+                Logger.LogWarning("Invalid post permalink: {Permalink} ({PostName})", permalink, post);
                 ++errors;
                 continue;
             }
 
             // Can import this page, check if already imported
-            if (await database.VersionedPages.AnyAsync(p => p.Permalink == permalink,
+            if (await Database.VersionedPages.AnyAsync(p => p.Permalink == permalink,
                     cancellationToken: cancellationToken))
             {
-                logger.LogInformation("Post {Permalink} already exists, skipping", permalink);
+                Logger.LogInformation("Post {Permalink} already exists, skipping", permalink);
                 continue;
             }
 
@@ -141,7 +141,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
             // Read the front matter of the Markdown
             if (!rawText.StartsWith("---"))
             {
-                logger.LogWarning("Invalid post: {PostName} (doesn't start with front matter)", post);
+                Logger.LogWarning("Invalid post: {PostName} (doesn't start with front matter)", post);
                 ++errors;
                 continue;
             }
@@ -158,7 +158,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
             if (string.IsNullOrWhiteSpace(title))
             {
-                logger.LogWarning("Invalid post: {PostName} (no title)", post);
+                Logger.LogWarning("Invalid post: {PostName} (no title)", post);
                 ++errors;
                 continue;
             }
@@ -173,7 +173,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
             await SavePage(editableContent.ToString().Trim(), title, date, permalink);
 
-            logger.LogInformation("Imported post {Permalink}", permalink);
+            Logger.LogInformation("Imported post {Permalink}", permalink);
             ++imported;
         }
 
@@ -215,7 +215,7 @@ public class ImportWordPressPosts : MaintenanceJobBase
                 throw new Exception($"Image name contains invalid characters: {imageName}");
 
             var databaseImage =
-                await database.MediaFiles.FirstOrDefaultAsync(m =>
+                await Database.MediaFiles.FirstOrDefaultAsync(m =>
                     m.FolderId == parentFolder.Id && m.Name == imageName);
 
             // If it doesn't, we need to upload it
@@ -278,13 +278,13 @@ public class ImportWordPressPosts : MaintenanceJobBase
         // code that is only ever getting used once.
         if (File.Exists(sourceFile) && (await File.ReadAllTextAsync(sourceFile)).StartsWith(PuImageMarker))
         {
-            logger.LogInformation("Image {ImageName} is a PU banner, replacing with bbcode", imageName);
+            Logger.LogInformation("Image {ImageName} is a PU banner, replacing with bbcode", imageName);
 
             editableContent.Replace(fullMatchMarkdown, $"[puImage]{postDate}[/puImage]");
             return null;
         }
 
-        logger.LogInformation("Image {ImageName} not found, importing it", imageName);
+        Logger.LogInformation("Image {ImageName} not found, importing it", imageName);
 
         var databaseImage = new MediaFile(imageName, Guid.NewGuid(), parentFolder.Id, null)
         {
@@ -296,17 +296,17 @@ public class ImportWordPressPosts : MaintenanceJobBase
         if (databaseImage.OriginalFileSize < 100)
             throw new Exception($"Image is very small ({imageName}), will not consider it valid");
 
-        if (await database.MediaFiles.AnyAsync(m => m.GlobalId == databaseImage.GlobalId))
+        if (await Database.MediaFiles.AnyAsync(m => m.GlobalId == databaseImage.GlobalId))
             throw new Exception("Conflicting UUID, please retry");
 
         // Open a stream here to make sure the file is readable
         await using var uploadStream = File.OpenRead(sourceFile);
 
-        await database.MediaFiles.AddAsync(databaseImage);
+        await Database.MediaFiles.AddAsync(databaseImage);
 
         // We have to save the image here to know for sure what the intermediate processing path will be (as it uses
         // the image ID)
-        await database.SaveChangesAsync();
+        await Database.SaveChangesAsync();
 
         var savePath = databaseImage.GetIntermediateProcessingPath();
 
@@ -329,11 +329,11 @@ public class ImportWordPressPosts : MaintenanceJobBase
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to upload image {ImageName}, removing from DB", imageName);
+            Logger.LogError(e, "Failed to upload image {ImageName}, removing from DB", imageName);
 
             // Don't keep around in the database
-            database.MediaFiles.Remove(databaseImage);
-            await database.SaveChangesAsync();
+            Database.MediaFiles.Remove(databaseImage);
+            await Database.SaveChangesAsync();
             throw;
         }
 
@@ -356,12 +356,12 @@ public class ImportWordPressPosts : MaintenanceJobBase
             PublishedAt = date,
         };
 
-        logger.LogInformation("Saving imported page {Title}", title);
+        Logger.LogInformation("Saving imported page {Title}", title);
 
-        await database.VersionedPages.AddAsync(page);
+        await Database.VersionedPages.AddAsync(page);
 
         // We must have the ID here, so I guess we are saving database changes now
-        await database.SaveChangesAsync();
+        await Database.SaveChangesAsync();
 
         // We need to run some post-import actions. So queue those long into the future to make sure they will run
         jobClient.Schedule<UpdatePageUsedMediaJob>(x => x.Execute(page.Id, CancellationToken.None),

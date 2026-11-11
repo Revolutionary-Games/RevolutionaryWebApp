@@ -56,12 +56,12 @@ public class CleanStaticCDNJob : MaintenanceJobBase
                 // Ensure the response status is a success
                 response.EnsureSuccessStatusCode();
 
-                logger.LogInformation("Successfully cleared CDN cache for : {FinalUrl}", finalUrl);
+                Logger.LogInformation("Successfully cleared CDN cache for : {FinalUrl}", finalUrl);
                 ++succeeded;
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Failed to clear CDN for: {FinalUrl}", finalUrl);
+                Logger.LogError(e, "Failed to clear CDN for: {FinalUrl}", finalUrl);
                 ++failed;
             }
         }

@@ -14,8 +14,8 @@ using Models;
 [DisableConcurrentExecution(1500)]
 public abstract class MaintenanceJobBase
 {
-    protected readonly ILogger<MaintenanceJobBase> logger;
-    protected readonly ApplicationDbContext database;
+    protected readonly ILogger<MaintenanceJobBase> Logger;
+    protected readonly ApplicationDbContext Database;
 
     /// <summary>
     ///   Separate database that has notifications on for the status of the maintenance job itself, so that the actions
@@ -26,8 +26,8 @@ public abstract class MaintenanceJobBase
     public MaintenanceJobBase(ILogger<MaintenanceJobBase> logger, ApplicationDbContext operationDb,
         NotificationsEnabledDb operationStatusDb)
     {
-        this.logger = logger;
-        database = operationDb;
+        Logger = logger;
+        Database = operationDb;
         this.operationStatusDb = operationStatusDb;
     }
 
@@ -40,7 +40,7 @@ public abstract class MaintenanceJobBase
         if (operation == null)
         {
             DummyOperation = true;
-            logger.LogWarning("Maintenance operation {OperationId} not found in DB, using a dummy operation",
+            Logger.LogWarning("Maintenance operation {OperationId} not found in DB, using a dummy operation",
                 operationId);
             operation = new ExecutedMaintenanceOperation("dummy");
         }
@@ -62,11 +62,11 @@ public abstract class MaintenanceJobBase
         {
             if (DummyOperation)
             {
-                logger.LogError(e, "Maintenance job failed with a dummy operation");
+                Logger.LogError(e, "Maintenance job failed with a dummy operation");
             }
             else
             {
-                logger.LogError(e, "Maintenance job failed, updating status in DB");
+                Logger.LogError(e, "Maintenance job failed, updating status in DB");
 
                 operation.Failed = true;
                 operation.ExtendedDescription = $"Failed with exception ({e.GetType().Name}): {e.Message}";
@@ -84,7 +84,7 @@ public abstract class MaintenanceJobBase
             operation.ExtendedDescription = "Success";
 
         if (!operation.Failed)
-            logger.LogInformation("Maintenance job {OperationId} succeeded", operationId);
+            Logger.LogInformation("Maintenance job {OperationId} succeeded", operationId);
 
         // Don't want to cancel after success
         // ReSharper disable once MethodSupportsCancellation

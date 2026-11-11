@@ -27,7 +27,7 @@ public class ClearOldCIImagesPrepareJob : MaintenanceJobBase
         CancellationToken cancellationToken)
     {
         // Locate the CI/Images folder in StorageItems
-        var imagesFolder = await StorageItem.FindByPath(database, "CI/Images");
+        var imagesFolder = await StorageItem.FindByPath(Database, "CI/Images");
 
         if (imagesFolder == null)
         {
@@ -47,7 +47,7 @@ public class ClearOldCIImagesPrepareJob : MaintenanceJobBase
 
             var parentId = toVisit.Dequeue();
 
-            var children = await database.StorageItems
+            var children = await Database.StorageItems
                 .Where(i => i.ParentId == parentId)
                 .Select(i => new { i.Id, i.Ftype, i.WriteAccess })
                 .ToListAsync(cancellationToken);
@@ -62,14 +62,14 @@ public class ClearOldCIImagesPrepareJob : MaintenanceJobBase
                 else
                 {
                     // Make files admin-writable and bump timestamp
-                    var item = await database.StorageItems.FirstAsync(i => i.Id == child.Id, cancellationToken);
+                    var item = await Database.StorageItems.FirstAsync(i => i.Id == child.Id, cancellationToken);
 
                     if (item.WriteAccess != FileAccess.OwnerOrAdmin)
                     {
                         item.WriteAccess = FileAccess.OwnerOrAdmin;
                         ++affected;
 
-                        logger.LogInformation("Marking CI image file {Name} ({Id}) as admin-writable", item.Name,
+                        Logger.LogInformation("Marking CI image file {Name} ({Id}) as admin-writable", item.Name,
                             item.Id);
 
                         item.BumpUpdatedAt();
@@ -78,13 +78,13 @@ public class ClearOldCIImagesPrepareJob : MaintenanceJobBase
             }
         }
 
-        await database.SaveChangesAsync(cancellationToken);
+        await Database.SaveChangesAsync(cancellationToken);
 
         // Schedule the clean-up in 90 days as a standalone job (not tied to this maintenance operation)
         jobClient.Schedule<ClearOldCIImagesCleanupJob>(x => x.Execute(CancellationToken.None),
             TimeSpan.FromDays(90));
 
-        logger.LogInformation("ClearOldCIImages prepare phase affected {Count} file(s). Cleanup scheduled in 90 days.",
+        Logger.LogInformation("ClearOldCIImages prepare phase affected {Count} file(s). Cleanup scheduled in 90 days",
             affected);
 
         operationData.ExtendedDescription =
