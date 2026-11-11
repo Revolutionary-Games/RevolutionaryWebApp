@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hangfire;
 using Jobs;
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
