@@ -1,4 +1,5 @@
 @page "/admin/translations"
+@using System.Globalization
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
@@ -110,6 +111,26 @@
                             <small>Use {language} where the language code appears.</small>
                         </div>
                     }
+                    <div class="col-md-8 mb-3">
+                        <label for="translation-source-base-url" class="form-label">Source location base URL</label>
+                        <InputText id="translation-source-base-url" class="form-control"
+                                   @bind-Value="form.SourceLocationBaseUrl"/>
+                        <small>
+                            Optional HTTP(S) directory URL ending in /. Relative paths such as ../src/file.cs
+                            are resolved against this directory.
+                            Example: https://github.com/Revolutionary-Games/Thrive/blob/master/locales/
+                        </small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="translation-source-url-template" class="form-label">Source location URL
+                            template</label>
+                        <InputText id="translation-source-url-template" class="form-control"
+                                   placeholder="{path}#L{line}" @bind-Value="form.SourceLocationUrlTemplate"/>
+                        <small>
+                            Defaults to {path}#L{line}. Start with {path}, optionally followed by a query or
+                            fragment using {line}. Locations without a line link directly to the file.
+                        </small>
+                    </div>
                     <div class="col-md-4 mb-3">
                         <label for="translation-dictionary" class="form-label">Dictionary</label>
                         <InputSelect id="translation-dictionary" class="form-select" @bind-Value="form.DictionaryId">
@@ -180,7 +201,9 @@
                 <p>Pending translations: @syncStatus.PendingTranslations
                     @if (syncStatus.OldestPendingAt != null)
                     {
-                        <span class="ms-1">(oldest: @syncStatus.OldestPendingAt.Value.ToString("g"))</span>
+                        <span class="ms-1">
+                            (oldest: @syncStatus.OldestPendingAt.Value.ToString("g", CultureInfo.CurrentCulture))
+                        </span>
                     }
                 </p>
                 @if (syncStatus.PullRequestNumber != null)
@@ -278,6 +301,8 @@
         form.RepositoryFullName != loadedForm.RepositoryFullName || form.SourceBranch != loadedForm.SourceBranch ||
         form.SourceFilePath != loadedForm.SourceFilePath ||
         form.TranslationFilePattern != loadedForm.TranslationFilePattern || form.Enabled != loadedForm.Enabled ||
+        form.SourceLocationBaseUrl != loadedForm.SourceLocationBaseUrl ||
+        form.SourceLocationUrlTemplate != loadedForm.SourceLocationUrlTemplate ||
         form.DictionaryId != loadedForm.DictionaryId;
 
     public Task Handle(TranslationProjectListUpdated notification, CancellationToken cancellationToken)
@@ -349,6 +374,8 @@
             SourceLanguage = project.SourceLanguage, RepositoryFullName = project.RepositoryFullName,
             SourceBranch = project.SourceBranch, SourceFilePath = project.SourceFilePath,
             TranslationFilePattern = project.TranslationFilePattern, Enabled = project.Enabled,
+            SourceLocationBaseUrl = project.SourceLocationBaseUrl,
+            SourceLocationUrlTemplate = project.SourceLocationUrlTemplate,
             DictionaryId = project.DictionaryId,
         };
     }
