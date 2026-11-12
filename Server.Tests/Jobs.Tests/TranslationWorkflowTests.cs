@@ -267,7 +267,7 @@ public class TranslationWorkflowTests
             else
             {
                 Assert.Equal(new[] { "de.resx", "en.resx", "fi.resx", "sv.resx" }, checkout.GetFiles()
-                    .Select(file => file.Name).OrderBy(name => name).ToArray());
+                    .Select(file => file.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray());
             }
 
             Assert.Null(source.PendingRevision);
