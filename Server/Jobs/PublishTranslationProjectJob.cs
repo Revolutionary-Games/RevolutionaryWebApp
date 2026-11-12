@@ -231,7 +231,7 @@ public sealed class PublishTranslationProjectJob
                 .Where(c => c.ProjectId == project.Id && c.ProjectRevision <= snapshotRevision &&
                     languageCodes.Contains(c.LanguageCode) && (c.Value.Text != c.Value.LastImportedText ||
                         (project.Format == TranslationFormat.Gettext &&
-                            (c.Value.State == TranslationState.NeedsTranslation) != c.Value.LastImportedFuzzy)))
+                            c.Value.State == TranslationState.NeedsTranslation != c.Value.LastImportedFuzzy)))
                 .ToListAsync(cancellationToken);
             tracked = await database.TranslationPullRequests.AsNoTracking()
                 .FirstOrDefaultAsync(pr => pr.ProjectId == project.Id, cancellationToken);
