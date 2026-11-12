@@ -325,6 +325,7 @@ public class Startup
         services.AddSingleton<ImageGenerator>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
+        services.AddScoped<TwoFactorService>();
         services.AddScoped<IGithubOAuthClient, GithubOAuthClient>();
         services.AddSingleton<IPatreonCreatorAPI, PatreonCreatorAPI>();
         services.AddScoped<LfsRemoteStorage>();
@@ -610,6 +611,7 @@ public class Startup
 
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
     {
+        AddJobHelper<TwoFactorRecoveryJob>("*/5 * * * *");
         AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
         AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
         AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
