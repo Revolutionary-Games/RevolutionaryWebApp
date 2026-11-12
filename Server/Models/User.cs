@@ -77,7 +77,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
     /// </summary>
     public string? PasswordHash { get; set; }
 
-    // TODO: implement 2fa support
+    public TwoFactorAuthentication? TwoFactorAuthentication { get; set; }
 
     [HashedLookUp]
     public string? LfsToken { get; set; }

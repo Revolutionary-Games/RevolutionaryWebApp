@@ -43,6 +43,10 @@ public static class EmailHelpers
     public static async Task<bool> IsAllowedAsync(ApplicationDbContext database, MailRequest request,
         CancellationToken cancellationToken)
     {
+        // 2-factor auth reset warnings are always sent
+        if (request.Category == EmailReason.AccountSecurity)
+            return true;
+
         var normalized = Normalization.NormalizeEmail(request.Recipient);
 
         EmailPreferences? prefs;

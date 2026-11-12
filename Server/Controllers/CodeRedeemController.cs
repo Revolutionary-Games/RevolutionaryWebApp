@@ -39,7 +39,7 @@ public class CodeRedeemController : Controller
     [EnableRateLimiting(RateLimitCategories.CodeRedeemLimit)]
     public async Task<IActionResult> Redeem([Required] RedeemCodeData data)
     {
-        var target = await database.Users.Include(u => u.Groups)
+        var target = await database.Users.Include(u => u.Groups).Include(u => u.TwoFactorAuthentication)
             .FirstAsync(u => u.Id == HttpContext.AuthenticatedUserOrThrow().Id);
 
         if (target == null)
@@ -63,6 +63,12 @@ public class CodeRedeemController : Controller
         {
             case "GroupAdmin":
             {
+                if (target.TwoFactorAuthentication?.Enabled != true)
+                {
+                    return BadRequest("Enable two-factor authentication in your profile " +
+                        "before redeeming an admin code.");
+                }
+
                 if (target.Groups.Any(g => g.Id == GroupType.Admin))
                     return GetAlreadyGotResult();
 

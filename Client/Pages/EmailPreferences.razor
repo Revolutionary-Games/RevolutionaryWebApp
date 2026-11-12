@@ -88,7 +88,7 @@ else
             <div class="mb-3 col-md-12 form-check">
                 <InputCheckbox class="form-check-input" id="disableAll" @bind-Value="prefs.DisableAllEmails"/>
                 <label class="form-check-label" for="disableAll">
-                    Disable ALL emails (including all account management emails)
+                    Disable emails (including account management emails, except two-factor security warnings)
                 </label>
             </div>
         </div>
@@ -96,7 +96,8 @@ else
         @if (prefs.DisableAllEmails)
         {
             <div class="alert alert-danger" role="alert">
-                This will disable ALL emails including critical ones like password recovery and email confirmation.
+                This will disable emails including password recovery and email confirmation.
+                Two-factor security warnings will still be sent (to protect you if someone hacks your password).
                 The only way to undo this is to send an email from your email address to the website notification
                 sending address with a title starting with "resume emails".
             </div>

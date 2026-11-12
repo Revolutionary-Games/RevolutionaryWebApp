@@ -27,6 +27,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserContributionCount> UserContributionCounts { get; set; } = null!;
     public DbSet<APIKey> APIKeys { get; set; } = null!;
     public DbSet<Session> Sessions { get; set; } = null!;
+    public DbSet<TwoFactorAuthentication> TwoFactorAuthentications { get; set; } = null!;
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
     public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
     public DbSet<DevBuild> DevBuilds { get; set; } = null!;
@@ -479,7 +480,16 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasOne(d => d.User).WithMany(p => p.Sessions).OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne<User>().WithMany().HasForeignKey(s => s.PendingTwoFactorUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.Property(e => e.StartedAt).HasDefaultValueSql("timezone('utc', now())");
+        });
+
+        modelBuilder.Entity<TwoFactorAuthentication>(entity =>
+        {
+            entity.HasOne(t => t.User).WithOne(u => u.TwoFactorAuthentication)
+                .HasForeignKey<TwoFactorAuthentication>(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RedeemableCode>(entity =>

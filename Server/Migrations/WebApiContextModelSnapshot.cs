@@ -4007,6 +4007,24 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("inet")
                         .HasColumnName("last_used_from");
 
+                    b.Property<DateTime?>("PendingTwoFactorExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pending_two_factor_expires_at");
+
+                    b.Property<Guid?>("PendingTwoFactorKeyVersion")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pending_two_factor_key_version");
+
+                    b.Property<string>("PendingTwoFactorReturnUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("pending_two_factor_return_url");
+
+                    b.Property<long?>("PendingTwoFactorUserId")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("pending_two_factor_user_id");
+
                     b.Property<string>("SsoNonce")
                         .HasColumnType("text")
                         .HasColumnName("sso_nonce");
@@ -4029,6 +4047,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("started_sso_login");
 
+                    b.Property<DateTime?>("TwoFactorVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("two_factor_verified_at");
+
                     b.Property<long?>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
@@ -4039,6 +4061,9 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasIndex("HashedId")
                         .IsUnique()
                         .HasDatabaseName("ix_sessions_hashed_id");
+
+                    b.HasIndex("PendingTwoFactorUserId")
+                        .HasDatabaseName("ix_sessions_pending_two_factor_user_id");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_sessions_user_id");
@@ -5513,6 +5538,70 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("translation_values", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.TwoFactorAuthentication", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("BackupCodeHashes")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("backup_code_hashes");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_attempts");
+
+                    b.Property<Guid>("KeyVersion")
+                        .HasColumnType("uuid")
+                        .HasColumnName("key_version");
+
+                    b.Property<DateTime?>("LastRecoveryWarningAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_recovery_warning_at");
+
+                    b.Property<long?>("LastUsedTimeStep")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_used_time_step");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<string>("ProtectedSecret")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("protected_secret");
+
+                    b.Property<DateTime?>("RecoveryRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recovery_requested_at");
+
+                    b.Property<int>("RecoveryWarningsSent")
+                        .HasColumnType("integer")
+                        .HasColumnName("recovery_warnings_sent");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("revision");
+
+                    b.Property<DateTime?>("SetupExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("setup_expires_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_two_factor_authentications");
+
+                    b.ToTable("two_factor_authentications", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
                 {
                     b.Property<long>("Id")
@@ -6824,6 +6913,12 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Session", b =>
                 {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("PendingTwoFactorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_sessions_users_pending_two_factor_user_id");
+
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("Sessions")
                         .HasForeignKey("UserId")
@@ -7254,6 +7349,18 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("Unit");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.TwoFactorAuthentication", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithOne("TwoFactorAuthentication")
+                        .HasForeignKey("RevolutionaryWebApp.Server.Models.TwoFactorAuthentication", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_two_factor_authentications_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserContributionCount", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
@@ -7617,6 +7724,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("TranslationSubscriptions");
 
                     b.Navigation("TranslationSuggestionVotes");
+
+                    b.Navigation("TwoFactorAuthentication");
 
                     b.Navigation("UploadedStorageItemVersions");
 
