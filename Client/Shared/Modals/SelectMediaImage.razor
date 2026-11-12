@@ -1,0 +1,53 @@
+@using RevolutionaryWebApp.Client.Pages.CMS
+@using RevolutionaryWebApp.Shared.Models.Pages
+
+<BootstrapModal OnCancel="@Cancel" DialogClass="modal-xl">
+    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <p>Browse to a folder and select an image. You can also drop images into a writable folder to upload them.</p>
+        <Media SelectionMode="@true" OnImageSelected="@OnImageSelected" BasePath="/media/" RootFolderName="Media"/>
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="@centerCheckboxId" @bind="centerImage"/>
+            <label class="form-check-label" for="@centerCheckboxId">Center image</label>
+        </div>
+        @if (selectedImage != null)
+        {
+            <p class="mt-2">Selected image: @selectedImage.Name</p>
+        }
+    </div>
+    <div class="modal-footer">
+        <Button ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+        <Button Enabled="@(selectedImage != null)" OnPressed="@Accept">Accept</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+    private readonly string centerCheckboxId = $"centerImage-{Guid.NewGuid():N}";
+
+    private MediaBrowserEntry? selectedImage;
+    private bool centerImage;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    private void OnImageSelected(MediaBrowserEntry? image)
+    {
+        selectedImage = image;
+    }
+
+    private Task Accept()
+    {
+        if (selectedImage == null)
+            return Task.CompletedTask;
+
+        var markdown = selectedImage.GetMarkdown();
+        if (centerImage)
+            markdown = $"[center]{markdown}[/center]";
+
+        return ModalInstance.CloseAsync(ModalResult.Ok(markdown));
+    }
+
+    private Task Cancel()
+    {
+        return ModalInstance.CancelAsync();
+    }
+}
