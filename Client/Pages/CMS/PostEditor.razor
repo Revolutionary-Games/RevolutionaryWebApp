@@ -44,7 +44,7 @@
             <div class="my-2">
                 <label for="editComment">Edit Comment (optional):</label>
                 <input type="text" class="form-control" id="editComment" @bind="EditComment"
-                       placeholder="Short description of your changes" maxlength="@AppInfo.MaxPageEditCommentLength" />
+                       placeholder="Short description of your changes" maxlength="@AppInfo.MaxPageEditCommentLength"/>
             </div>
 
             <StatusMessageShower Message="@saveMessage" Type="@saveMessageType" OnClosed="@ClearSaveMessage"/>
@@ -60,9 +60,32 @@
             <EditConflictNoticeShower Show="@versionConflict" OnClosed="@SuppressEditWarning"/>
             <SimultaneousEditWarningShower UserId="@someoneElseEditId" AtTime="@someoneElseEditTime"/>
 
-            <PageEditFooter Data="@Data" />
+            <PageEditFooter Data="@Data"/>
 
-            <PageVersionHistory PageDTO="@Data" BaseEndpoint="api/v1/Posts" OnApplyVersion="@ApplyHistoricalVersion" />
+            <PageVersionHistory PageDTO="@Data" BaseEndpoint="api/v1/Posts" OnApplyVersion="@ApplyHistoricalVersion"/>
+
+            <AccessLimited RequiredAccess="GroupType.Developer">
+                <div class="my-3">
+                    <Button OnPressed="@ConvertToSteam" Enabled="@(!convertingToSteam)" Spinner="@convertingToSteam">
+                        Convert to Steam syntax
+                    </Button>
+                    <StatusMessageShower Message="@steamConversionError" Type="SiteNoticeType.Danger"
+                                         OnClosed="@(() => steamConversionError = null)"/>
+                    @if (steamContent != null)
+                    {
+                        <div class="mt-2">
+                            <label for="steamPostContent">Steam post (copy this text into Steam):</label>
+                            <p>Converted from the editor's current text. Convert again after making further edits.</p>
+                            <p class="small text-muted">
+                                Note: this was converted to HTML first and then back to Steam,
+                                verify all desired content survived.
+                            </p>
+                            <textarea id="steamPostContent" class="form-control" rows="20" readonly
+                                      value="@steamContent"></textarea>
+                        </div>
+                    }
+                </div>
+            </AccessLimited>
 
             <DevCenterTitle>Edit Post @Id</DevCenterTitle>
         }
@@ -72,6 +95,10 @@
 </AccessLimited>
 
 @code {
+
+    private bool convertingToSteam;
+    private string? steamContent;
+    private string? steamConversionError;
 
     protected override PageType EditedPageType => PageType.Post;
 
@@ -101,6 +128,38 @@
     {
         await NotificationHandler.Register((INotificationHandler<VersionedPageUpdated>)this);
         await NotificationHandler.Register((INotificationHandler<PageEditNotice>)this);
+    }
+
+    private async Task ConvertToSteam()
+    {
+        convertingToSteam = true;
+        steamConversionError = null;
+        steamContent = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/Posts/convertToSteam",
+                new SteamConversionRequest { Content = EditableContent ?? string.Empty });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                steamConversionError = $"Steam conversion failed: {await response.Content.ReadAsStringAsync()}, " +
+                    $"{response.StatusCode}";
+                return;
+            }
+
+            steamContent = await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception e)
+        {
+            steamConversionError = $"Steam conversion failed: {e.Message}";
+        }
+        finally
+        {
+            convertingToSteam = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
 }

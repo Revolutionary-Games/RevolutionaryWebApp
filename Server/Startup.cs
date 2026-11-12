@@ -314,6 +314,7 @@ public class Startup
         services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
         services.AddSingleton<IRemoteResourceHashCalculator, RemoteResourceHashCalculator>();
         services.AddSingleton<MarkdownService>();
+        services.AddSingleton<SteamPostConverter>();
         services.AddSingleton<HtmlSanitizerService>();
         services.AddSingleton<IMarkdownBbCodeService, MarkdownBbCodeService>();
         services.AddSingleton<IMediaLinkConverter, MediaLinkConverter>();
