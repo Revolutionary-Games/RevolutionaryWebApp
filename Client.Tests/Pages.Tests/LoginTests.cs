@@ -13,6 +13,46 @@ using Xunit;
 
 public class LoginTests : BunitContext
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GithubLoginRendersProviderButton(bool active)
+    {
+        var mockCSRF = CSRFMockFactory.Create();
+        var http = Services.AddMockHttpClient();
+        http.When("/api/v1/Registration").RespondJson(false);
+        http.When("/LoginController").RespondJson(new LoginOptions
+        {
+            Categories = new List<LoginCategory>
+            {
+                new()
+                {
+                    Name = "SSO Login",
+                    Options = new List<LoginOption>
+                    {
+                        new()
+                        {
+                            ReadableName = "Login Using GitHub",
+                            InternalName = "github",
+                            Active = active,
+                        },
+                    },
+                },
+            },
+        });
+        Services.AddSingleton(mockCSRF);
+
+        var cut = Render<Login>();
+
+        cut.WaitForAssertion(() => cut.FindIsNull(".spinner-border"));
+        var form = cut.Nodes.QuerySelector("form[action='/LoginController/start']")!;
+        Assert.Equal("github", form.QuerySelector("input[name='SsoType']")!.GetAttribute("value"));
+        Assert.Equal(mockCSRF.Token, form.QuerySelector("input[name='CSRF']")!.GetAttribute("value"));
+        var button = form.QuerySelector("button")!;
+        Assert.Equal("Login Using GitHub", button.TextContent.Trim());
+        Assert.Equal(!active, button.HasAttribute("disabled"));
+    }
+
     [Fact]
     public void LoginLocal_IsNotRenderedWhenDisabled()
     {

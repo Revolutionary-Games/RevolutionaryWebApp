@@ -77,6 +77,7 @@ public sealed class LoginControllerTests : IDisposable
     [InlineData(null, LoginController.SsoTypePatreon, false)]
     [InlineData(null, LoginController.SsoTypeDevForum, false)]
     [InlineData(null, LoginController.SsoTypeCommunityForum, true)]
+    [InlineData(null, LoginController.SsoTypeGithub, false)]
     public async Task LoginController_CommunityLoginChecksAccountInsteadOfSupporterGroups(string? groups,
         string? existingSource, bool developer)
     {

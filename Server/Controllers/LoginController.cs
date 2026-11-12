@@ -36,6 +36,7 @@ public class LoginController : SSOLoginController
     public const string SsoTypeDevForum = "devforum";
     public const string SsoTypeCommunityForum = "communityforum";
     public const string SsoTypePatreon = "patreon";
+    public const string SsoTypeGithub = "github";
 
     public const string InvalidPatreonEmailMessage =
         "Patreon login requires a valid email address. Patreon rewards cannot sync properly without one; " +
@@ -73,6 +74,9 @@ public class LoginController : SSOLoginController
 
     private bool PatreonConfigured => !string.IsNullOrEmpty(configuration["Login:Patreon:ClientId"]) &&
         !string.IsNullOrEmpty(configuration["Login:Patreon:ClientSecret"]);
+
+    private bool GithubConfigured => !string.IsNullOrEmpty(configuration["Login:Github:ClientId"]) &&
+        !string.IsNullOrEmpty(configuration["Login:Github:ClientSecret"]);
 
     [NonAction]
     public static string? GetPatreonEmailError(string? email)
@@ -146,6 +150,12 @@ public class LoginController : SSOLoginController
                             InternalName = SsoTypeCommunityForum,
                             Active = CommunityForumConfigured,
                         },
+                        new()
+                        {
+                            ReadableName = "Login Using GitHub",
+                            InternalName = SsoTypeGithub,
+                            Active = GithubConfigured,
+                        },
                     },
                 },
                 new()
@@ -186,6 +196,24 @@ public class LoginController : SSOLoginController
 
         switch (data.SsoType)
         {
+            case SsoTypeGithub:
+            {
+                if (!GithubConfigured)
+                    return CreateResponseForDisabledOption();
+
+                var returnUrl = new Uri(configuration.GetBaseUrl(), GithubOAuthClient.CallbackPath).ToString();
+                var session = await BeginSsoLogin(SsoTypeGithub, data.ReturnUrl);
+
+                return Redirect(QueryHelpers.AddQueryString("https://github.com/login/oauth/authorize",
+                    new Dictionary<string, string?>
+                    {
+                        { "client_id", configuration["Login:Github:ClientId"] },
+                        { "redirect_uri", returnUrl },
+                        { "scope", GithubOAuthClient.RequiredScopes },
+                        { "state", session.SsoNonce },
+                    }));
+            }
+
             case SsoTypeDevForum:
             {
                 if (!DevForumConfigured)
@@ -309,6 +337,67 @@ public class LoginController : SSOLoginController
         }
 
         return Redirect(redirect ?? "/");
+    }
+
+    [HttpGet("return/" + SsoTypeGithub)]
+    public async Task<IActionResult> SsoReturnGithub([Required] string state, string? code, string? error,
+        [FromServices] IGithubOAuthClient githubOAuth)
+    {
+        if (!GithubConfigured)
+            return CreateResponseForDisabledOption();
+
+        var (session, result) = await FetchAndCheckSessionForSsoReturn(state, SsoTypeGithub);
+        if (result != null)
+            return result;
+
+        if (session == null)
+            throw new Exception("Logic error, returned null session without returning an error result");
+
+        // Consume the nonce before making remote requests, including when GitHub denies authorization.
+        await Database.SaveChangesAsync();
+
+        bool requireSave = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(error) || string.IsNullOrEmpty(code))
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "GitHub authorization was cancelled or failed. Please try again."));
+            }
+
+            var (user, emails) = await githubOAuth.GetUser(code,
+                new Uri(configuration.GetBaseUrl(), GithubOAuthClient.CallbackPath).ToString());
+
+            var email = emails.Where(e => e.Verified && !string.IsNullOrWhiteSpace(e.Email) &&
+                    !e.Email.Contains("noreply", StringComparison.OrdinalIgnoreCase) &&
+                    !e.Email.Contains("no-reply", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(e => e.Primary).FirstOrDefault();
+
+            if (email == null)
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "GitHub login requires a verified email address that is not a noreply address. " +
+                    "Please add and verify an email address on GitHub and try again."));
+            }
+
+            var tuple = await HandleSsoLoginToAccount(session, email.Email, user.Login, SsoTypeGithub, false, false);
+            requireSave = !tuple.Saved;
+            return tuple.Result;
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Exception when processing GitHub return");
+            return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                "Failed to retrieve account details from GitHub."));
+        }
+        finally
+        {
+            if (requireSave)
+            {
+                ClearSSOParametersFromSession(session);
+                await Database.SaveChangesAsync();
+            }
+        }
     }
 
     [NonAction]
@@ -734,7 +823,7 @@ public class LoginController : SSOLoginController
         {
             await user.ComputeUserGroups(Database);
 
-            if ((ssoType == SsoTypeCommunityForum || user.SsoSource != ssoType) &&
+            if ((ssoType == SsoTypeCommunityForum || ssoType == SsoTypeGithub || user.SsoSource != ssoType) &&
                 (user.SsoSource == SsoTypeDevForum ||
                     user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer)))
             {
@@ -815,6 +904,10 @@ public class LoginController : SSOLoginController
             else if (user.SsoSource == SsoTypeCommunityForum && ssoType == SsoTypePatreon)
             {
                 Logger.LogInformation("Community forum user logged in using patreon");
+                ChangeSsoSourceForNormalUser(user, ssoType);
+            }
+            else if (ssoType == SsoTypeGithub || user.SsoSource == SsoTypeGithub)
+            {
                 ChangeSsoSourceForNormalUser(user, ssoType);
             }
             else if (user.SsoSource == null)

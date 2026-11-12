@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
+using Services;
 using Shared.Models;
 using Utilities;
 
@@ -26,7 +27,7 @@ using Utilities;
 public class OAuthController : SSOLoginController
 {
     public const string GithubCLASource = "githubCLA";
-    public const string WantedGithubCLAScopes = "read:user user:email";
+    public const string WantedGithubCLAScopes = GithubOAuthClient.RequiredScopes;
 
     private readonly Uri baseUrl;
     private readonly string githubClientId;
@@ -59,7 +60,7 @@ public class OAuthController : SSOLoginController
         if (signature == null)
             return NotFound("No active signature to authorize against");
 
-        var returnTo = new Uri(baseUrl, "OAuthReturn/github").ToString();
+        var returnTo = new Uri(baseUrl, GithubOAuthClient.CallbackPath).ToString();
         SetupSessionForSSO(GithubCLASource, returnTo, session);
 
         if (string.IsNullOrEmpty(session.SsoNonce))

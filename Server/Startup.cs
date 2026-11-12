@@ -325,6 +325,7 @@ public class Startup
         services.AddSingleton<ImageGenerator>();
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
+        services.AddScoped<IGithubOAuthClient, GithubOAuthClient>();
         services.AddSingleton<IPatreonCreatorAPI, PatreonCreatorAPI>();
         services.AddScoped<LfsRemoteStorage>();
         services.AddScoped<IGeneralRemoteStorage, GeneralRemoteStorage>();
