@@ -16,6 +16,7 @@
 @inject CurrentUserInfo UserInfo
 @implements INotificationHandler<TranslationProjectUpdated>
 @implements INotificationHandler<TranslationValueUpdated>
+@implements INotificationHandler<TranslationProblemsUpdated>
 @implements INotificationHandler<TranslationUnitUpdated>
 @implements INotificationHandler<TranslationHistoryUpdated>
 @implements INotificationHandler<TranslationCommentsUpdated>
@@ -70,6 +71,24 @@ else
                 </div>
             }
             <small class="text-muted">Translation key: @data.Key</small>
+            @foreach (var problem in data.Problems.Where(problem => !problem.Ignored))
+            {
+                <div class="border border-warning rounded p-3 my-2" @key="problem.Id">
+                    <StatusMessageShower Message="@problem.Message" Type="SiteNoticeType.Warning"/>
+                    @if (CanEditTranslation)
+                    {
+                        <Button Small="true" ButtonStyle="outline-warning"
+                                Enabled="@(!saving && processingAction == null && !HasLocalChanges)"
+                                Spinner="@(processingAction == $"ignore-{problem.Id}")"
+                                OnPressed="@(() => IgnoreProblem(problem))">Ignore warning
+                        </Button>
+                    }
+                </div>
+            }
+            @if (HasLocalChanges && data.Problems.Any(problem => !problem.Ignored))
+            {
+                <small class="text-muted d-block">Save your changes to update these warnings before ignoring them.</small>
+            }
             @if (updateWarning)
             {
                 <div class="alert alert-warning mt-2" role="alert">
@@ -182,6 +201,30 @@ else
             }
 
             <StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
+            @foreach (var problem in data.Problems.Where(problem => problem.Ignored))
+            {
+                <div class="mt-2" @key="problem.Id">
+                    <StatusMessageShower Message="@($"Ignored warning: {problem.Message}")" Type="SiteNoticeType.Info"/>
+                    @if (problem.IgnoredAt is { } ignoredAt)
+                    {
+                        <small class="text-info">
+                            Ignored by
+                            @* We don't want to show "system" as some user has ignored the warning, so we do this
+                            manual check *@
+                            @if (problem.IgnoredByUserId is { } ignoredByUserId)
+                            {
+                                <UsernameDisplayer UserId="@ignoredByUserId"/>
+                            }
+                            else
+                            {
+                                <span>unknown user</span>
+                            }
+                            · <RecentTimeShortener Time="@ignoredAt" IncludeSeconds="@false"/>
+                        </small>
+                    }
+                </div>
+            }
 
             @if (offerSubscriptions)
             {
@@ -641,6 +684,12 @@ else
         return RefreshAfterItemChange();
     }
 
+    public Task Handle(TranslationProblemsUpdated notification, CancellationToken cancellationToken)
+    {
+        return IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode) ?
+            RefreshProblems() : Task.CompletedTask;
+    }
+
     public Task Handle(TranslationUnitUpdated notification, CancellationToken cancellationToken)
     {
         if (notification.ProjectId != project?.Id || notification.Key != Key)
@@ -855,6 +904,82 @@ else
         updateWarning = false;
         await Load();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshProblems()
+    {
+        if (data == null || project == null)
+            return;
+
+        var currentData = data;
+        try
+        {
+            var problems = await Http.GetFromJsonAsync<TranslationProblemDTO[]>(
+                $"api/v1/translationProblems?{QuerySuffix()}");
+            if (data == currentData && problems != null)
+                data.Problems = problems;
+        }
+        catch (Exception e)
+        {
+            message = $"Could not load translation warnings: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task IgnoreProblem(TranslationProblemDTO problem)
+    {
+        if (!CanEditTranslation || saving || processingAction != null || HasLocalChanges)
+            return;
+
+        var currentData = data;
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmAction.Name), "this translation warning" },
+            { nameof(ConfirmAction.ActionVerb), "ignore" },
+            { nameof(ConfirmAction.AcceptButton), "Confirm translation is good" },
+            {
+                nameof(ConfirmAction.ExtraInfo),
+                "Confirm that the translation is correct despite this warning. " + problem.Message
+            },
+        };
+        var modal = Modal.Show<ConfirmAction>("Ignore translation warning?", parameters);
+        if ((await modal.Result).Cancelled || saving || processingAction != null ||
+            HasLocalChanges || data != currentData)
+        {
+            return;
+        }
+
+        processingAction = $"ignore-{problem.Id}";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/translationProblems/{problem.Id}/ignore", null);
+            if (response.IsSuccessStatusCode)
+            {
+                problem.Ignored = true;
+                message = "Warning ignored. The translation has been confirmed as correct.";
+                messageType = SiteNoticeType.Info;
+                await RefreshProblems();
+            }
+            else
+            {
+                message = $"Could not ignore the warning: {await response.Content.ReadAsStringAsync()}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not ignore the warning: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task RefreshHistory()
@@ -1196,8 +1321,18 @@ else
             return;
 
         await Save();
-        if (lastSaveSucceeded)
-            await Next();
+        if (lastSaveSucceeded && data != null)
+        {
+            if (data.Problems.Any(problem => !problem.Ignored))
+            {
+                message = "Translation saved. Please review the warnings before continuing.";
+                messageType = SiteNoticeType.Warning;
+            }
+            else
+            {
+                await Next();
+            }
+        }
     }
 
     private Task Previous()
