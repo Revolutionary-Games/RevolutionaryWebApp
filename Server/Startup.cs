@@ -324,6 +324,8 @@ public class Startup
         services.AddSingleton<HealthTracker>();
         services.AddSingleton<ImageGenerator>();
 
+        services.AddSingleton(TimeProvider.System);
+
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<TwoFactorService>();
         services.AddScoped<IGithubOAuthClient, GithubOAuthClient>();

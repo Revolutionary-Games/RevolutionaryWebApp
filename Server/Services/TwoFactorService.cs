@@ -30,22 +30,25 @@ public class TwoFactorService
     public static readonly TimeSpan RecoveryDelay = TimeSpan.FromHours(72);
 
     private readonly NotificationsEnabledDb database;
+    private readonly TimeProvider clock;
     private readonly IDataProtector protector;
     private readonly IMailQueue mail;
     private readonly IBackgroundJobClient jobs;
     private readonly string issuer;
 
-    public TwoFactorService(NotificationsEnabledDb database, IDataProtectionProvider protection, IMailQueue mail,
-        IBackgroundJobClient jobs, IConfiguration configuration)
+    public TwoFactorService(NotificationsEnabledDb database, IDataProtectionProvider protection, TimeProvider clock,
+        IMailQueue mail, IBackgroundJobClient jobs, IConfiguration configuration)
     {
         this.database = database;
+        this.clock = clock;
         this.mail = mail;
         this.jobs = jobs;
         protector = protection.CreateProtector("RevolutionaryWebApp.TwoFactor.v1");
         issuer = $"Thrive Web ({configuration.GetBaseUrl().Host})";
     }
 
-    public DateTime UtcNow => DateTime.UtcNow;
+    // This needs to be done like this to make tests work
+    public DateTime UtcNow => clock.GetUtcNow().DateTime;
 
     public static List<string> GetBackupCodeHashes(TwoFactorAuthentication credential)
     {
