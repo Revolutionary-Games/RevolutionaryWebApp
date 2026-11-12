@@ -109,6 +109,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TranslationUnit> TranslationUnits { get; set; } = null!;
     public DbSet<TranslationValue> TranslationValues { get; set; } = null!;
     public DbSet<TranslationChange> TranslationChanges { get; set; } = null!;
+    public DbSet<TranslationProblem> TranslationProblems { get; set; } = null!;
     public DbSet<TranslationComment> TranslationComments { get; set; } = null!;
     public DbSet<TranslationSuggestion> TranslationSuggestions { get; set; } = null!;
     public DbSet<TranslationSuggestionVote> TranslationSuggestionVotes { get; set; } = null!;

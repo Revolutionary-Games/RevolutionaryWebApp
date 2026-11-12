@@ -504,6 +504,7 @@ public class TranslationProjectsController : Controller
             null : request.SourceLocationBaseUrl;
         project.SourceLocationUrlTemplate = string.IsNullOrWhiteSpace(request.SourceLocationUrlTemplate) ?
             null : request.SourceLocationUrlTemplate;
+        project.QualityChecks = request.QualityChecks;
         project.DictionaryId = request.DictionaryId;
         project.Enabled = request.Enabled;
     }
@@ -513,6 +514,13 @@ public class TranslationProjectsController : Controller
     {
         format = request.Format;
         error = null;
+        if ((request.QualityChecks & ~(TranslationQualityCheck.CSharpFormatting |
+                TranslationQualityCheck.SentenceConsistency)) != 0)
+        {
+            error = "Invalid translation quality checks";
+            return false;
+        }
+
         if (!Enum.IsDefined(format))
         {
             error = "Invalid translation format";

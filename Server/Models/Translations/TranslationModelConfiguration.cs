@@ -12,6 +12,8 @@ public static class TranslationModelConfiguration
         modelBuilder.Entity<TranslationProjectLanguage>().HasQueryFilter(e => !e.Deleted && !e.Project.Deleted);
         modelBuilder.Entity<TranslationUnit>().HasQueryFilter(e => !e.Project.Deleted);
         modelBuilder.Entity<TranslationValue>().HasQueryFilter(e => !e.Unit.Project.Deleted && !e.Language.Deleted);
+        modelBuilder.Entity<TranslationProblem>().HasQueryFilter(e =>
+            !e.Value.Unit.Project.Deleted && !e.Value.Language.Deleted);
         modelBuilder.Entity<TranslationSuggestion>().HasQueryFilter(e =>
             !e.Value.Unit.Project.Deleted && !e.Value.Language.Deleted);
         modelBuilder.Entity<TranslationSuggestionVote>().HasQueryFilter(e =>
@@ -66,6 +68,13 @@ public static class TranslationModelConfiguration
             entity.HasOne(v => v.LastEditedByUser).WithMany(u => u.LastEditedTranslationValues)
                 .HasForeignKey(v => v.LastEditedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<TranslationProblem>(entity =>
+        {
+            entity.HasOne(problem => problem.Value).WithMany(value => value.Problems)
+                .HasForeignKey(problem => new { problem.ProjectId, problem.Key, problem.LanguageCode })
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<TranslationChange>(entity =>

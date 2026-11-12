@@ -51,6 +51,8 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
     [MaxLength(500)]
     public string? SourceLocationUrlTemplate { get; set; }
 
+    public TranslationQualityCheck QualityChecks { get; set; }
+
     public TranslationFormat Format { get; set; }
     public long? DictionaryId { get; set; }
     public TranslationDictionary? Dictionary { get; set; }
@@ -102,6 +104,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             Name = Name,
             SourceLanguage = SourceLanguage,
             Format = Format,
+            QualityChecks = QualityChecks,
             SourceLocationBaseUrl = SourceLocationBaseUrl,
             SourceLocationUrlTemplate = SourceLocationUrlTemplate,
             RepositoryFullName = RepositoryFullName ?? string.Empty,
@@ -135,6 +138,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             Name = Name,
             SourceLanguage = SourceLanguage,
             Format = Format,
+            QualityChecks = QualityChecks,
             SourceLocationBaseUrl = SourceLocationBaseUrl,
             SourceLocationUrlTemplate = SourceLocationUrlTemplate,
             DictionaryId = DictionaryId,
@@ -166,6 +170,7 @@ public class TranslationProject : IUpdateNotifications, ITimestampedModel, ISoft
             nameof(AnnouncementMessage), nameof(AnnouncementSeverity), nameof(AnnouncementEndsAt),
             nameof(RepositoryFullName), nameof(SourceBranch), nameof(SourceFilePattern),
             nameof(TranslationFilePattern), nameof(SourceLocationBaseUrl), nameof(SourceLocationUrlTemplate),
+            nameof(QualityChecks),
         ];
 
         if (!entry.Properties.Any(property => property.IsModified &&
@@ -337,6 +342,8 @@ public class TranslationValue : IUpdateNotifications
 
     public ICollection<TranslationImportConflict> ImportConflicts { get; set; } =
         new HashSet<TranslationImportConflict>();
+
+    public ICollection<TranslationProblem> Problems { get; set; } = new HashSet<TranslationProblem>();
 
     public ICollection<TranslationChange> Changes { get; set; } = new HashSet<TranslationChange>();
     public ICollection<TranslationComment> Comments { get; set; } = new HashSet<TranslationComment>();

@@ -35,7 +35,8 @@ public class TranslationEditorController : Controller
     [HttpGet("list")]
     public async Task<ActionResult<TranslationListItemDTO[]>> List([FromQuery] long projectId,
         [FromQuery] string language, [FromQuery] string? query = null, [FromQuery] string? state = null,
-        [FromQuery] int offset = 0, CancellationToken cancellationToken = default)
+        [FromQuery] int offset = 0, CancellationToken cancellationToken = default,
+        [FromQuery] bool problemsOnly = false)
     {
         if (offset < 0)
             return BadRequest("Offset must be non-negative");
@@ -67,6 +68,9 @@ public class TranslationEditorController : Controller
             values = values.Where(item => item.unit.Key.ToLower().Contains(term) ||
                 item.unit.SourceText.ToLower().Contains(term) || item.value.Text.ToLower().Contains(term));
         }
+
+        if (problemsOnly)
+            values = values.Where(item => item.value.Problems.Any(problem => !problem.Ignored));
 
         if (Enum.TryParse<TranslationState>(state, true, out var parsedState))
         {
@@ -230,6 +234,12 @@ public class TranslationEditorController : Controller
             CanEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true),
             CommentCount = comments,
             SuggestionCount = suggestions,
+            Problems = await database.TranslationProblems.AsNoTracking().Where(problem =>
+                    problem.ProjectId == projectId && problem.Key == key && problem.LanguageCode == language)
+                .OrderBy(problem => problem.Kind).Select(problem => new TranslationProblemDTO
+                {
+                    Id = problem.Id, Kind = problem.Kind, Message = problem.Message, Ignored = problem.Ignored,
+                }).ToArrayAsync(cancellationToken),
         };
     }
 
@@ -280,8 +290,9 @@ public class TranslationEditorController : Controller
 
         var unit = await database.TranslationUnits.FirstOrDefaultAsync(u => u.ProjectId == request.ProjectId &&
             u.Key == request.Key && u.Active);
-        var value = await database.TranslationValues.FirstOrDefaultAsync(v => v.ProjectId == request.ProjectId &&
-            v.Key == request.Key && v.LanguageCode == request.LanguageCode);
+        var value = await database.TranslationValues.Include(item => item.Problems).Include(item => item.Unit)
+            .FirstOrDefaultAsync(v => v.ProjectId == request.ProjectId &&
+                v.Key == request.Key && v.LanguageCode == request.LanguageCode);
         if (unit == null || value == null)
             return NotFound();
 
@@ -308,7 +319,11 @@ public class TranslationEditorController : Controller
             return this.WorkingForbid("You don't have permission to verify translations");
 
         if (!textChanged && !explanationChanged && oldState == state)
+        {
+            TranslationQualityChecks.UpdateProblems(database, project, value);
+            await database.SaveChangesAsync();
             return await Get(request.ProjectId, request.Key, request.LanguageCode, HttpContext.RequestAborted);
+        }
 
         if (explanationChanged)
             unit.Explanation = request.Explanation;
@@ -399,6 +414,8 @@ public class TranslationEditorController : Controller
                 });
             }
         }
+
+        await TranslationQualityChecks.UpdateAfterEdit(database, project, value, HttpContext.RequestAborted);
 
         try
         {

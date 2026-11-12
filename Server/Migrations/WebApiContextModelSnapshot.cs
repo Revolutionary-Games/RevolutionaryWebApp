@@ -4864,6 +4864,58 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("translation_import_conflicts", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProblem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Ignored")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ignored");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("message");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_problems");
+
+                    b.HasIndex("ProjectId", "LanguageCode", "Ignored")
+                        .HasDatabaseName("ix_translation_problems_project_id_language_code_ignored");
+
+                    b.HasIndex("ProjectId", "Key", "LanguageCode", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_translation_problems_project_id_key_language_code_kind");
+
+                    b.ToTable("translation_problems", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
                 {
                     b.Property<long>("Id")
@@ -4932,6 +4984,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
+
+                    b.Property<int>("QualityChecks")
+                        .HasColumnType("integer")
+                        .HasColumnName("quality_checks");
 
                     b.Property<string>("RepositoryFullName")
                         .HasMaxLength(240)
@@ -7008,6 +7064,18 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("Value");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProblem", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
+                        .WithMany("Problems")
+                        .HasForeignKey("ProjectId", "Key", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_problems_translation_values_project_id_key_lang");
+
+                    b.Navigation("Value");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
@@ -7431,6 +7499,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("ImportConflicts");
+
+                    b.Navigation("Problems");
 
                     b.Navigation("Suggestions");
                 });

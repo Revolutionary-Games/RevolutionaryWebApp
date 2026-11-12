@@ -85,6 +85,9 @@ else
                 OnPressed="JumpUnverified">
             First unverified
         </Button>
+        <Button ButtonStyle="outline-warning" class="ms-2" Enabled="@(!jumping)" Spinner="@jumping"
+                OnPressed="JumpProblems">First string with warnings
+        </Button>
     </div>
 
     <div class="input-group mb-3">
@@ -389,7 +392,7 @@ else
         }
     }
 
-    private async Task Jump(string? state)
+    private async Task Jump(string? state, bool problemsOnly = false)
     {
         if (project == null || jumping)
             return;
@@ -401,10 +404,16 @@ else
         {
             var stateParam = state == null ? string.Empty : $"&state={state}";
             var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"api/v1/translationEditor/list?" +
-                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&offset=0{stateParam}");
+                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}" +
+                $"&offset=0{stateParam}&problemsOnly={problemsOnly}");
             if (result is { Length: > 0 })
             {
                 Navigation.NavigateTo(EditorUrl(result[0].Key));
+            }
+            else if (problemsOnly)
+            {
+                message = "No active translation warnings found.";
+                messageType = SiteNoticeType.Info;
             }
             else if (state == "NeedsTranslation")
             {
@@ -427,6 +436,11 @@ else
             jumping = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private Task JumpProblems()
+    {
+        return Jump(null, true);
     }
 
     private Task JumpNeedsTranslation()

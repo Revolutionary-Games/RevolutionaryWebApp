@@ -648,6 +648,7 @@ public class Startup
         AddJobHelper<MaintainGitHubIssueStatusJob>(configurationSection["MaintainGitHubIssueStatus"]);
         AddJobHelper<DeleteOldPendingSignupsJob>(configurationSection["DeleteOldPendingSignups"]);
         AddJobHelper<DigestUnreadNotificationsJob>(configurationSection["DigestUnreadNotifications"]);
+        AddJobHelper<CheckTranslationQualityJob>(configurationSection["CheckTranslationQuality"]);
         AddJobHelper<RecountTranslationSuggestionScoresJob>(configurationSection["RecountTranslationSuggestionScores"]);
         AddJobHelper<PurgeDeletedTranslationResourcesJob>(configurationSection["PurgeDeletedTranslationResources"]);
         AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);

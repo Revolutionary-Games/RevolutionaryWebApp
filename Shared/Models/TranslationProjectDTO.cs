@@ -41,6 +41,7 @@ public sealed class TranslationProjectDTO : IIdentifiable
     public string? SourceLocationUrlTemplate { get; set; }
 
     public TranslationFormat Format { get; set; }
+    public TranslationQualityCheck QualityChecks { get; set; }
 
     public long? DictionaryId { get; set; }
 
@@ -65,4 +66,5 @@ public sealed class TranslationLanguageDTO
     public int NeedsTranslation { get; set; }
     public int Translated { get; set; }
     public int Verified { get; set; }
+    public int CheckFailures { get; set; }
 }

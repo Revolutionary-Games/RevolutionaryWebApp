@@ -143,6 +143,21 @@
                     </div>
                 </div>
 
+                <fieldset class="mb-3">
+                    <legend class="fs-6">Translation quality checks</legend>
+                    <label class="form-check" for="translation-check-formatting">
+                        <InputCheckbox id="translation-check-formatting" class="form-check-input"
+                                       @bind-Value="CheckCSharpFormatting"/>
+                        <span class="form-check-label">C# formatting: keep numbered placeholders from the source</span>
+                    </label>
+                    <label class="form-check" for="translation-check-sentences">
+                        <InputCheckbox id="translation-check-sentences" class="form-check-input"
+                                       @bind-Value="CheckSentenceConsistency"/>
+                        <span class="form-check-label">Sentence consistency: initial capital and final punctuation</span>
+                    </label>
+                    <small>Warnings help translators review text and can be ignored when appropriate.</small>
+                </fieldset>
+
                 <label class="form-check mb-3">
                     <InputCheckbox class="form-check-input" @bind-Value="form.Enabled"/>
                     <span class="form-check-label">Enabled</span>
@@ -295,6 +310,20 @@
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
 
+    private bool CheckCSharpFormatting
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.CSharpFormatting);
+        set => form.QualityChecks = value ? form.QualityChecks | TranslationQualityCheck.CSharpFormatting :
+            form.QualityChecks & ~TranslationQualityCheck.CSharpFormatting;
+    }
+
+    private bool CheckSentenceConsistency
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.SentenceConsistency);
+        set => form.QualityChecks = value ? form.QualityChecks | TranslationQualityCheck.SentenceConsistency :
+            form.QualityChecks & ~TranslationQualityCheck.SentenceConsistency;
+    }
+
     private bool HasUnsavedSettings => loadedForm == null ||
         form.Id != loadedForm.Id || form.Slug != loadedForm.Slug || form.Name != loadedForm.Name ||
         form.Format != loadedForm.Format || form.SourceLanguage != loadedForm.SourceLanguage ||
@@ -303,7 +332,7 @@
         form.TranslationFilePattern != loadedForm.TranslationFilePattern || form.Enabled != loadedForm.Enabled ||
         form.SourceLocationBaseUrl != loadedForm.SourceLocationBaseUrl ||
         form.SourceLocationUrlTemplate != loadedForm.SourceLocationUrlTemplate ||
-        form.DictionaryId != loadedForm.DictionaryId;
+        form.DictionaryId != loadedForm.DictionaryId || form.QualityChecks != loadedForm.QualityChecks;
 
     public Task Handle(TranslationProjectListUpdated notification, CancellationToken cancellationToken)
     {
@@ -376,7 +405,7 @@
             TranslationFilePattern = project.TranslationFilePattern, Enabled = project.Enabled,
             SourceLocationBaseUrl = project.SourceLocationBaseUrl,
             SourceLocationUrlTemplate = project.SourceLocationUrlTemplate,
-            DictionaryId = project.DictionaryId,
+            DictionaryId = project.DictionaryId, QualityChecks = project.QualityChecks,
         };
     }
 

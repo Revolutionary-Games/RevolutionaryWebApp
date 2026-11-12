@@ -269,9 +269,10 @@ public class TranslationSuggestionsController : Controller
         if (suggestion.Score < 0)
             return BadRequest("Cannot accept a suggestion with a negative score");
 
-        var value = await database.TranslationValues.FirstOrDefaultAsync(item =>
-            item.ProjectId == suggestion.ProjectId && item.Key == suggestion.Key &&
-            item.LanguageCode == suggestion.LanguageCode);
+        var value = await database.TranslationValues.Include(item => item.Unit).Include(item => item.Problems)
+            .FirstOrDefaultAsync(item =>
+                item.ProjectId == suggestion.ProjectId && item.Key == suggestion.Key &&
+                item.LanguageCode == suggestion.LanguageCode);
         var unit = await database.TranslationUnits.FirstOrDefaultAsync(item =>
             item.ProjectId == suggestion.ProjectId && item.Key == suggestion.Key);
         var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == suggestion.ProjectId);
@@ -372,6 +373,7 @@ public class TranslationSuggestionsController : Controller
             });
         }
 
+        await TranslationQualityChecks.UpdateAfterEdit(database, project, value, HttpContext.RequestAborted);
         await database.SaveChangesAsync();
 
         logger.LogInformation("Translation suggestion {SuggestionId} accepted by {Email}", id, actor.Email);

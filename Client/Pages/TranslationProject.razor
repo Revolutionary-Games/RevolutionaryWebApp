@@ -77,6 +77,10 @@ else if (string.IsNullOrEmpty(loadError) && languages != null)
                         <span>@language.NeedsTranslation needing work</span>
                     }
                 </span>
+                @if (language.CheckFailures > 0)
+                {
+                    <span class="badge bg-warning text-dark ms-2">@language.CheckFailures check failures</span>
+                }
             </li>
         }
     </ul>
