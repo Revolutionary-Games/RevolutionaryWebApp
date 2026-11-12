@@ -1,0 +1,73 @@
+@using System.Text
+@using RevolutionaryWebApp.Shared
+
+<BootstrapModal OnCancel="@Cancel">
+    <form @onsubmit="@Accept" @onsubmit:preventDefault="@true">
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label" for="@($"{inputId}-columns")">Columns</label>
+                <input class="form-control" type="number" id="@($"{inputId}-columns")"
+                       min="1" max="10" @bind="columns"/>
+            </div>
+            <label class="form-label" for="@($"{inputId}-rows")">Rows (excluding header)</label>
+            <input class="form-control" type="number" id="@($"{inputId}-rows")"
+                   min="1" max="30" @bind="rows"/>
+            <StatusMessageShower Message="@error" Type="SiteNoticeType.Danger"/>
+        </div>
+        <div class="modal-footer">
+            <Button ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+            <Button type="submit" OnPressed="@Accept">OK</Button>
+        </div>
+    </form>
+</BootstrapModal>
+
+@code {
+    private readonly string inputId = $"markdownTable-{Guid.NewGuid():N}";
+
+    private int columns = 2;
+    private int rows = 2;
+    private string? error;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    private Task Accept()
+    {
+        if (columns is < 1 or > 10 || rows is < 1 or > 30)
+        {
+            error = "Use 1–10 columns and 1–30 rows.";
+            return Task.CompletedTask;
+        }
+
+        var markdown = new StringBuilder();
+        markdown.Append('|');
+        for (int column = 1; column <= columns; ++column)
+        {
+            markdown.Append($" Header {column} |");
+        }
+
+        markdown.AppendLine();
+        markdown.Append('|');
+        for (int column = 0; column < columns; ++column)
+        {
+            markdown.Append(" --- |");
+        }
+
+        for (int row = 0; row < rows; ++row)
+        {
+            markdown.AppendLine();
+            markdown.Append('|');
+            for (int column = 0; column < columns; ++column)
+            {
+                markdown.Append(" Cell |");
+            }
+        }
+
+        return ModalInstance.CloseAsync(ModalResult.Ok(markdown.ToString()));
+    }
+
+    private Task Cancel()
+    {
+        return ModalInstance.CancelAsync();
+    }
+}

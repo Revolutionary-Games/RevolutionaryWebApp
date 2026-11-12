@@ -1,0 +1,43 @@
+@using RevolutionaryWebApp.Client.Utilities
+@using RevolutionaryWebApp.Shared
+
+<BootstrapModal OnCancel="@Cancel">
+    <form @onsubmit="@Accept" @onsubmit:preventDefault="@true">
+        <div class="modal-body">
+            <label class="form-label" for="@urlInputId">YouTube URL</label>
+            <input class="form-control" type="text" id="@urlInputId" @bind="url" @bind:event="oninput"
+                   placeholder="https://www.youtube.com/watch?v=..." autofocus/>
+            <StatusMessageShower Message="@error" Type="SiteNoticeType.Danger"/>
+        </div>
+        <div class="modal-footer">
+            <Button ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+            <Button type="submit" OnPressed="@Accept">OK</Button>
+        </div>
+    </form>
+</BootstrapModal>
+
+@code {
+    private readonly string urlInputId = $"youtubeUrl-{Guid.NewGuid():N}";
+
+    private string? url;
+    private string? error;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    private Task Accept()
+    {
+        if (!YoutubeUrlParser.TryGetVideoId(url, out var videoId))
+        {
+            error = "Enter a valid YouTube video URL (a watch, share, shorts, live, or embed link).";
+            return Task.CompletedTask;
+        }
+
+        return ModalInstance.CloseAsync(ModalResult.Ok($"[youtube]{videoId}[/youtube]"));
+    }
+
+    private Task Cancel()
+    {
+        return ModalInstance.CancelAsync();
+    }
+}

@@ -20,7 +20,18 @@
         <Button Small="@true" OnPressed="@MakeCodeBlock" ButtonStyle="secondary">
             <i class="fa-solid fa-code"></i>
         </Button>
-        <span>TODO: implement link add helper, images, tables etc.</span>
+        <Button Small="@true" OnPressed="@InsertLink" ButtonStyle="secondary">
+            <i class="fa-solid fa-link" aria-hidden="true"></i> Link
+        </Button>
+        <Button Small="@true" OnPressed="@InsertImage" ButtonStyle="secondary">
+            <i class="fa-solid fa-image" aria-hidden="true"></i> Image
+        </Button>
+        <Button Small="@true" OnPressed="@InsertTable" ButtonStyle="secondary">
+            <i class="fa-solid fa-table" aria-hidden="true"></i> Table
+        </Button>
+        <Button Small="@true" OnPressed="@InsertYoutube" ButtonStyle="secondary">
+            <i class="fa-brands fa-youtube" aria-hidden="true"></i> YouTube
+        </Button>
         </div>
     </div>
     <div class="row">
@@ -61,11 +72,11 @@
 
     private string? editedText;
 
-    private string Text => editedText ?? OriginalText;
+    private ElementReference textareaReference;
+    private int? pendingCaretPosition;
 
-    private string PreviewColumnClass => forceSingleColumn ? "col-xl-12" : "col-xl-6";
-
-    ElementReference textareaReference;
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
 
     /// <summary>
     ///   ID purely required to differentiate control names
@@ -85,6 +96,10 @@
     [Parameter]
     public string? ForceText { get; set; }
 
+    private string Text => editedText ?? OriginalText;
+
+    private string PreviewColumnClass => forceSingleColumn ? "col-xl-12" : "col-xl-6";
+
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
@@ -96,12 +111,15 @@
         }
     }
 
-    enum SelectionType
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // None / error
-        None,
-        SelectionRange,
-        CaretPosition,
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (pendingCaretPosition is { } position)
+        {
+            pendingCaretPosition = null;
+            await JS.InvokeVoidAsync("setCaretAndFocus", textareaReference, position);
+        }
     }
 
     private void EnablePreview()
@@ -118,16 +136,12 @@
     {
         var edited = e.Value?.ToString();
 
-        if (edited != OriginalText && edited != null)
-        {
-            editedText = edited;
-            EnablePreview();
-            OnEdited.Invoke(editedText);
-        }
-        else
-        {
-            editedText = null;
-        }
+        if (edited == null)
+            return;
+
+        editedText = edited;
+        EnablePreview();
+        OnEdited.Invoke(editedText);
     }
 
     // Selection / caret position helpers
@@ -163,10 +177,71 @@
 
     private ValueTask FocusAndSetCaretPosition(int position)
     {
-        return JS.InvokeVoidAsync("setCaretAndFocus", textareaReference, position);
+        // Apply after rendering so the browser has the updated textarea value first.
+        pendingCaretPosition = position;
+        StateHasChanged();
+        return ValueTask.CompletedTask;
     }
 
     // Text editing toolbar functions
+
+    private Task InsertLink()
+    {
+        return InsertFromDialog<InsertPageLink>("Insert link", useSelectedText: true);
+    }
+
+    private Task InsertImage()
+    {
+        return InsertFromDialog<SelectMediaImage>("Insert image", block: true);
+    }
+
+    private Task InsertTable()
+    {
+        return InsertFromDialog<InsertMarkdownTable>("Insert table", block: true);
+    }
+
+    private Task InsertYoutube()
+    {
+        return InsertFromDialog<InsertYoutubeVideo>("Embed YouTube video", block: true);
+    }
+
+    private async Task InsertFromDialog<T>(string title, bool block = false, bool useSelectedText = false)
+        where T : ComponentBase
+    {
+        var (type, start, end) = await GetSelectionOrCaret();
+        if (type == SelectionType.None)
+            return;
+
+        start = Math.Clamp(start, 0, Text.Length);
+        end = type == SelectionType.SelectionRange ? Math.Clamp(end, start, Text.Length) : start;
+
+        var parameters = new ModalParameters();
+        if (useSelectedText)
+            parameters.Add(nameof(InsertPageLink.SelectedText), Text.Substring(start, end - start));
+
+        var modal = Modal.Show<T>(title, parameters);
+        var result = await modal.Result;
+        if (result.Cancelled || result.Data is not string markdown)
+        {
+            await FocusAndSetCaretPosition(start);
+            return;
+        }
+
+        start = Math.Clamp(start, 0, Text.Length);
+        end = Math.Clamp(end, start, Text.Length);
+
+        // Keep block elements on their own paragraphs, including when inserting mid-sentence.
+        if (block)
+        {
+            if (start > 0)
+                markdown = Environment.NewLine + Environment.NewLine + markdown;
+
+            markdown += Environment.NewLine + Environment.NewLine;
+        }
+
+        SpliceText(start, end - start, markdown);
+        await FocusAndSetCaretPosition(start + markdown.Length);
+    }
 
     private async Task MakeTitle(string titleMarkdown)
     {
@@ -313,6 +388,8 @@
             editedText = start + insert + end;
         }
 
+        EnablePreview();
+        OnEdited.Invoke(editedText);
         StateHasChanged();
     }
 
@@ -364,5 +441,13 @@
         }
 
         return text.Length;
+    }
+
+    private enum SelectionType
+    {
+        // None / error
+        None,
+        SelectionRange,
+        CaretPosition,
     }
 }
