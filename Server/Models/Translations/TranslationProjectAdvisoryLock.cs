@@ -102,7 +102,8 @@ public sealed class TranslationProjectAdvisoryLock : IAsyncDisposable
                                    SELECT EXISTS (
                                        SELECT 1 FROM pg_locks
                                        WHERE locktype = 'advisory' AND granted AND objsubid = 1
-                                           AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+                                           AND database = (SELECT oid FROM pg_database 
+                                                                      WHERE datname = current_database())
                                            AND classid = (({SyncLockKeyExpression} >> 32) & 4294967295)::oid
                                            AND objid = ({SyncLockKeyExpression} & 4294967295)::oid
                                    )
