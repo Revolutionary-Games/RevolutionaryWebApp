@@ -149,7 +149,8 @@ public class TranslationResourceDeletionTests
         var import = new ImportTranslationProjectJob(NullLogger<ImportTranslationProjectJob>.Instance,
             database, locks, Substitute.For<IBackgroundJobClient>(), Substitute.For<IModelUpdateNotificationSender>());
         var publish = new PublishTranslationProjectJob(database, locks, tokens,
-            new ConfigurationBuilder().Build(), NullLogger<PublishTranslationProjectJob>.Instance);
+            new ConfigurationBuilder().Build(), NullLogger<PublishTranslationProjectJob>.Instance,
+            Substitute.For<IModelUpdateNotificationSender>());
 
         await import.Execute(1, CancellationToken.None);
         await publish.Execute(1, CancellationToken.None);

@@ -65,7 +65,8 @@ public class ImportTranslationProjectJob
 
                 var needsSourceBackfill = await NeedsSourceValueBackfill(project, cancellationToken);
                 await using var projectLock = sha != project.LastImportedSha || needsSourceBackfill ?
-                    await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId, cancellationToken) :
+                    await TranslationProjectAdvisoryLock.AcquireForSyncAsync(database, projectId, notificationSender,
+                        cancellationToken) :
                     null;
                 if (projectLock != null)
                 {

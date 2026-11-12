@@ -12,6 +12,11 @@ public sealed class TranslationProjectDTO : IIdentifiable
 
     public bool ClosedForMaintenance { get; set; }
 
+    /// <summary>
+    ///   A project operation currently holds the lock that translation saves need.
+    /// </summary>
+    public bool OperationInProgress { get; set; }
+
     public TranslationAnnouncementDTO? Announcement { get; set; }
 
     [MaxLength(120)]

@@ -29,10 +29,12 @@ public sealed class PublishTranslationProjectJob
     private readonly ITranslationGithubTokenProvider tokenProvider;
     private readonly IConfiguration configuration;
     private readonly ILogger<PublishTranslationProjectJob> logger;
+    private readonly IModelUpdateNotificationSender notificationSender;
 
     public PublishTranslationProjectJob(ApplicationDbContext database, ILocalTempFileLocks fileLocks,
         ITranslationGithubTokenProvider tokenProvider, IConfiguration configuration,
-        ILogger<PublishTranslationProjectJob> logger, TranslationRepositoryOperations? repository = null)
+        ILogger<PublishTranslationProjectJob> logger, IModelUpdateNotificationSender notificationSender,
+        TranslationRepositoryOperations? repository = null)
     {
         this.database = database;
         this.repository = repository ?? new TranslationRepositoryOperations();
@@ -40,6 +42,7 @@ public sealed class PublishTranslationProjectJob
         this.tokenProvider = tokenProvider;
         this.configuration = configuration;
         this.logger = logger;
+        this.notificationSender = notificationSender;
     }
 
     public async Task Execute(long projectId, CancellationToken cancellationToken)
@@ -53,8 +56,8 @@ public sealed class PublishTranslationProjectJob
         var checkout = fileLocks.GetTempFilePath($"translationRepos/{project.Id}");
         using (await fileLocks.LockAsync(checkout, cancellationToken))
         {
-            await using var projectLock = await TranslationProjectAdvisoryLock.AcquireAsync(database, projectId,
-                cancellationToken);
+            await using var projectLock = await TranslationProjectAdvisoryLock.AcquireForSyncAsync(database, projectId,
+                notificationSender, cancellationToken);
             await database.Entry(project).ReloadAsync(cancellationToken);
             if (database.Entry(project).State == EntityState.Detached || project.Deleted || !project.Enabled)
                 return;

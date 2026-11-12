@@ -212,7 +212,8 @@ public class TranslationWorkflowTests
                 ["BaseUrl"] = "https://devcenter.example.com/",
             }).Build();
             var publish = new PublishTranslationProjectJob(database, locks, tokens, configuration,
-                NullLogger<PublishTranslationProjectJob>.Instance, repository);
+                NullLogger<PublishTranslationProjectJob>.Instance, Substitute.For<IModelUpdateNotificationSender>(),
+                repository);
             await publish.Execute(project.Id, CancellationToken.None);
 
             await github.Received(1).CreatePullRequest(project.RepositoryFullName, project.SourceBranch,
