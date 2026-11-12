@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -28,6 +29,11 @@ using Shared.Utilities;
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
 public class TranslationProjectsController : Controller
 {
+    private static readonly JsonSerializerOptions CreditsJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+    };
+
     private readonly ILogger<TranslationProjectsController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobs;
@@ -262,6 +268,34 @@ public class TranslationProjectsController : Controller
         logger.LogInformation("Translation project publish queued for {ProjectId} by {Email}", id,
             HttpContext.AuthenticatedUserOrThrow().Email);
         return Accepted();
+    }
+
+    [HttpPost("{id:long}/credits")]
+    [APIKeyWrite(false)]
+    public async Task<IActionResult> ExportCredits(long id, CancellationToken cancellationToken)
+    {
+        if (!await database.TranslationProjects.AsNoTracking().AnyAsync(project => project.Id == id, cancellationToken))
+            return NotFound();
+
+        // Retain credit for overwritten translations, inactive keys, and deleted languages.
+        // ContributorUserId also credits accepted suggestions to their author rather than the reviewer.
+        var contributions = database.TranslationChanges.IgnoreQueryFilters().AsNoTracking()
+            .Where(change => change.ProjectId == id && change.CountsAsContribution && change.ContributorUserId != null)
+            .GroupBy(change => change.ContributorUserId!.Value)
+            .Select(group => new { UserId = group.Key, Count = group.Count() });
+        var credits = await contributions.Join(database.Users.AsNoTracking(), contribution => contribution.UserId,
+                user => user.Id, (contribution, user) => new { contribution.Count, User = user })
+            .OrderByDescending(credit => credit.Count).ThenBy(credit => credit.User.Id)
+            .Select(credit => new TranslationCreditDTO
+            {
+                Name = string.IsNullOrWhiteSpace(credit.User.DisplayName) ?
+                    credit.User.UserName : credit.User.DisplayName,
+                ContributionCount = credit.Count,
+                Email = credit.User.Email,
+            }).ToArrayAsync(cancellationToken);
+
+        return File(JsonSerializer.SerializeToUtf8Bytes(credits, CreditsJsonOptions), "application/json",
+            "translators.json");
     }
 
     [HttpGet("{id:long}/syncStatus")]

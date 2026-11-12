@@ -7,6 +7,7 @@
 @using RevolutionaryWebApp.Client.Services
 @using System.Threading
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
 @inject NotificationHandler NotificationHandler
 @implements INotificationHandler<TranslationProjectListUpdated>
 @implements INotificationHandler<TranslationDictionaryListUpdated>
@@ -153,7 +154,8 @@
                     <label class="form-check" for="translation-check-sentences">
                         <InputCheckbox id="translation-check-sentences" class="form-check-input"
                                        @bind-Value="CheckSentenceConsistency"/>
-                        <span class="form-check-label">Sentence consistency: initial capital and final punctuation</span>
+                        <span
+                            class="form-check-label">Sentence consistency: initial capital and final punctuation</span>
                     </label>
                     <small>Warnings help translators review text and can be ignored when appropriate.</small>
                 </fieldset>
@@ -181,6 +183,10 @@
 
             @if (form.Id > 0)
             {
+                <Button class="mt-3" ButtonStyle="outline-primary" Enabled="@(!exportingCredits)"
+                        Spinner="@exportingCredits" OnPressed="@ExportCredits">
+                    Export translation credits
+                </Button>
                 <TranslationAnnouncementControls ProjectId="@form.Id" Slug="@form.Slug" @key="form.Id"/>
             }
 
@@ -304,6 +310,7 @@
     private TranslationImportConflictDTO[] conflicts = [];
     private bool saving;
     private bool processingDictionary;
+    private bool exportingCredits;
     private string? processingOperation;
     private bool remoteSettingsChanged;
     private bool registered;
@@ -313,14 +320,16 @@
     private bool CheckCSharpFormatting
     {
         get => form.QualityChecks.HasFlag(TranslationQualityCheck.CSharpFormatting);
-        set => form.QualityChecks = value ? form.QualityChecks | TranslationQualityCheck.CSharpFormatting :
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.CSharpFormatting :
             form.QualityChecks & ~TranslationQualityCheck.CSharpFormatting;
     }
 
     private bool CheckSentenceConsistency
     {
         get => form.QualityChecks.HasFlag(TranslationQualityCheck.SentenceConsistency);
-        set => form.QualityChecks = value ? form.QualityChecks | TranslationQualityCheck.SentenceConsistency :
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.SentenceConsistency :
             form.QualityChecks & ~TranslationQualityCheck.SentenceConsistency;
     }
 
@@ -407,6 +416,39 @@
             SourceLocationUrlTemplate = project.SourceLocationUrlTemplate,
             DictionaryId = project.DictionaryId, QualityChecks = project.QualityChecks,
         };
+    }
+
+    private async Task ExportCredits()
+    {
+        exportingCredits = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/credits", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not export translation credits: {await response.Content.ReadAsStringAsync()}, " +
+                    $"{response.StatusCode}";
+                return;
+            }
+
+            var file = await response.Content.ReadAsByteArrayAsync();
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", "translators.json", "application/json", file);
+            message = "Translation credits exported.";
+            messageType = SiteNoticeType.Success;
+        }
+        catch (Exception e)
+        {
+            message = $"Error while exporting translation credits: {e.Message}";
+        }
+        finally
+        {
+            exportingCredits = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task Reload()
