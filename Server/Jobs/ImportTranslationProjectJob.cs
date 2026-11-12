@@ -344,8 +344,8 @@ public class ImportTranslationProjectJob
                             unit.SourceText = sourceValue.Text;
                             ++unit.SourceRevision;
                             unit.SourceUpdatedAt = DateTime.UtcNow;
-                            TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
-                                targetsByKey[entry.Key], sourceSubscribers);
+                            await TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
+                                targetsByKey[entry.Key], sourceSubscribers, cancellationToken);
 
                             // The first changed source sends one notice to each subscriber for this import.
                             sourceSubscribers = [];

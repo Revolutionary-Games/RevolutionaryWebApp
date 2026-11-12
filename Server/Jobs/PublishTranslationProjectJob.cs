@@ -56,8 +56,9 @@ public sealed class PublishTranslationProjectJob
         var checkout = fileLocks.GetTempFilePath($"translationRepos/{project.Id}");
         using (await fileLocks.LockAsync(checkout, cancellationToken))
         {
-            await using var repositoryLock = await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(
-                database, projectId, cancellationToken);
+            await using var repositoryLock =
+                await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(database, projectId,
+                    cancellationToken);
             await database.Entry(project).ReloadAsync(cancellationToken);
             if (database.Entry(project).State == EntityState.Detached || project.Deleted || !project.Enabled ||
                 project.Format == TranslationFormat.Manual)
@@ -526,7 +527,8 @@ public sealed class PublishTranslationProjectJob
         var primary = Contributors(changes.Where(change => change.LanguageCode == languageCode), authors)
             .FirstOrDefault();
         return primary == null ?
-            null : $"{CreditName(primary)} <{CreditEmail(primary)}>";
+            null :
+            $"{CreditName(primary)} <{CreditEmail(primary)}>";
     }
 
     private string CreditEmail(User user)
