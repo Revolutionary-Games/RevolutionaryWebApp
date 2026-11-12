@@ -2,36 +2,34 @@
 @inject NavigationManager NavigationManager
 
 <div class="page">
-    <MediaQueryList>
-        <div class="sidebar">
-            <NavMenu />
-        </div>
+    <div class="sidebar">
+        <NavMenu />
+    </div>
 
-        <main>
-            <TopNavBar />
+    <main>
+        <TopNavBar />
 
-            @if (NavigationManager.RelativeUrl().StartsWith("admin"))
-            {
-                <AdminNavBar />
-            }
+        @if (NavigationManager.RelativeUrl().StartsWith("admin"))
+        {
+            <AdminNavBar />
+        }
 
-            @if (NavigationManager.RelativeUrl().StartsWith("association"))
-            {
-                <AssociationNavBar />
-            }
+        @if (NavigationManager.RelativeUrl().StartsWith("association"))
+        {
+            <AssociationNavBar />
+        }
 
-            @if (NavigationManager.RelativeUrl().StartsWith("tools"))
-            {
-                <ToolsNavBar />
-            }
+        @if (NavigationManager.RelativeUrl().StartsWith("tools"))
+        {
+            <ToolsNavBar />
+        }
 
-            <AnotherTabSigninDetector />
-            <CSRFExpiryAlerter />
-            <SiteNotifications />
+        <AnotherTabSigninDetector />
+        <CSRFExpiryAlerter />
+        <SiteNotifications />
 
-            <article class="content px-4">
-                @Body
-            </article>
-        </main>
-    </MediaQueryList>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
 </div>

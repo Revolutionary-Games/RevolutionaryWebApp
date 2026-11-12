@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 using Blazored.Modal;
 using Blazored.Modal.Services;
 using BlazorPagination;
+using BlazorPro.BlazorSize;
 using Bunit;
 using Client.Shared.Modals;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Mocks;
 using NSubstitute;
@@ -101,7 +103,7 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
         Services.AddSingleton(CSRFMockFactory.Create());
         Services.AddSingleton<NotificationHandler>();
         Services.AddSingleton<ComponentUrlHelper>();
-        Services.AddSingleton<IClipboard>(Substitute.For<IClipboard>());
+        Services.AddSingleton(Substitute.For<IClipboard>());
         var converter = new ClientMediaLinkConverter();
         converter.OnReceiveBaseUrl("https://media.example.com/");
         Services.AddSingleton(converter);
@@ -200,9 +202,19 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
     private IRenderedComponent<CascadingBlazoredModal> PrepareModalHost()
     {
         Services.AddBlazoredModal();
-        ComponentFactories.AddStub<BlazorPro.BlazorSize.MediaQuery>();
+        Services.AddMediaQueryService();
+        ComponentFactories.AddStub<Router>();
         JSInterop.Mode = JSRuntimeMode.Loose;
-        return Render<CascadingBlazoredModal>(parameters => parameters
-            .Add(component => component.UseCustomLayout, true));
+        var mediaModule = JSInterop.SetupModule("./_content/BlazorPro.BlazorSize/blazorSizeMediaModule.js");
+        foreach (var media in new[] { Breakpoints.SmallDown, Breakpoints.LargeUp })
+        {
+            var result = new MediaQueryArgs { Media = media, Matches = false };
+            mediaModule.Setup<MediaQueryArgs>("addMediaQueryToList", invocation =>
+                (string?)invocation.Arguments.Last() == media).SetResult(result);
+            mediaModule.Setup<MediaQueryArgs>("getMediaQueryArgs", invocation =>
+                (string?)invocation.Arguments.Last() == media).SetResult(result);
+        }
+
+        return Render<App>().FindComponent<CascadingBlazoredModal>();
     }
 }
