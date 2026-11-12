@@ -48,12 +48,22 @@ public class ImportTranslationProjectJob
             return;
 
         ValidateConfiguration(project);
-        var importConfiguration = (project.RepositoryFullName, project.SourceBranch, project.SourceFilePattern,
-            project.TranslationFilePattern, project.SourceLanguage, project.Format);
-
         var checkout = fileLocks.GetTempFilePath($"translationRepos/{project.Id}");
         using (await fileLocks.LockAsync(checkout, cancellationToken))
         {
+            await using var repositoryLock =
+                await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(database, projectId,
+                    cancellationToken);
+            await database.Entry(project).ReloadAsync(cancellationToken);
+            if (database.Entry(project).State == EntityState.Detached || project.Deleted || !project.Enabled ||
+                string.IsNullOrEmpty(project.RepositoryFullName))
+            {
+                return;
+            }
+
+            ValidateConfiguration(project);
+            var importConfiguration = (project.RepositoryFullName, project.SourceBranch, project.SourceFilePattern,
+                project.TranslationFilePattern, project.SourceLanguage, project.Format);
             var run = new TranslationSyncRun { ProjectId = projectId, Type = "Import", Status = "Running" };
             await database.TranslationSyncRuns.AddAsync(run, cancellationToken);
             await database.SaveChangesAsync(cancellationToken);
@@ -138,8 +148,11 @@ public class ImportTranslationProjectJob
         if (!hasSourceLanguage)
             return true;
 
-        return await database.TranslationUnits.AnyAsync(unit => unit.ProjectId == project.Id && unit.Active &&
-            !database.TranslationValues.Any(value => value.ProjectId == unit.ProjectId &&
+        // The project and source language were checked above. Avoid navigation-based soft-delete
+        // filters here: they turn this key-only anti-join into a costly correlated query.
+        return await database.TranslationUnits.IgnoreQueryFilters().AnyAsync(unit =>
+            unit.ProjectId == project.Id && unit.Active &&
+            !database.TranslationValues.IgnoreQueryFilters().Any(value => value.ProjectId == project.Id &&
                 value.Key == unit.Key && value.LanguageCode == project.SourceLanguage), cancellationToken);
     }
 
@@ -164,11 +177,13 @@ public class ImportTranslationProjectJob
         var languages = await database.TranslationProjectLanguages
             .Where(l => l.ProjectId == project.Id && l.LanguageCode != project.SourceLanguage)
             .ToListAsync(cancellationToken);
+        var knownLanguages = (await database.TranslationProjectLanguages.IgnoreQueryFilters()
+            .Where(language => language.ProjectId == project.Id).Select(language => language.LanguageCode)
+            .ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
         foreach (var discovered in DiscoverLanguages(checkout, project.TranslationFilePattern!,
                      project.SourceLanguage))
         {
-            if (await database.TranslationProjectLanguages.IgnoreQueryFilters().AnyAsync(l =>
-                    l.ProjectId == project.Id && l.LanguageCode == discovered, cancellationToken))
+            if (!knownLanguages.Add(discovered))
             {
                 continue;
             }
@@ -188,6 +203,30 @@ public class ImportTranslationProjectJob
         var englishContent = project.Format == TranslationFormat.Gettext ?
             await File.ReadAllTextAsync(englishPath, cancellationToken) :
             sourceContent;
+
+        // Load each table once rather than issuing a query for every key in every language.
+        // TODO: these two dictionaries might grow unbounded, so might need a fix eventually
+        var units = await database.TranslationUnits.Where(unit => unit.ProjectId == project.Id)
+            .ToDictionaryAsync(unit => unit.Key, StringComparer.Ordinal, cancellationToken);
+        var values = (await database.TranslationValues.IgnoreQueryFilters()
+            .Where(value => value.ProjectId == project.Id)
+            .ToListAsync(cancellationToken)).ToDictionary(value => (value.Key, value.LanguageCode));
+
+        var targetLanguages = languages.Select(language => language.LanguageCode).ToHashSet(StringComparer.Ordinal);
+        var targetsByKey = values.Values.Where(value => targetLanguages.Contains(value.LanguageCode))
+            .ToLookup(value => value.Key);
+        var conflicts = (await database.TranslationImportConflicts.AsNoTracking()
+                .Where(conflict => conflict.ProjectId == project.Id && conflict.ResolvedAt == null)
+                .Select(conflict => new { conflict.Key, conflict.LanguageCode, conflict.IncomingText })
+                .ToListAsync(cancellationToken))
+            .Select(conflict => (conflict.Key, conflict.LanguageCode, conflict.IncomingText)).ToHashSet();
+        var subscriptions = await database.TranslationSubscriptions.AsNoTracking()
+            .Where(subscription => subscription.ProjectId == project.Id).ToListAsync(cancellationToken);
+        var updateSubscribers = subscriptions
+            .Where(subscription => subscription.EventType == TranslationSubscriptionEventType.TranslationUpdate)
+            .ToLookup(subscription => subscription.LanguageCode);
+        var sourceSubscribers = subscriptions
+            .Where(subscription => subscription.EventType == TranslationSubscriptionEventType.SourceChange).ToArray();
 
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
         var newKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -225,10 +264,9 @@ public class ImportTranslationProjectJob
             var position = 0;
             foreach (var entry in parsed)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var firstSourceEntry = seenKeys.Add(entry.Key);
-                var unit = await database.TranslationUnits.FindAsync([project.Id, entry.Key],
-                    cancellationToken);
-                var sourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(entry.SourceText)));
+                units.TryGetValue(entry.Key, out var unit);
 
                 if (unit == null)
                 {
@@ -237,12 +275,13 @@ public class ImportTranslationProjectJob
                     unit = new TranslationUnit
                     {
                         ProjectId = project.Id, Key = entry.Key, SourceText = entry.SourceText,
-                        SourceHash = sourceHash, SourceRevision = 1, Description = entry.Description,
+                        SourceRevision = 1, Description = entry.Description,
                         SourceLocations = entry.SourceLocations,
                         CreatedAt = createdAt,
                         SourceUpdatedAt = createdAt,
                     };
                     await database.TranslationUnits.AddAsync(unit, cancellationToken);
+                    units.Add(entry.Key, unit);
                 }
 
                 if (firstSourceEntry)
@@ -257,8 +296,7 @@ public class ImportTranslationProjectJob
                 // Source entries are shared by all target catalogs; import each key only once.
                 if (firstSourceEntry)
                 {
-                    var sourceValue = await database.TranslationValues.FindAsync(
-                        [project.Id, entry.Key, project.SourceLanguage], cancellationToken);
+                    values.TryGetValue((entry.Key, project.SourceLanguage), out var sourceValue);
                     if (sourceValue == null)
                     {
                         sourceValue = new TranslationValue
@@ -274,19 +312,16 @@ public class ImportTranslationProjectJob
                             CreatedAt = unit.CreatedAt,
                         };
                         await database.TranslationValues.AddAsync(sourceValue, cancellationToken);
+                        values.Add((entry.Key, project.SourceLanguage), sourceValue);
                     }
 
                     var previousSourceText = unit.SourceText;
                     var previousSourceState = sourceValue.State;
                     var sourceImportResult = TranslationRemoteImport.Apply(sourceValue, entry.SourceText, false);
-                    unit.SourceHash = sourceHash;
+                    unit.SourceHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(entry.SourceText)));
                     if (sourceImportResult == TranslationRemoteImportResult.Conflict)
                     {
-                        var exists = await database.TranslationImportConflicts.AnyAsync(conflict =>
-                            conflict.ProjectId == project.Id && conflict.Key == entry.Key &&
-                            conflict.LanguageCode == project.SourceLanguage && conflict.ResolvedAt == null &&
-                            conflict.IncomingText == entry.SourceText, cancellationToken);
-                        if (!exists)
+                        if (conflicts.Add((entry.Key, project.SourceLanguage, entry.SourceText)))
                         {
                             await database.TranslationImportConflicts.AddAsync(new TranslationImportConflict
                             {
@@ -309,8 +344,11 @@ public class ImportTranslationProjectJob
                             unit.SourceText = sourceValue.Text;
                             ++unit.SourceRevision;
                             unit.SourceUpdatedAt = DateTime.UtcNow;
-                            await TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
-                                cancellationToken);
+                            TranslationSourceChangeHelper.MarkTargetsOutdated(database, project, unit,
+                                targetsByKey[entry.Key], sourceSubscribers);
+
+                            // The first changed source sends one notice to each subscriber for this import.
+                            sourceSubscribers = [];
                         }
 
                         sourceValue.SourceRevisionTranslatedFrom = unit.SourceRevision;
@@ -334,11 +372,10 @@ public class ImportTranslationProjectJob
                     }
                 }
 
-                var value = await database.TranslationValues.FindAsync([project.Id, entry.Key, language.LanguageCode],
-                    cancellationToken);
+                values.TryGetValue((entry.Key, language.LanguageCode), out var value);
                 if (value == null)
                 {
-                    await database.TranslationValues.AddAsync(new TranslationValue
+                    value = new TranslationValue
                     {
                         ProjectId = project.Id, Key = entry.Key, LanguageCode = language.LanguageCode,
                         Text = entry.TargetText, LastImportedText = entry.TargetText,
@@ -348,7 +385,9 @@ public class ImportTranslationProjectJob
                         SourceRevisionTranslatedFrom = unit.SourceRevision,
                         LastImportedFuzzy = entry.Fuzzy,
                         SourceTextTranslatedFrom = entry.SourceText,
-                    }, cancellationToken);
+                    };
+                    await database.TranslationValues.AddAsync(value, cancellationToken);
+                    values.Add((entry.Key, language.LanguageCode), value);
                     continue;
                 }
 
@@ -358,10 +397,7 @@ public class ImportTranslationProjectJob
                 var result = TranslationRemoteImport.Apply(value, entry.TargetText, entry.Fuzzy);
                 if (result == TranslationRemoteImportResult.Conflict)
                 {
-                    var exists = await database.TranslationImportConflicts.AnyAsync(c => c.ProjectId == project.Id &&
-                        c.Key == entry.Key && c.LanguageCode == language.LanguageCode && c.ResolvedAt == null &&
-                        c.IncomingText == entry.TargetText, cancellationToken);
-                    if (!exists)
+                    if (conflicts.Add((entry.Key, language.LanguageCode, entry.TargetText)))
                     {
                         await database.TranslationImportConflicts.AddAsync(new TranslationImportConflict
                         {
@@ -399,18 +435,14 @@ public class ImportTranslationProjectJob
                         }, cancellationToken);
                     }
 
-                    var subscribers = await database.TranslationSubscriptions.AsNoTracking().Where(s =>
-                            s.ProjectId == project.Id && s.LanguageCode == language.LanguageCode &&
-                            s.EventType == TranslationSubscriptionEventType.TranslationUpdate &&
-                            s.UserId != previousEditor)
-                        .Select(s => s.UserId).ToListAsync(cancellationToken);
-                    foreach (var subscriber in subscribers)
+                    foreach (var subscriber in updateSubscribers[language.LanguageCode]
+                                 .Where(subscription => subscription.UserId != previousEditor))
                     {
                         var notificationKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
                             $"remote-update:{project.Id}:{entry.Key}:{language.LanguageCode}:{sha}")));
                         await database.UserNotifications.AddAsync(new UserNotification
                         {
-                            UserId = subscriber, DeduplicationKey = notificationKey,
+                            UserId = subscriber.UserId, DeduplicationKey = notificationKey,
                             Type = UserNotificationType.TranslationUpdated,
                             Message = $"A {language.DisplayName} translation for {entry.Key} changed in Git.",
                             TargetPath = $"/translations/{project.Slug}/{language.LanguageCode}/edit" +
@@ -428,16 +460,14 @@ public class ImportTranslationProjectJob
             return;
         }
 
-        var vanished = await database.TranslationUnits.Where(u => u.ProjectId == project.Id && u.Active &&
-            !seenKeys.Contains(u.Key)).ToListAsync(cancellationToken);
+        var vanished = units.Values.Where(unit => unit.Active && !seenKeys.Contains(unit.Key));
         foreach (var unit in vanished)
             unit.Active = false;
 
         if (project.LastImportedSha != null && newKeys.Count > 0)
         {
-            var subscribers = await database.TranslationSubscriptions.AsNoTracking()
-                .Where(s => s.ProjectId == project.Id && s.EventType == TranslationSubscriptionEventType.NewKey)
-                .ToListAsync(cancellationToken);
+            var subscribers = subscriptions.Where(subscription =>
+                subscription.EventType == TranslationSubscriptionEventType.NewKey);
             foreach (var subscriber in subscribers)
             {
                 foreach (var key in newKeys)

@@ -2,6 +2,8 @@ namespace RevolutionaryWebApp.Server.Tests.Models.Tests;
 
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 using Fixtures;
 using Microsoft.EntityFrameworkCore;
@@ -54,5 +56,44 @@ public class TranslationProjectAdvisoryLockRealDbTests : IClassFixture<RealUnitT
 
         Assert.False(await TranslationProjectAdvisoryLock.IsHeldAsync(viewer, projectId));
         Assert.Equal(new[] { true, false }, statesAtNotification);
+    }
+
+    [Fact]
+    public async Task RepositorySyncSerializesWorkersWithoutBlockingEditsOrClosingNestedConnections()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql(fixture.GetConnectionStringForAdditionalDatabase()).Options;
+        await using var worker = new ApplicationDbContext(options);
+        await using var otherWorker = new ApplicationDbContext(options);
+        var sender = Substitute.For<IModelUpdateNotificationSender>();
+        const long projectId = 1234;
+
+        await using (await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(worker, projectId))
+        {
+            Assert.False(await TranslationProjectAdvisoryLock.IsHeldAsync(otherWorker, projectId));
+            await using (await TranslationProjectAdvisoryLock.AcquireForSyncAsync(worker, projectId, sender))
+            {
+                Assert.True(await TranslationProjectAdvisoryLock.IsHeldAsync(otherWorker, projectId));
+            }
+
+            Assert.Equal(ConnectionState.Open, worker.Database.GetDbConnection().State);
+            await using (await TranslationProjectAdvisoryLock.AcquireAsync(otherWorker, projectId))
+            {
+                Assert.False(await TranslationProjectAdvisoryLock.IsHeldAsync(otherWorker, projectId));
+            }
+
+            await using (await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(otherWorker, -projectId))
+            {
+                // Other projects can synchronize independently.
+            }
+
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(otherWorker, projectId, timeout.Token));
+        }
+
+        Assert.Equal(ConnectionState.Closed, worker.Database.GetDbConnection().State);
+        await using var nextSync = await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(otherWorker,
+            projectId);
     }
 }

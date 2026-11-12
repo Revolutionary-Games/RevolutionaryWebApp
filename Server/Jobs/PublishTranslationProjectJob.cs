@@ -56,11 +56,14 @@ public sealed class PublishTranslationProjectJob
         var checkout = fileLocks.GetTempFilePath($"translationRepos/{project.Id}");
         using (await fileLocks.LockAsync(checkout, cancellationToken))
         {
-            await using var projectLock = await TranslationProjectAdvisoryLock.AcquireForSyncAsync(database, projectId,
-                notificationSender, cancellationToken);
+            await using var repositoryLock = await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(
+                database, projectId, cancellationToken);
             await database.Entry(project).ReloadAsync(cancellationToken);
-            if (database.Entry(project).State == EntityState.Detached || project.Deleted || !project.Enabled)
+            if (database.Entry(project).State == EntityState.Detached || project.Deleted || !project.Enabled ||
+                project.Format == TranslationFormat.Manual)
+            {
                 return;
+            }
 
             var run = new TranslationSyncRun { ProjectId = project.Id, Type = "Publish", Status = "Running" };
             database.TranslationSyncRuns.Add(run);
@@ -84,16 +87,6 @@ public sealed class PublishTranslationProjectJob
                 await database.SaveChangesAsync(cancellationToken);
                 throw;
             }
-        }
-    }
-
-    private static void MarkPublished(IEnumerable<TranslationValue> pending, long revision)
-    {
-        foreach (var value in pending.Where(v => v.PendingRevision <= revision))
-        {
-            value.LastPublishedRevision = value.PendingRevision;
-            value.PendingRevision = null;
-            value.PendingSince = null;
         }
     }
 
@@ -167,6 +160,20 @@ public sealed class PublishTranslationProjectJob
         return changes;
     }
 
+    private static void ValidateSnapshotConfiguration(TranslationProject project,
+        TranslationProjectConfigurationDTO expected)
+    {
+        if (project.Deleted || !project.Enabled || project.RepositoryFullName != expected.RepositoryFullName ||
+            project.SourceBranch != expected.SourceBranch || project.SourceFilePattern != expected.SourceFilePath ||
+            project.TranslationFilePattern != expected.TranslationFilePattern ||
+            project.SourceLanguage != expected.SourceLanguage || project.Format != expected.Format ||
+            project.LastImportedSha != expected.LastImportedSha)
+        {
+            throw new InvalidOperationException(
+                "Translation project configuration changed during publish; retry the publish");
+        }
+    }
+
     private async Task Publish(TranslationProject project, string checkout, string token,
         TranslationSyncRun run, CancellationToken cancellationToken)
     {
@@ -176,33 +183,66 @@ public sealed class PublishTranslationProjectJob
             throw new InvalidOperationException("Translation repository configuration is incomplete");
         }
 
-        if (await database.TranslationImportConflicts.AnyAsync(c => c.ProjectId == project.Id &&
-                c.ResolvedAt == null && c.Value.Language.Enabled, cancellationToken))
-        {
-            throw new InvalidOperationException("Resolve translation import conflicts before publishing");
-        }
-
-        var values = await database.TranslationValues.Where(v => v.ProjectId == project.Id && v.Language.Enabled)
-            .ToListAsync(cancellationToken);
-        var pending = values.Where(v => v.PendingRevision != null).ToArray();
-        var snapshotRevision = project.CurrentRevision;
+        var expectedConfiguration = project.GetConfigurationDTO();
         var upstreamSha = await repository.PrepareCheckout(project.RepositoryFullName, project.SourceBranch,
             checkout, cancellationToken);
         run.UpstreamSha = upstreamSha;
-        if (upstreamSha != project.LastImportedSha)
+
+        List<TranslationValue> values;
+        List<TranslationProjectLanguage> snapshotLanguages;
+        List<TranslationChange> history;
+        TranslationPullRequest? tracked;
+        long snapshotRevision;
+        await using (await TranslationProjectAdvisoryLock.AcquireForSyncAsync(database, project.Id,
+                         notificationSender, cancellationToken))
         {
-            throw new InvalidOperationException(
-                "Upstream changed since import; import the new commit before publishing");
+            await database.Entry(project).ReloadAsync(cancellationToken);
+            ValidateSnapshotConfiguration(project, expectedConfiguration);
+            if (upstreamSha != project.LastImportedSha)
+            {
+                throw new InvalidOperationException(
+                    "Upstream changed since import; import the new commit before publishing");
+            }
+
+            if (await database.TranslationImportConflicts.AnyAsync(c => c.ProjectId == project.Id &&
+                    c.ResolvedAt == null && c.Value.Language.Enabled, cancellationToken))
+            {
+                throw new InvalidOperationException("Resolve translation import conflicts before publishing");
+            }
+
+            snapshotLanguages = await database.TranslationProjectLanguages.AsNoTracking()
+                .Where(language => language.ProjectId == project.Id && language.Enabled)
+                .OrderBy(language => language.LanguageCode).ToListAsync(cancellationToken);
+            var languageCodes = snapshotLanguages.Select(language => language.LanguageCode).ToArray();
+
+            // The project and languages have been checked for soft deletion. Scope these bulk reads
+            // explicitly to avoid expensive navigation filters. Detached values keep the snapshot stable.
+            values = await database.TranslationValues.IgnoreQueryFilters().AsNoTracking()
+                .Where(value => value.ProjectId == project.Id && languageCodes.Contains(value.LanguageCode))
+                .Select(value => new TranslationValue
+                {
+                    ProjectId = value.ProjectId, Key = value.Key, LanguageCode = value.LanguageCode,
+                    Text = value.Text, State = value.State, LastImportedText = value.LastImportedText,
+                    LastImportedFuzzy = value.LastImportedFuzzy, PendingRevision = value.PendingRevision,
+                }).ToListAsync(cancellationToken);
+            snapshotRevision = project.CurrentRevision;
+            history = await database.TranslationChanges.IgnoreQueryFilters().AsNoTracking()
+                .Where(c => c.ProjectId == project.Id && c.ProjectRevision <= snapshotRevision &&
+                    languageCodes.Contains(c.LanguageCode) && (c.Value.Text != c.Value.LastImportedText ||
+                        (project.Format == TranslationFormat.Gettext &&
+                            (c.Value.State == TranslationState.NeedsTranslation) != c.Value.LastImportedFuzzy)))
+                .ToListAsync(cancellationToken);
+            tracked = await database.TranslationPullRequests.AsNoTracking()
+                .FirstOrDefaultAsync(pr => pr.ProjectId == project.Id, cancellationToken);
         }
+
+        var pending = values.Where(v => v.PendingRevision != null).ToArray();
+        if (pending.Length == 0 && tracked is not { Open: true })
+            return;
 
         using var github = repository.CreateGithubClient(token);
         var forkOwner = await github.GetLogin(cancellationToken);
         await github.EnsureFork(project.RepositoryFullName, forkOwner, cancellationToken);
-        var tracked = await database.TranslationPullRequests.FindAsync([project.Id],
-            cancellationToken);
-        if (pending.Length == 0 && tracked is not { Open: true })
-            return;
-
         TranslationGithubPullRequest? remotePr = null;
         if (tracked is { Open: true })
         {
@@ -226,12 +266,6 @@ public sealed class PublishTranslationProjectJob
 
         var sourceContent = await File.ReadAllTextAsync(SafeFile(checkout, project.SourceFilePattern),
             cancellationToken);
-        var languages = await database.TranslationProjectLanguages.AsNoTracking()
-            .Where(l => l.ProjectId == project.Id && l.Enabled && l.LanguageCode != project.SourceLanguage)
-            .OrderBy(l => l.LanguageCode).ToListAsync(cancellationToken);
-        var history = await database.TranslationChanges.AsNoTracking()
-            .Where(c => c.ProjectId == project.Id && c.ProjectRevision <= snapshotRevision)
-            .ToListAsync(cancellationToken);
         var changes = UnmergedChanges(values, history, project.Format);
         var authors = await database.Users.AsNoTracking().Where(u =>
             changes.Select(c => c.ContributorUserId).Contains(u.Id)).ToDictionaryAsync(u => u.Id,
@@ -239,7 +273,9 @@ public sealed class PublishTranslationProjectJob
         var commitCount = 0;
         var automatedFiles = new List<string>();
 
-        var sourceValues = values.Where(value => value.LanguageCode == project.SourceLanguage).ToArray();
+        var valuesByLanguage = values.ToLookup(value => value.LanguageCode);
+        var languages = snapshotLanguages.Where(language => language.LanguageCode != project.SourceLanguage);
+        var sourceValues = valuesByLanguage[project.SourceLanguage].ToArray();
         var sourcePath = project.Format == TranslationFormat.Gettext ?
             project.TranslationFilePattern!.Replace("{language}", project.SourceLanguage, StringComparison.Ordinal) :
             project.SourceFilePattern!;
@@ -291,7 +327,7 @@ public sealed class PublishTranslationProjectJob
                 language.LanguageCode, StringComparison.Ordinal);
             var fullPath = SafeFile(checkout, path);
             var original = await File.ReadAllTextAsync(fullPath, cancellationToken);
-            var localeValues = values.Where(v => v.LanguageCode == language.LanguageCode).ToArray();
+            var localeValues = valuesByLanguage[language.LanguageCode].ToArray();
             var content = project.Format switch
             {
                 TranslationFormat.Gettext => TranslationFileExporter.ExportGettext(sourceContent,
@@ -346,9 +382,25 @@ public sealed class PublishTranslationProjectJob
             ++commitCount;
         }
 
+        // Recheck configuration before delivery and save bookkeeping under the editing lock. File
+        // generation, commits and fork preparation above do not need to block translators.
+        await using var deliveryLock = await TranslationProjectAdvisoryLock.AcquireForSyncAsync(database, project.Id,
+            notificationSender, cancellationToken);
+        await database.Entry(project).ReloadAsync(cancellationToken);
+        ValidateSnapshotConfiguration(project, expectedConfiguration);
+        var currentLanguages = await database.TranslationProjectLanguages.AsNoTracking()
+            .Where(language => language.ProjectId == project.Id && language.Enabled)
+            .ToDictionaryAsync(language => language.LanguageCode, language => language.FilePath, cancellationToken);
+        if (currentLanguages.Count != snapshotLanguages.Count || snapshotLanguages.Any(language =>
+                !currentLanguages.TryGetValue(language.LanguageCode, out var path) || path != language.FilePath))
+        {
+            throw new InvalidOperationException(
+                "Translation language configuration changed during publish; retry the publish");
+        }
+
         if (commitCount == 0)
         {
-            MarkPublished(pending, snapshotRevision);
+            await CompletePublish(project.Id, pending, snapshotRevision, cancellationToken);
             return;
         }
 
@@ -371,7 +423,8 @@ public sealed class PublishTranslationProjectJob
             remotePr! :
             await github.CreatePullRequest(project.RepositoryFullName,
                 project.SourceBranch, forkOwner, branch, link, cancellationToken);
-        tracked ??= new TranslationPullRequest { ProjectId = project.Id };
+        tracked = await database.TranslationPullRequests.FindAsync([project.Id], cancellationToken) ??
+            new TranslationPullRequest { ProjectId = project.Id };
         if (database.Entry(tracked).State == EntityState.Detached)
             database.TranslationPullRequests.Add(tracked);
         tracked.Number = pr.Number;
@@ -380,7 +433,45 @@ public sealed class PublishTranslationProjectJob
         tracked.Open = true;
         tracked.LastCheckedAt = DateTime.UtcNow;
         tracked.LastPublishedRevision = snapshotRevision;
-        MarkPublished(pending, snapshotRevision);
+        await CompletePublish(project.Id, pending, snapshotRevision, cancellationToken);
+    }
+
+    private async Task CompletePublish(long projectId, IReadOnlyCollection<TranslationValue> pending,
+        long revision, CancellationToken cancellationToken)
+    {
+        // Read the current pending revisions in bulk. A newer edit must remain pending even if this
+        // push delivered an earlier version of the same translation.
+        var delivered = pending.ToDictionary(value => (value.Key, value.LanguageCode));
+        var current = await database.TranslationValues.IgnoreQueryFilters().AsNoTracking()
+            .Where(value => value.ProjectId == projectId && value.PendingRevision != null)
+            .ToListAsync(cancellationToken);
+        var trackedValues = database.ChangeTracker.Entries<TranslationValue>()
+            .ToDictionary(entry => (entry.Entity.ProjectId, entry.Entity.Key, entry.Entity.LanguageCode));
+        foreach (var value in current)
+        {
+            if (!delivered.TryGetValue((value.Key, value.LanguageCode), out var snapshot))
+                continue;
+
+            if (trackedValues.TryGetValue((projectId, value.Key, value.LanguageCode), out var entry))
+            {
+                entry.CurrentValues.SetValues(value);
+                entry.OriginalValues.SetValues(value);
+            }
+            else
+            {
+                entry = database.TranslationValues.Attach(value);
+            }
+
+            entry.Entity.LastPublishedRevision = snapshot.PendingRevision;
+            if (entry.Entity.PendingRevision <= revision)
+            {
+                entry.Entity.PendingRevision = null;
+                entry.Entity.PendingSince = null;
+            }
+        }
+
+        // Save before releasing the editing lock, including the PR tracking record if one changed.
+        await database.SaveChangesAsync(cancellationToken);
     }
 
     private string BotEmail()
