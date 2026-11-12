@@ -1,0 +1,80 @@
+@page "/login/two-factor"
+@using System.Globalization
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ICSRFTokenReader CSRF
+
+<h3>Two-factor authentication</h3>
+<DevCenterTitle>Two-factor authentication</DevCenterTitle>
+<StatusMessageShower Message="@Error" Type="SiteNoticeType.Danger"/>
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+}
+else if (status != null)
+{
+    <p>Enter the six-digit code from your authenticator app, or one of your single-use backup codes.</p>
+    <form method="post" action="/LoginController/two-factor">
+        <input type="hidden" name="CSRF" value="@CSRF.Token"/>
+        <label for="two-factor-login-code" class="form-label">Authenticator or backup code</label>
+        <input id="two-factor-login-code" name="Code" class="form-control mb-2" maxlength="64" required
+               autocomplete="one-time-code" @bind="code" @bind:event="oninput"/>
+        <Button type="submit" Enabled="@(!string.IsNullOrWhiteSpace(code))">Complete login</Button>
+    </form>
+
+    @if (status.RecoveryAvailableAt != null)
+    {
+        <p class="mt-3">
+            Removal of two-factor authentication has been requested. It can finish no earlier than
+            @status.RecoveryAvailableAt.Value.ToLocalTime().ToString("f", CultureInfo.CurrentCulture),
+            after three warning emails are sent.
+            A successful authenticator or backup-code challenge cancels removal.
+            Once recovery finishes, start a new login to access your account.
+        </p>
+    }
+    else
+    {
+        <h4 class="mt-4">Lost your authenticator and backup codes?</h4>
+        <p>
+            You can request removal of two-factor authentication after a 72-hour waiting period.
+            We will send three warning emails to your account. A successful two-factor challenge cancels removal.
+            You will need to log in again after the waiting period.
+        </p>
+        <form method="post" action="/LoginController/two-factor/recovery">
+            <input type="hidden" name="CSRF" value="@CSRF.Token"/>
+            <Button type="submit" ButtonStyle="warning">Request two-factor removal in 72 hours</Button>
+        </form>
+    }
+}
+
+<p class="mt-3"><NavLink href="/login">Start a new login</NavLink></p>
+
+@code {
+    private TwoFactorStatusDTO? status;
+    private bool loading = true;
+    private string code = string.Empty;
+
+    [QueryStringParameter]
+    public string? Error { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.SetParametersFromQueryString(NavManager);
+        try
+        {
+            status = await Http.GetFromJsonAsync<TwoFactorStatusDTO>("LoginController/two-factor");
+        }
+        catch (Exception e)
+        {
+            Error = $"Could not load the login challenge. Start a new login if it has expired. {e.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}
