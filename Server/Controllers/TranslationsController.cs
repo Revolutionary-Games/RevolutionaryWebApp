@@ -110,6 +110,8 @@ public class TranslationsController : Controller
                     v.State == TranslationState.NeedsTranslation),
                 Translated = database.TranslationValues.Count(v => v.ProjectId == project.Id &&
                     v.LanguageCode == l.LanguageCode && v.State == TranslationState.Translated),
+                CheckFailures = database.TranslationProblems.Count(problem => problem.ProjectId == project.Id &&
+                    problem.LanguageCode == l.LanguageCode && !problem.Ignored && problem.Value.Unit.Active),
                 Verified = database.TranslationValues.Count(v => v.ProjectId == project.Id &&
                     v.LanguageCode == l.LanguageCode && v.State == TranslationState.Verified),
             })
