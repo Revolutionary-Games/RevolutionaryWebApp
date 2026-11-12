@@ -33,8 +33,8 @@ public class CheckTranslationQualityJob : IJob
 
     public async Task ExecuteForProject(long projectId, bool allTranslations, CancellationToken cancellationToken)
     {
-        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(database, projectId,
-            cancellationToken);
+        await using var projectLock = await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(database,
+            projectId, cancellationToken);
         var project = await database.TranslationProjects.FirstOrDefaultAsync(item => item.Id == projectId &&
             item.Enabled, cancellationToken);
         if (project == null)
