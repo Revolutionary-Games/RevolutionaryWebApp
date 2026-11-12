@@ -1,8 +1,8 @@
 @using RevolutionaryWebApp.Client.Pages.CMS
 @using RevolutionaryWebApp.Shared.Models.Pages
 
-<BootstrapModal OnCancel="@Cancel" DialogClass="modal-xl">
-    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+<BootstrapModal OnCancel="@Cancel" DialogClass="modal-xl media-image-picker">
+    <div class="modal-body">
         <p>Browse to a folder and select an image. You can also drop images into a writable folder to upload them.</p>
         <Media SelectionMode="@true" OnImageSelected="@OnImageSelected" BasePath="/media/" RootFolderName="Media"/>
         <div class="form-check mt-3">
