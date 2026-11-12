@@ -11,6 +11,7 @@ using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Jobs;
+using Jobs.RegularlyScheduled;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -217,6 +218,7 @@ public class TranslationProjectsController : Controller
             return Conflict("Project slug already exists");
         }
 
+        var qualityChecksChanged = project.QualityChecks != request.QualityChecks;
         Apply(project, request, format);
         project.BumpUpdatedAt();
         var user = HttpContext.AuthenticatedUserOrThrow();
@@ -225,6 +227,12 @@ public class TranslationProjectsController : Controller
             PerformedById = user.Id,
         });
         await database.SaveChangesAsync();
+        if (qualityChecksChanged)
+        {
+            jobs.Enqueue<CheckTranslationQualityJob>(job => job.ExecuteForProject(project.Id, true,
+                CancellationToken.None));
+        }
+
         logger.LogInformation("Translation project {Slug} updated by {Email}", project.Slug, user.Email);
         return project.GetConfigurationDTO();
     }

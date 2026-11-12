@@ -26,7 +26,14 @@ public class TranslationProblem : IUpdateNotifications
     public string Message { get; set; } = string.Empty;
 
     public bool Ignored { get; set; }
+
+    public long? IgnoredByUserId { get; set; }
+
+    public DateTime? IgnoredAt { get; set; }
+
     public TranslationValue Value { get; set; } = null!;
+
+    public User? IgnoredByUser { get; set; }
 
     public IEnumerable<Tuple<SerializedNotification, string>> GetNotifications(EntityState entityState)
     {

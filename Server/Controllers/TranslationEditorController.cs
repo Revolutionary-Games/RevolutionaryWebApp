@@ -239,6 +239,7 @@ public class TranslationEditorController : Controller
                 .OrderBy(problem => problem.Kind).Select(problem => new TranslationProblemDTO
                 {
                     Id = problem.Id, Kind = problem.Kind, Message = problem.Message, Ignored = problem.Ignored,
+                    IgnoredByUserId = problem.IgnoredByUserId, IgnoredAt = problem.IgnoredAt,
                 }).ToArrayAsync(cancellationToken),
         };
     }

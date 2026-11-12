@@ -75,6 +75,8 @@ public static class TranslationModelConfiguration
             entity.HasOne(problem => problem.Value).WithMany(value => value.Problems)
                 .HasForeignKey(problem => new { problem.ProjectId, problem.Key, problem.LanguageCode })
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(problem => problem.IgnoredByUser).WithMany()
+                .HasForeignKey(problem => problem.IgnoredByUserId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<TranslationChange>(entity =>

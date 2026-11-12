@@ -10,6 +10,26 @@ using Xunit;
 public class TranslationFileExporterTests
 {
     [Fact]
+    public void ActiveWarningsDoNotChangeGettextOrResxExports()
+    {
+        const string gettext = "msgid \"HELLO\"\nmsgstr \"Hei\"\n";
+        const string resx = "<root><data name=\"HELLO\"><value>Hei</value></data></root>";
+        var value = new TranslationValue
+        {
+            Key = "HELLO", Text = "Terve", State = TranslationState.Translated,
+        };
+        var expectedGettext = TranslationFileExporter.ExportGettext(gettext, gettext, [value]);
+        var expectedResx = TranslationFileExporter.ExportResx(resx, resx, [value]);
+        value.Problems.Add(new TranslationProblem
+        {
+            Key = value.Key, Kind = TranslationProblemKind.InitialCapitalization, Message = "Warning",
+        });
+
+        Assert.Equal(expectedGettext, TranslationFileExporter.ExportGettext(gettext, gettext, [value]));
+        Assert.Equal(expectedResx, TranslationFileExporter.ExportResx(resx, resx, [value]));
+    }
+
+    [Fact]
     public void GettextExportRoundTripsFuzzyAndKeepsUnchangedFile()
     {
         const string template = "msgid \"HELLO\"\nmsgstr \"\"\n";

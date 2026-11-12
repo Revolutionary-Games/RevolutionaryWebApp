@@ -4877,6 +4877,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("ignored");
 
+                    b.Property<DateTime?>("IgnoredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ignored_at");
+
+                    b.Property<long?>("IgnoredByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ignored_by_user_id");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -4905,6 +4913,9 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_translation_problems");
+
+                    b.HasIndex("IgnoredByUserId")
+                        .HasDatabaseName("ix_translation_problems_ignored_by_user_id");
 
                     b.HasIndex("ProjectId", "LanguageCode", "Ignored")
                         .HasDatabaseName("ix_translation_problems_project_id_language_code_ignored");
@@ -7066,12 +7077,20 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProblem", b =>
                 {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "IgnoredByUser")
+                        .WithMany()
+                        .HasForeignKey("IgnoredByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_problems_users_ignored_by_user_id");
+
                     b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
                         .WithMany("Problems")
                         .HasForeignKey("ProjectId", "Key", "LanguageCode")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_translation_problems_translation_values_project_id_key_lang");
+
+                    b.Navigation("IgnoredByUser");
 
                     b.Navigation("Value");
                 });
