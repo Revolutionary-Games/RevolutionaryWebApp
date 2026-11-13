@@ -1,0 +1,298 @@
+@using System.Globalization
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Forms
+@using RevolutionaryWebApp.Shared.Models
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject CurrentUserInfo CurrentUserInfo
+
+<h4>Two-factor authentication</h4>
+<p>Protect your account with an authenticator app and keep backup codes somewhere safe.</p>
+<StatusMessageShower Message="@message" Type="@messageType" OnClosed="ClearMessage"/>
+
+@if (loading)
+{
+    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+}
+else if (status == null)
+{
+    <Button OnPressed="LoadSettings" Enabled="@(!processing)">Retry</Button>
+}
+else if (backupCodes != null)
+{
+    <h5>Save your backup codes</h5>
+    <p>
+        Two-factor authentication is enabled. Each backup code can be used once in place of an authenticator code.
+        These codes are only shown now. Store them separately from your authenticator.
+        Any previous backup codes have been replaced.
+    </p>
+    <ul>
+        @foreach (var backup in backupCodes)
+        {
+            <li><code>@backup</code></li>
+        }
+    </ul>
+    <Button class="me-2" OnPressed="PrintCodes" Enabled="@(!processing)">Print backup codes</Button>
+    <Button OnPressed="FinishSavingCodes" Enabled="@(!processing)">I have saved these codes</Button>
+}
+else if (setup != null)
+{
+    <p>Scan this QR code in your authenticator app, or enter the setup key manually.</p>
+    <img src="@setup.QrCodeDataUrl" alt="Authenticator setup QR code" class="img-fluid" width="280" height="280"/>
+    <p>Setup key: <code>@setup.Secret</code></p>
+    <p>Enter a code from the app to enable two-factor authentication. Then save the backup codes shown next.</p>
+    <EditForm Model="@form">
+        <DataAnnotationsValidator/>
+        <label for="two-factor-setup-code" class="form-label">Authenticator code</label>
+        <CustomInputText id="two-factor-setup-code" class="form-control mb-2" @bind-Value="form.Code"
+                         maxlength="6" inputmode="numeric" autocomplete="one-time-code"/>
+        <ValidationSummary/>
+        <Button type="submit" class="me-2" OnPressed="Enable" Enabled="@(!processing)" Spinner="@processing">
+            Enable two-factor authentication
+        </Button>
+        <Button ButtonStyle="secondary" OnPressed="CancelSetup" Enabled="@(!processing)">Cancel</Button>
+    </EditForm>
+}
+else if (status.Enabled)
+{
+    <p>Two-factor authentication is enabled. Backup codes remaining: @status.BackupCodesRemaining.</p>
+    @if (status.RecoveryAvailableAt != null)
+    {
+        <p>
+            Two-factor removal is pending and can finish no earlier than
+            @status.RecoveryAvailableAt.Value.ToLocalTime().ToString("f", CultureInfo.CurrentCulture).
+            Sign in and pass a two-factor challenge, or generate new backup codes below, to cancel it.
+        </p>
+    }
+    <p>Enter a fresh authenticator code or an unused backup code to change these settings.</p>
+    <EditForm Model="@form">
+        <DataAnnotationsValidator/>
+        <label for="two-factor-settings-code" class="form-label">Authenticator or backup code</label>
+        <CustomInputText id="two-factor-settings-code" class="form-control mb-2" @bind-Value="form.Code"
+                         maxlength="64" autocomplete="one-time-code"/>
+        <ValidationSummary/>
+        <Button type="submit" class="me-2" OnPressed="RegenerateCodes" Enabled="@(!processing)" Spinner="@processing">
+            Replace backup codes
+        </Button>
+        <Button type="submit" ButtonStyle="danger" OnPressed="Disable" Enabled="@(!processing)">
+            Disable two-factor authentication
+        </Button>
+    </EditForm>
+}
+else
+{
+    <p>
+        Two-factor authentication is disabled. Log in again if your last login was more than 30 minutes ago
+        before starting set up.
+    </p>
+    <Button OnPressed="StartSetup" Enabled="@(!processing)" Spinner="@processing">Set up authenticator</Button>
+}
+
+@code {
+    private TwoFactorStatusDTO? status;
+    private TwoFactorSetupDTO? setup;
+    private List<string>? backupCodes;
+    private TwoFactorCodeForm form = new();
+    private bool loading = true;
+    private bool processing;
+    private string? message;
+    private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        loading = true;
+        message = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            status = await Http.GetFromJsonAsync<TwoFactorStatusDTO>("api/v1/TwoFactor");
+        }
+        catch (Exception e)
+        {
+            message = $"Could not load two-factor settings: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+        finally
+        {
+            loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task StartSetup()
+    {
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/TwoFactor/setup", null);
+            if (response.IsSuccessStatusCode)
+            {
+                setup = await response.Content.ReadFromJsonAsync<TwoFactorSetupDTO>();
+                form = new TwoFactorCodeForm();
+            }
+            else
+            {
+                message = $"Could not start setup: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not start setup: {e.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Enable()
+    {
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/TwoFactor/enable", form);
+            if (response.IsSuccessStatusCode)
+            {
+                backupCodes = await response.Content.ReadFromJsonAsync<List<string>>();
+                setup = null;
+                form = new TwoFactorCodeForm();
+                status = new TwoFactorStatusDTO { Enabled = true, BackupCodesRemaining = backupCodes?.Count ?? 0 };
+                message = "Two-factor authentication enabled. Other sessions have been signed out.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                message = $"Could not enable two-factor authentication: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not enable two-factor authentication: {e.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RegenerateCodes()
+    {
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/TwoFactor/backup-codes", form);
+            if (response.IsSuccessStatusCode)
+            {
+                backupCodes = await response.Content.ReadFromJsonAsync<List<string>>();
+                form = new TwoFactorCodeForm();
+                status = new TwoFactorStatusDTO { Enabled = true, BackupCodesRemaining = backupCodes?.Count ?? 0 };
+            }
+            else
+            {
+                message = $"Could not replace backup codes: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not replace backup codes: {e.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Disable()
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ConfirmAction.Name), "two-factor authentication" },
+            { nameof(ConfirmAction.ActionVerb), "disable" },
+            { nameof(ConfirmAction.ExtraInfo), "Your account will no longer require authenticator or backup codes." },
+        };
+        var confirmation = Modal.Show<ConfirmAction>("Disable two-factor authentication?", parameters);
+        if ((await confirmation.Result).Cancelled)
+            return;
+
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/TwoFactor/disable", form);
+            if (response.IsSuccessStatusCode)
+            {
+                status = new TwoFactorStatusDTO();
+                form = new TwoFactorCodeForm();
+                message = "Two-factor authentication disabled. Other sessions have been signed out.";
+                messageType = SiteNoticeType.Success;
+            }
+            else
+            {
+                message = $"Could not disable two-factor authentication: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception e)
+        {
+            message = $"Could not disable two-factor authentication: {e.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task PrintCodes()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("printTwoFactorBackupCodes", CurrentUserInfo.Email, backupCodes);
+        }
+        catch (Exception e)
+        {
+            message = $"Could not print backup codes: {e.Message}";
+            messageType = SiteNoticeType.Danger;
+        }
+    }
+
+    private void FinishSavingCodes()
+    {
+        backupCodes = null;
+        message = null;
+    }
+
+    private void CancelSetup()
+    {
+        setup = null;
+        form = new TwoFactorCodeForm();
+        message = null;
+    }
+
+    private void ClearMessage()
+    {
+        message = null;
+    }
+}
