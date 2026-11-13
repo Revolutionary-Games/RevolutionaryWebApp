@@ -14,11 +14,13 @@ using DevCenterCommunication.Utilities;
 using Filters;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
@@ -311,7 +313,8 @@ public class LoginController : SSOLoginController
 
         await PerformPreLoginChecks(login.CSRF);
 
-        var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
+        var user = await Database.Users.Include(u => u.TwoFactorAuthentication)
+            .FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
             !Passwords.CheckPassword(user.PasswordHash, login.Password))
@@ -324,6 +327,9 @@ public class LoginController : SSOLoginController
         {
             return CreateSuspendedUserRedirect(user);
         }
+
+        if (user.TwoFactorAuthentication?.Enabled == true)
+            return await BeginTwoFactorLogin(user, null, login.ReturnUrl);
 
         await user.ComputeUserGroups(Database);
 
@@ -400,6 +406,124 @@ public class LoginController : SSOLoginController
         }
     }
 
+    [HttpGet("two-factor")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<TwoFactorStatusDTO>> GetTwoFactorChallenge([FromServices] TwoFactorService twoFactor)
+    {
+        var pending = await GetPendingTwoFactorLogin(twoFactor);
+        if (pending == null)
+            return Unauthorized("Your login challenge has expired. Please log in again.");
+
+        return await twoFactor.GetStatus(pending.Value.User.Id);
+    }
+
+    [HttpPost("two-factor")]
+    [EnableRateLimiting(RateLimitCategories.LoginLimit)]
+    public async Task<IActionResult> CompleteTwoFactorLogin([FromForm] TwoFactorLoginFormData data,
+        [FromServices] TwoFactorService twoFactor)
+    {
+        await PerformPreLoginChecks(data.CSRF);
+        var pending = await GetPendingTwoFactorLogin(twoFactor);
+        if (pending == null)
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Your login challenge has expired."));
+
+        var (session, user) = pending.Value;
+        if (!await twoFactor.VerifyCode(user.TwoFactorAuthentication!, data.Code))
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login/two-factor", "error",
+                "Invalid or already used code. After five failures, wait ten minutes before trying again."));
+        }
+
+        var returnUrl = session.PendingTwoFactorReturnUrl;
+        session.TwoFactorVerifiedAt = twoFactor.UtcNow;
+        await user.ComputeUserGroups(Database);
+        await BeginNewSession(user);
+
+        if (string.IsNullOrEmpty(returnUrl) || !redirectVerifier.SanitizeRedirectUrl(returnUrl, out var redirect))
+            return Redirect("/");
+
+        return Redirect(redirect ?? "/");
+    }
+
+    [HttpPost("two-factor/recovery")]
+    [EnableRateLimiting(RateLimitCategories.LoginLimit)]
+    public async Task<IActionResult> RequestTwoFactorRecovery([FromForm] TwoFactorRecoveryFormData data,
+        [FromServices] TwoFactorService twoFactor)
+    {
+        await PerformPreLoginChecks(data.CSRF);
+        var pending = await GetPendingTwoFactorLogin(twoFactor);
+        if (pending == null)
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Your login challenge has expired."));
+
+        try
+        {
+            await twoFactor.RequestRecovery(pending.Value.User.Id);
+        }
+        catch (HttpResponseException e)
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login/two-factor", "error",
+                e.Value?.ToString() ?? "Could not request two-factor recovery."));
+        }
+
+        return Redirect("/login/two-factor");
+    }
+
+    [NonAction]
+    private async Task<IActionResult> BeginTwoFactorLogin(User user, Session? session, string? returnUrl)
+    {
+        var twoFactor = HttpContext.RequestServices.GetRequiredService<TwoFactorService>();
+        session ??= await HttpContext.Request.Cookies.GetSession(Database);
+        if (session == null)
+        {
+            session = new Session();
+            await Database.Sessions.AddAsync(session);
+        }
+        else
+        {
+            session = await CreateDerivedSessionForLogin(session);
+        }
+
+        session.User = null;
+        session.UserId = null;
+        session.CachedUserGroups = null;
+        session.LastLoggedIn = null;
+        session.TwoFactorVerifiedAt = null;
+        session.PendingTwoFactorUserId = user.Id;
+        session.PendingTwoFactorKeyVersion = user.TwoFactorAuthentication!.KeyVersion;
+        session.PendingTwoFactorExpiresAt = twoFactor.UtcNow + TwoFactorService.ChallengeLifetime;
+        session.PendingTwoFactorReturnUrl = returnUrl;
+        session.LastUsed = twoFactor.UtcNow;
+        session.LastUsedFrom = HttpContext.Connection.RemoteIpAddress;
+        ClearSSOParametersFromSession(session);
+        session.SsoNonce = null;
+
+        await Database.SaveChangesAsync();
+
+        SetSessionCookie(session, Response, useSecureCookies);
+        return Redirect("/login/two-factor");
+    }
+
+    [NonAction]
+    private async Task<(Session Session, User User)?> GetPendingTwoFactorLogin(TwoFactorService twoFactor)
+    {
+        var session = await HttpContext.Request.Cookies.GetSession(Database);
+        if (session?.PendingTwoFactorUserId == null || session.UserId != null ||
+            session.PendingTwoFactorExpiresAt == null || session.PendingTwoFactorExpiresAt <= twoFactor.UtcNow)
+        {
+            return null;
+        }
+
+        var user = await Database.Users.Include(u => u.TwoFactorAuthentication)
+            .FirstOrDefaultAsync(u => u.Id == session.PendingTwoFactorUserId);
+        if (user == null || user.Suspended || user.TwoFactorAuthentication?.Enabled != true ||
+            user.TwoFactorAuthentication.KeyVersion != session.PendingTwoFactorKeyVersion)
+        {
+            return null;
+        }
+
+        return (session, user);
+    }
+
     [NonAction]
     private async Task BeginNewSession(User user)
     {
@@ -421,6 +545,9 @@ public class LoginController : SSOLoginController
         {
             session = await CreateDerivedSessionForLogin(session);
         }
+
+        if (user.TwoFactorAuthentication?.Enabled == true && session.TwoFactorVerifiedAt == null)
+            throw new InvalidOperationException("Two-factor authentication must succeed before attaching a user");
 
         session.LastLoggedIn = DateTime.UtcNow;
 
@@ -817,7 +944,8 @@ public class LoginController : SSOLoginController
 
         Logger.LogInformation("Logging in SSO login user with email: {Email}", email);
 
-        var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await Database.Users.Include(u => u.TwoFactorAuthentication)
+            .FirstOrDefaultAsync(u => u.Email == email);
 
         if (user != null)
         {
@@ -987,6 +1115,9 @@ public class LoginController : SSOLoginController
     [NonAction]
     private async Task<IActionResult> FinishSsoLoginToAccount(User user, Session session)
     {
+        if (user.TwoFactorAuthentication?.Enabled == true)
+            return await BeginTwoFactorLogin(user, session, session.SsoReturnUrl);
+
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
 
         string? returnUrl = session.SsoReturnUrl;
@@ -996,6 +1127,7 @@ public class LoginController : SSOLoginController
         session.User = user;
         session.UserId = user.Id;
         session.LastUsed = DateTime.UtcNow;
+        session.LastLoggedIn = DateTime.UtcNow;
         session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
         ClearSSOParametersFromSession(session);
@@ -1047,4 +1179,18 @@ public class SsoStartFormData
     public string CSRF { get; set; } = string.Empty;
 
     public string? ReturnUrl { get; set; }
+}
+
+public class TwoFactorRecoveryFormData
+{
+    [Required]
+    [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
+    public string CSRF { get; set; } = string.Empty;
+}
+
+public class TwoFactorLoginFormData : TwoFactorRecoveryFormData
+{
+    [Required]
+    [StringLength(64)]
+    public string Code { get; set; } = string.Empty;
 }
