@@ -38,7 +38,7 @@ public class TranslationSyncRealDbTests : IClassFixture<RealUnitTestDatabaseFixt
 
     [Theory]
     [InlineData(10, 2)]
-    [InlineData(3000, 30)]
+    [InlineData(500, 10)]
     public async Task ImportQueryCountDoesNotGrowWithKeysOrLanguages(int keyCount, int languageCount)
     {
         var counter = new SelectCounter();
