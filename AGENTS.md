@@ -29,6 +29,8 @@ The server is configured in `Server/Startup.cs`. `ApplicationDbContext` is the
 normal application database context; `ProtectionKeyContext` is the separate
 context used for data-protection keys.
 
+Additional code check packages are configured by `Directory.Build.props` files (also in sub folders).
+
 ## Configuration and local development
 
 The application requires PostgreSQL. Redis or a compatible service is normally
