@@ -388,6 +388,24 @@ state file.
 usermod -a -G redis revolutionarywebapp
 ```
 
+### Launcher Signing Keys
+
+To create a new launcher signing key, run the following command:
+
+```sh
+CN="production3.dev.revolutionarygamesstudio" \
+START_IN_DAYS=1460 \
+P12_FILE="production_3.p12" \
+CERT_FILE="production_3.cert" \
+./create_launcher_certificate.sh
+```
+
+Adjust the START_IN_DAYS and name to create 2 partially overlapping certificates to get started and then add a new certificate whenever the first one expires.
+
+The script requires Bash, OpenSSL, and GNU `date`. `START_IN_DAYS` sets the validity start relative to today,
+and `DAYS_VALID` sets the validity duration from that start (default: 1825 days). It sets these dates directly
+without changing the system clock. Enter and confirm the PKCS#12 export password when OpenSSL prompts for it.
+
 ## Developing
 
 This section has some info on developing the RevolutionaryWebApp.
