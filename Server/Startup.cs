@@ -328,6 +328,7 @@ public class Startup
 
         services.AddScoped<IPatreonAPI, PatreonAPI>();
         services.AddScoped<TwoFactorService>();
+        services.AddScoped<SudoModeService>();
         services.AddScoped<IGithubOAuthClient, GithubOAuthClient>();
         services.AddSingleton<IPatreonCreatorAPI, PatreonCreatorAPI>();
         services.AddScoped<LfsRemoteStorage>();
