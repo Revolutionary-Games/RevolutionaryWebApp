@@ -32,7 +32,6 @@ trap cleanup EXIT
 
 mkdir -p "$CA_DB_DIR/certs"
 touch "$CA_DB_DIR/index.txt"
-echo 1000 > "$CA_DB_DIR/serial"
 
 # openssl ca accepts explicit validity dates, including a future notBefore.
 # No system clock changes are needed. Both dates use the same reference time.
@@ -106,6 +105,7 @@ openssl req \
 # be included in the CSR via req_extensions.
 openssl ca \
   -selfsign \
+  -rand_serial \
   -batch \
   -notext \
   -config "$OPENSSL_CONF_FILE" \
