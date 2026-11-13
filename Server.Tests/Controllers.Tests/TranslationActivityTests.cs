@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Server.Controllers;
@@ -64,7 +65,10 @@ public class TranslationActivityTests
         }
 
         await database.SaveChangesAsync();
-        var controller = new TranslationsController(database);
+        var controller = new TranslationsController(database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
         var first = (await controller.Recent("test", "fi")).Value!;
         var second = (await controller.Recent("test", "fi", page: 2)).Value!;
         Assert.Equal(50, first.Results.Length);

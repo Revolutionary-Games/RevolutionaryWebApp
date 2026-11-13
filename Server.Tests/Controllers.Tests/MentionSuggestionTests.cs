@@ -28,7 +28,7 @@ public class MentionSuggestionTests
         database.Users.Add(new User("other@example.com", "unrelated"));
         await database.SaveChangesAsync();
         var controller = new UserManagementController(Substitute.For<ILogger<UserManagementController>>(), database,
-            Substitute.For<IHubContext<NotificationsHub, INotifications>>())
+            Substitute.For<IHubContext<NotificationsHub, INotifications>>(), null!)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
         };

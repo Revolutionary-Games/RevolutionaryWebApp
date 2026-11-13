@@ -24,7 +24,8 @@ public class TranslationActivityQueryTests
         using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql("Host=localhost;Database=unused").Options);
         var project = new TranslationProject { Id = 1, SourceLanguage = "en" };
-        var query = TranslationActivityQuery.Create(database, project, "fi", view).Skip(50).Take(50);
+        var query = TranslationActivityQuery.Create(database, project, "fi", view)
+            .Where(item => !item.Reported).Skip(50).Take(50);
 
         // SQL generation exercises PostgreSQL translation without opening a database connection.
         var sql = query.ToQueryString();
