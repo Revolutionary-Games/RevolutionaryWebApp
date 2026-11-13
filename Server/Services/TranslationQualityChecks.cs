@@ -54,8 +54,11 @@ public static partial class TranslationQualityChecks
                     "Ignore this warning if capitalization is inappropriate in this language.";
             }
 
-            var sourcePunctuation = sourceRunes.Length > 0 && Rune.IsPunctuation(sourceRunes[^1]);
-            var translatedPunctuation = Rune.IsPunctuation(translatedRunes[^1]);
+            var sourcePunctuation = sourceRunes.Length > 0 &&
+                sourceRunes[^1].Value is not ('{' or '}' or '(' or ')') &&
+                Rune.IsPunctuation(sourceRunes[^1]);
+            var translatedPunctuation = translatedRunes[^1].Value is not ('{' or '}' or '(' or ')') &&
+                Rune.IsPunctuation(translatedRunes[^1]);
             if (sourcePunctuation != translatedPunctuation)
             {
                 problems[TranslationProblemKind.EndingPunctuation] = sourcePunctuation ?
