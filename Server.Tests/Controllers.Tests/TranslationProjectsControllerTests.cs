@@ -13,6 +13,7 @@ using NSubstitute;
 using Server.Controllers;
 using Server.Jobs.RegularlyScheduled;
 using Server.Models;
+using Server.Models.Translations;
 using Server.Services;
 using Shared;
 using Shared.Models;
@@ -20,6 +21,51 @@ using Xunit;
 
 public class TranslationProjectsControllerTests
 {
+    [Fact]
+    public async Task RecheckQualityQueuesFullChecksOnlyForEnabledProjectsWithChecksConfigured()
+    {
+        await using var database = CreateDatabase();
+        var actor = new User("admin@example.com", "Admin");
+        database.Users.Add(actor);
+        database.TranslationProjects.AddRange(
+            new TranslationProject
+            {
+                Id = 1, Slug = "formatting", QualityChecks = TranslationQualityCheck.CSharpFormatting,
+            },
+            new TranslationProject
+            {
+                Id = 2, Slug = "sentences", QualityChecks = TranslationQualityCheck.SentenceConsistency,
+            },
+            new TranslationProject { Id = 3, Slug = "unchecked", QualityChecks = TranslationQualityCheck.None },
+            new TranslationProject
+            {
+                Id = 4, Slug = "disabled", Enabled = false,
+                QualityChecks = TranslationQualityCheck.CSharpFormatting,
+            });
+        await database.SaveChangesAsync();
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var jobs = Substitute.For<IBackgroundJobClient>();
+        var controller = new TranslationProjectsController(NullLogger<TranslationProjectsController>.Instance,
+            database, jobs)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+
+        Assert.IsType<OkObjectResult>(await controller.RecheckQuality());
+
+        jobs.Received(2).Create(Arg.Any<Job>(), Arg.Any<IState>());
+        foreach (var projectId in new long[] { 1, 2 })
+        {
+            jobs.Received(1).Create(Arg.Is<Job>(job => job.Type == typeof(CheckTranslationQualityJob) &&
+                job.Method.Name == nameof(CheckTranslationQualityJob.ExecuteForProject) &&
+                (long)job.Args[0] == projectId && (bool)job.Args[1]), Arg.Any<IState>());
+        }
+
+        var action = await database.AdminActions.SingleAsync();
+        Assert.Equal(actor.Id, action.PerformedById);
+    }
+
     [Fact]
     public async Task QualityChecksAreConfigurableAndChangesQueueAFullRecheck()
     {

@@ -30,6 +30,12 @@
     }
     else
     {
+        <Button ButtonStyle="outline-primary" Enabled="@(!recheckingQuality)" Spinner="@recheckingQuality"
+                OnPressed="@RecheckQuality" class="mb-3">
+            Re-run all translation quality checks
+        </Button>
+        <StatusMessageShower Message="@qualityMessage" Type="@qualityMessageType"/>
+
         <div class="input-group mb-3">
             <input class="form-control" placeholder="New dictionary name" @bind="dictionaryName"/>
             <Button ButtonStyle="outline-primary" Enabled="@(!processingDictionary)"
@@ -311,6 +317,9 @@
     private bool saving;
     private bool processingDictionary;
     private bool exportingCredits;
+    private bool recheckingQuality;
+    private string? qualityMessage;
+    private SiteNoticeType qualityMessageType = SiteNoticeType.Danger;
     private string? processingOperation;
     private bool remoteSettingsChanged;
     private bool registered;
@@ -447,6 +456,38 @@
         finally
         {
             exportingCredits = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RecheckQuality()
+    {
+        recheckingQuality = true;
+        qualityMessage = null;
+        qualityMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/admin/translationProjects/qualityChecks/recheck", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                qualityMessage = $"Could not queue quality checks: {await response.Content.ReadAsStringAsync()}, " +
+                    $"{response.StatusCode}";
+                return;
+            }
+
+            qualityMessage = "Full quality checks queued for all enabled translation projects with checks configured. " +
+                "Results will update as background jobs finish.";
+            qualityMessageType = SiteNoticeType.Success;
+        }
+        catch (Exception e)
+        {
+            qualityMessage = $"Error while queuing quality checks: {e.Message}";
+        }
+        finally
+        {
+            recheckingQuality = false;
             await InvokeAsync(StateHasChanged);
         }
     }

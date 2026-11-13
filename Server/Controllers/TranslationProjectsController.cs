@@ -46,6 +46,32 @@ public class TranslationProjectsController : Controller
         this.jobs = jobs;
     }
 
+    [HttpPost("qualityChecks/recheck")]
+    [CountContribution(1000)]
+    public async Task<IActionResult> RecheckQuality()
+    {
+        var projectIds = await database.TranslationProjects.AsNoTracking()
+            .Where(project => project.Enabled && project.QualityChecks != TranslationQualityCheck.None)
+            .OrderBy(project => project.Id).Select(project => project.Id)
+            .ToListAsync(HttpContext.RequestAborted);
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        foreach (var projectId in projectIds)
+        {
+            jobs.Enqueue<CheckTranslationQualityJob>(job => job.ExecuteForProject(projectId, true,
+                CancellationToken.None));
+        }
+
+        database.AdminActions.Add(new AdminAction(
+            $"Queued full translation quality checks for {projectIds.Count} projects")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+        logger.LogInformation("Full translation quality checks queued for {Count} projects by {Email}",
+            projectIds.Count, user.Email);
+        return Ok($"Full quality checks queued for {projectIds.Count} translation projects.");
+    }
+
     [HttpPut("{id:long}/maintenance")]
     public async Task<IActionResult> SetMaintenance(long id, [FromBody] bool closed)
     {
