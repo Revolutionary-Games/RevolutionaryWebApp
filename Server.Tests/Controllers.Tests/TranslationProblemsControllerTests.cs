@@ -234,6 +234,8 @@ public class TranslationProblemsControllerTests
         var target = await database.TranslationValues.Include(item => item.Unit).ThenInclude(unit => unit.Project)
             .SingleAsync();
         var project = target.Unit.Project;
+        target.Text = "Hei!";
+        TranslationQualityChecks.UpdateProblems(database, project, target);
         var source = new TranslationValue
         {
             ProjectId = 1, Key = "key", LanguageCode = "en", Text = target.Unit.SourceText, Unit = target.Unit,
@@ -243,6 +245,7 @@ public class TranslationProblemsControllerTests
         var actor = (User)context.HttpContext.Items[AppInfo.CurrentUserMiddlewareKey]!;
         actor.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.SourceTextTranslator));
         await database.SaveChangesAsync();
+        Assert.Single(await database.TranslationProblems.ToListAsync());
         var editor = new TranslationEditorController(NullLogger<TranslationEditorController>.Instance, database)
         {
             ControllerContext = context,
@@ -253,6 +256,15 @@ public class TranslationProblemsControllerTests
         })).Value!;
 
         Assert.Empty(result.Problems);
+        Assert.Equal(TranslationState.NeedsTranslation, target.State);
+        Assert.Empty(await database.TranslationProblems.ToListAsync());
+
+        var saved = (await editor.Save(new TranslationSaveRequest
+        {
+            ProjectId = 1, Key = "key", LanguageCode = "fi", Text = "Hei {0}!", Version = target.Version,
+        })).Value!;
+
+        Assert.Single(saved.Problems);
         var warning = Assert.Single(await database.TranslationProblems.ToListAsync());
         Assert.Equal("fi", warning.LanguageCode);
         Assert.Contains("{1}", warning.Message);
