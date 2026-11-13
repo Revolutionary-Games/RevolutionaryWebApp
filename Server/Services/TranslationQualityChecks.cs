@@ -72,9 +72,10 @@ public static partial class TranslationQualityChecks
     /// </summary>
     public static void UpdateProblems(ApplicationDbContext database, TranslationProject project, TranslationValue value)
     {
-        var detected = value.Unit.Active && value.LanguageCode != project.SourceLanguage ?
-            Evaluate(value.Unit.SourceText, value.Text, project.QualityChecks) :
-            [];
+        var detected = value.Unit.Active && value.LanguageCode != project.SourceLanguage &&
+            value.State != TranslationState.NeedsTranslation ?
+                Evaluate(value.Unit.SourceText, value.Text, project.QualityChecks) :
+                [];
 
         foreach (var problem in value.Problems.ToArray())
         {

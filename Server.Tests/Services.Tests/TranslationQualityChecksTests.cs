@@ -104,6 +104,31 @@ public class TranslationQualityChecksTests
         Assert.Empty(database.TranslationProblems);
     }
 
+    [Theory]
+    [InlineData(TranslationState.Translated)]
+    [InlineData(TranslationState.Verified)]
+    public async Task NeedsChangesSkipsChecksClearsWarningsAndChecksAgainWhenReady(TranslationState readyState)
+    {
+        await using var database = CreateDatabase();
+        var value = AddValue(database, "key", "Hello {0}!", "hei", DateTime.UtcNow);
+        var project = value.Unit.Project;
+        value.State = TranslationState.NeedsTranslation;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Empty(database.TranslationProblems);
+
+        value.State = readyState;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Equal(3, await database.TranslationProblems.CountAsync());
+
+        value.State = TranslationState.NeedsTranslation;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Empty(value.Problems);
+        Assert.Empty(database.TranslationProblems);
+    }
+
     [Fact]
     public async Task ChangedMissingArgumentsRequireReviewAgain()
     {
@@ -145,6 +170,15 @@ public class TranslationQualityChecksTests
         });
         var inactive = AddValue(database, "inactive", "Hello!", "hei", DateTime.UtcNow);
         inactive.Unit.Active = false;
+        var needsChanges = AddValue(database, "needsChanges", "Hello!", "hei", DateTime.UtcNow);
+        needsChanges.State = TranslationState.NeedsTranslation;
+        var oldNeedsChanges = AddValue(database, "oldNeedsChanges", "Hello!", "hei", old);
+        oldNeedsChanges.State = TranslationState.NeedsTranslation;
+        oldNeedsChanges.Problems.Add(new TranslationProblem
+        {
+            ProjectId = 1, Key = oldNeedsChanges.Key, LanguageCode = "fi",
+            Kind = TranslationProblemKind.InitialCapitalization,
+        });
         var source = AddValue(database, "source", "Hello!", "hei", DateTime.UtcNow);
         source.LanguageCode = "en";
         source.Language = new TranslationProjectLanguage { Project = source.Unit.Project, LanguageCode = "en" };
