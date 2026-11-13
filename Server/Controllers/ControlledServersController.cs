@@ -139,6 +139,7 @@ public class ControlledServersController : Controller
     }
 
     [HttpPost("{id:long}/terminate")]
+    [RequireSudoMode]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<ControlledServerDTO>> ForceTerminateServer(long id)
     {

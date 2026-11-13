@@ -14,6 +14,10 @@ public static class AppInfo
 
     public const string SessionCookieName = "ThriveWebSession";
 
+    public const string SudoModeResponseHeader = "X-Sudo-Mode";
+    public const string SudoModeRequiredHeaderValue = "required";
+    public const string SudoModeWebsiteOnlyMessage = "This operation can only be performed on the website.";
+
     // TODO: find out why this is not used
     public const string SecondPrecisionDurationFormat = @"hh\:mm\:ss";
 
@@ -117,6 +121,8 @@ public static class AppInfo
     ///   Sessions (and cookies) expire after 30 days of inactivity
     /// </summary>
     public const int SessionExpirySeconds = 60 * 60 * 24 * 30;
+
+    public const int SudoModeDurationMinutes = 15;
 
     public const int AbsoluteMaxSessionDuration = 60 * 60 * 24 * 90;
 

@@ -52,6 +52,7 @@ public class UserGroupController(ILogger<UserGroupController> logger, Notificati
     }
 
     [HttpPut("{groupId:int}")]
+    [RequireSudoMode]
     public async Task<ActionResult<List<UserGroupInfo>>> AddGroup([Required] long id, [Required] int groupId)
     {
         var convertedId = (GroupType)groupId;
@@ -97,6 +98,7 @@ public class UserGroupController(ILogger<UserGroupController> logger, Notificati
     }
 
     [HttpDelete("{groupId:int}")]
+    [RequireSudoMode]
     public async Task<ActionResult<List<UserGroupInfo>>> RemoveGroup([Required] long id, [Required] int groupId)
     {
         var convertedId = (GroupType)groupId;

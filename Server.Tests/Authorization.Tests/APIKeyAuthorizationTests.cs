@@ -11,12 +11,26 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Server.Authorization;
 using Server.Models;
 using Server.Services;
+using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 using Xunit;
 
 public class APIKeyAuthorizationTests
 {
+    [Fact]
+    public void SudoEndpointsRequireWebsiteEvenForUnrestrictedAdminKeys()
+    {
+        var context = Context("DELETE");
+        context.SetEndpoint(new Endpoint(null, new EndpointMetadataCollection(
+            new APIKeyScopeAttribute(APIKeyScope.Users), new RequireSudoModeAttribute()), "Sudo test"));
+        var key = Key();
+        key.Scopes = "0";
+        key.ReadOnly = false;
+        Assert.Equal(AppInfo.SudoModeWebsiteOnlyMessage,
+            APIKeyAuthorization.GetDenialReason(key, context, new CachedUserGroups(GroupType.Admin)));
+    }
+
     [Theory]
     [InlineData("GET", true, true)]
     [InlineData("POST", true, false)]

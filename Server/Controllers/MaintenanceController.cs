@@ -61,6 +61,7 @@ public class MaintenanceController : Controller
     }
 
     [HttpPost("start")]
+    [RequireSudoMode]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<IActionResult> StartMaintenanceOperation([FromBody] string operationName)
     {
