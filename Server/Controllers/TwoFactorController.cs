@@ -67,7 +67,7 @@ public class TwoFactorController : Controller
             return Unauthorized("A browser login is required to manage two-factor authentication.");
 
         return await twoFactor.Disable(HttpContext.AuthenticatedUserOrThrow().Id, session, data.Code) ?
-            Ok("Two-factor authentication disabled. Other sessions have been signed out.") :
+            Ok("Two-factor authentication disabled.") :
             BadRequest("Invalid or already used code, or too many attempts. Try again later.");
     }
 
