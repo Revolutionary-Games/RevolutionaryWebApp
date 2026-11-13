@@ -41,6 +41,18 @@ public class TranslationQualityChecksTests
     [InlineData("Hello…", "Hei؟", false, false)]
     [InlineData("Hello", "Hei🙂", false, false)]
     [InlineData("𐐀 hello!", "𐐨 hei!", true, false)]
+    [InlineData("Abilities", "能力", false, false)]
+    [InlineData("Abilities", "能力（测试）", false, true)]
+    [InlineData("Abilities", "能力ABC", false, false)]
+    [InlineData("Abilities", "アビリティ", false, false)]
+    [InlineData("Abilities", "능력", false, false)]
+    [InlineData("Abilities", "قدرات", false, false)]
+    [InlineData("Abilities", "יכולות", false, false)]
+    [InlineData("Abilities", "ความสามารถ", false, false)]
+    [InlineData("Abilities", "क्षमताएँ", false, false)]
+    [InlineData("Abilities", "способности", true, false)]
+    [InlineData("Abilities", "ικανότητες", true, false)]
+    [InlineData("Abilities", "ǅungla", false, false)]
     public void SentenceChecksUnicodeCapitalizationAndPresenceOfPunctuation(string source, string translation,
         bool capitalProblem, bool punctuationProblem)
     {

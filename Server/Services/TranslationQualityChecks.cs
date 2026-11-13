@@ -44,7 +44,10 @@ public static partial class TranslationQualityChecks
         {
             var sourceRunes = source.Trim().EnumerateRunes().ToArray();
             var translatedRunes = translation.Trim().EnumerateRunes().ToArray();
-            if (sourceRunes.Length > 0 && Rune.IsUpper(sourceRunes[0]) && !Rune.IsUpper(translatedRunes[0]))
+
+            // Only lowercase letters can be capitalized. Uncased scripts, such as Chinese, have
+            // no uppercase equivalent, and titlecase letters already have appropriate capitalization.
+            if (sourceRunes.Length > 0 && Rune.IsUpper(sourceRunes[0]) && Rune.IsLower(translatedRunes[0]))
             {
                 problems[TranslationProblemKind.InitialCapitalization] =
                     "Start the translation with a capital letter, as the source starts with a capital letter. " +
