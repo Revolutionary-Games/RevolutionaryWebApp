@@ -1073,6 +1073,8 @@ public class LoginController : SSOLoginController
             }
         }
 
+        // TODO: this should probably be removed (or only allow changing the username for the first few days after
+        // account creation)
         // Change username from SSO login
         if (user.UserName != username)
         {
