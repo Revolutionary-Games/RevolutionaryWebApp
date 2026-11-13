@@ -48,7 +48,7 @@ public class TwoFactorService
     }
 
     // This needs to be done like this to make tests work
-    public DateTime UtcNow => clock.GetUtcNow().DateTime;
+    public DateTime UtcNow => clock.GetUtcNow().UtcDateTime;
 
     public static List<string> GetBackupCodeHashes(TwoFactorAuthentication credential)
     {
