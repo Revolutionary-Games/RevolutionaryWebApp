@@ -427,6 +427,8 @@ public class Startup
         // Routing has to be initialised before the rate limiter is invoked
         app.UseRouting();
 
+        app.UseMiddleware<LFSUserAgentMiddleware>();
+
         // Authentication to specific routes setup
         app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
             appBuilder => { appBuilder.UseMiddleware<LFSAuthenticationMiddleware>(); });
