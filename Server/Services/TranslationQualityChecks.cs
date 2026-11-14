@@ -55,9 +55,9 @@ public static partial class TranslationQualityChecks
             }
 
             var sourcePunctuation = sourceRunes.Length > 0 &&
-                sourceRunes[^1].Value is not ('{' or '}' or '(' or ')') &&
+                sourceRunes[^1].Value is not ('{' or '}' or '(' or ')' or '（' or '）') &&
                 Rune.IsPunctuation(sourceRunes[^1]);
-            var translatedPunctuation = translatedRunes[^1].Value is not ('{' or '}' or '(' or ')') &&
+            var translatedPunctuation = translatedRunes[^1].Value is not ('{' or '}' or '(' or ')' or '（' or '）') &&
                 Rune.IsPunctuation(translatedRunes[^1]);
             if (sourcePunctuation != translatedPunctuation)
             {
