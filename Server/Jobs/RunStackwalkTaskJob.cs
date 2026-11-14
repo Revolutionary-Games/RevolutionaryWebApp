@@ -11,6 +11,7 @@ using Models;
 using Services;
 
 [DisableConcurrentExecution(1000)]
+[Queue("stackwalk")]
 public class RunStackwalkTaskJob
 {
     private readonly ILogger<RunStackwalkTaskJob> logger;

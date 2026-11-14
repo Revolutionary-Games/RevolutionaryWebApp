@@ -266,6 +266,16 @@ public class Startup
             opts.SchedulePollingInterval = TimeSpan.FromSeconds(10);
         });
 
+        if (!string.IsNullOrEmpty(Configuration["Crashes:StackwalkService"]))
+        {
+            // Create additional worker pool if we have stackwalk available
+            services.AddHangfireServer(opts =>
+            {
+                opts.Queues = new[] { "stackwalk" };
+                opts.WorkerCount = 1;
+            });
+        }
+
         services.AddControllers(options =>
         {
             options.ModelMetadataDetailsProviders.Add(new RequiredBindingMetadataProvider());
