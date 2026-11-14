@@ -57,6 +57,11 @@ public class TranslationQualityChecksTests
     [InlineData("Progress {0}%", "進度 {0}％", false, false)]
     [InlineData("Progress {0}%", "進度 {0}%。", false, true)]
     [InlineData("Progress {0}%.", "進度 {0}%。", false, false)]
+    [InlineData("View the full details of this release on [color=#3796e1][url={0}]GitHub[/url][/color]",
+        "იხილეთ ამ რელიზის სრული დეტალები [color=#3796e1][url={0}]GitHub[/url][/color]-ზე", false, false)]
+    [InlineData("იხილეთ ამ რელიზის სრული დეტალები [color=#3796e1][url={0}]GitHub[/url][/color]-ზე",
+        "View the full details of this release on [color=#3796e1][url={0}]GitHub[/url][/color]", false, false)]
+    [InlineData("See [link].", "იხილეთ [link]", false, true)]
     [InlineData("(speed at which AI species mutate)", "（AI物种突变的速度）", false, false)]
     [InlineData("（AI物种突变的速度）", "(speed at which AI species mutate)", false, false)]
     [InlineData("𐐀 hello!", "𐐨 hei!", true, false)]
