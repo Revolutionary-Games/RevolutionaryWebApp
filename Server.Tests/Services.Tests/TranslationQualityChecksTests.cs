@@ -57,6 +57,11 @@ public class TranslationQualityChecksTests
     [InlineData("Progress {0}%", "進度 {0}％", false, false)]
     [InlineData("Progress {0}%", "進度 {0}%。", false, true)]
     [InlineData("Progress {0}%.", "進度 {0}%。", false, false)]
+    [InlineData("{0}: specified mod class \"{1}\" not found in mod's assembly",
+        "{0}：在模組程式集中找不到指定的模組類 「{1}」", false, false)]
+    [InlineData("{0}：在模組程式集中找不到指定的模組類 「{1}」",
+        "{0}: specified mod class \"{1}\" not found in mod's assembly", false, false)]
+    [InlineData("Value", "值「测试」。", false, true)]
     [InlineData("View the full details of this release on [color=#3796e1][url={0}]GitHub[/url][/color]",
         "იხილეთ ამ რელიზის სრული დეტალები [color=#3796e1][url={0}]GitHub[/url][/color]-ზე", false, false)]
     [InlineData("იხილეთ ამ რელიზის სრული დეტალები [color=#3796e1][url={0}]GitHub[/url][/color]-ზე",
