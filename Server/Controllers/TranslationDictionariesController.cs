@@ -55,7 +55,8 @@ public class TranslationDictionariesController : Controller
         var languages = await database.TranslationProjects.Where(p => p.DictionaryId == id)
             .Join(database.TranslationProjectLanguages, p => p.Id, l => l.ProjectId,
                 (p, l) => l.LanguageCode).Distinct().OrderBy(code => code).ToArrayAsync();
-        return languages.Select(DictionaryLanguageCodes.Normalize).Distinct().OrderBy(code => code).ToArray();
+        return languages.Select(DictionaryLanguageCodes.Normalize).Distinct()
+            .OrderBy(code => code, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     [CountContribution(100)]
@@ -242,8 +243,9 @@ public class TranslationDictionariesController : Controller
             LastEditedByUserId = term.LastEditedByUserId,
         }));
 
-        return matches.OrderBy(term => term.Word).ThenBy(term => term.Context)
-            .ThenBy(term => term.SourceLanguageCode).ToArray();
+        return matches.OrderBy(term => term.Word, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(term => term.Context, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(term => term.SourceLanguageCode, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     [CountContribution(20)]
