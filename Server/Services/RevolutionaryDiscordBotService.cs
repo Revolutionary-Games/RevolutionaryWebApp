@@ -79,6 +79,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Uri progressFontUrl;
     private readonly Uri progressImageUrl;
     private readonly Uri releaseStatsApiUrl;
+    private readonly Uri translationStatisticsApiUrl;
+    private readonly Uri translationProjectUrl;
     private readonly Regex underWaterCivRegex;
     private readonly Regex sentientPlantRegex;
     private readonly Regex spaceWhalesRegex;
@@ -88,6 +90,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private DiscordSocketClient? client;
 
     private TimedResourceCache<List<GithubMilestone>>? githubMilestones;
+    private TimedResourceCache<TranslationLanguageDTO[]>? translationLanguages;
     private Lazy<Task<FontCollection>>? fonts;
     private DisposableTimedResourceCache<Image>? progressBackgroundImage;
 
@@ -121,6 +124,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         progressImageUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressBackgroundImage");
 
         releaseStatsApiUrl = new Uri(configuration.GetBaseUrl(), "/api/v1/ReleaseStats");
+        translationStatisticsApiUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationStatisticsApiUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
+        translationProjectUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationProjectUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
 
         // Probably a bit obsessive for this one joke, as it's still pretty easy to bypass
         underWaterCivRegex = new Regex(
@@ -253,8 +260,31 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         databaseReadWriteLock.Dispose();
         client?.Dispose();
         githubMilestones?.Dispose();
+        translationLanguages?.Dispose();
         progressBackgroundImage?.Dispose();
         translationProgress?.Dispose();
+    }
+
+    internal async Task<TranslationLanguageDTO[]> LoadTranslationLanguageStatisticsAsync()
+    {
+        var httpClient = httpClientFactory.CreateClient();
+        return await httpClient.GetFromJsonAsync<TranslationLanguageDTO[]>(translationStatisticsApiUrl) ??
+            throw new NullDecodedJsonException();
+    }
+
+    internal Embed BuildTranslationStatisticsEmbed(TranslationLanguageDTO[] languages)
+    {
+        var total = languages.Sum(language => (long)language.Total);
+        var completed = languages.Sum(language => (long)language.Translated + language.Verified);
+        var percentage = total == 0 ? 0 : Math.Clamp(100d * completed / total, 0, 100);
+
+        var description = $"**{completed.ToString("N0", CultureInfo.InvariantCulture)} of " +
+            $"{total.ToString("N0", CultureInfo.InvariantCulture)} translation entries complete " +
+            $"({percentage.ToString("0.#", CultureInfo.InvariantCulture)}%)**\nAcross " +
+            $"{languages.Length.ToString("N0", CultureInfo.InvariantCulture)} languages.";
+
+        return new EmbedBuilder().WithTitle("Thrive translation progress").WithUrl(translationProjectUrl.ToString())
+            .WithDescription(description).WithColor(new Discord.Color(43, 148, 100)).Build();
     }
 
     private Task OnConnected()
@@ -303,6 +333,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                     { "direction", "desc" },
                 })) ?? throw new NullDecodedJsonException();
         }, TimeSpan.FromMinutes(1));
+
+        translationLanguages = new TimedResourceCache<TranslationLanguageDTO[]>(LoadTranslationLanguageStatisticsAsync,
+            TimeSpan.FromMinutes(10));
     }
 
     private async Task ClientReady()
@@ -722,6 +755,16 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             return;
         }
 
+        Embed? statisticsEmbed = null;
+        try
+        {
+            statisticsEmbed = BuildTranslationStatisticsEmbed(await translationLanguages!.GetData());
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Translation statistics connection error");
+        }
+
         using var tempFileData = new MemoryStream();
 
         using (await expensiveOperationLimiter.LockAsync())
@@ -740,7 +783,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         }
 
         tempFileData.Position = 0;
-        await command.FollowupWithFileAsync(tempFileData, "language.png");
+        var embeds = statisticsEmbed is { } embed ? new[] { embed } : Array.Empty<Embed>();
+        await command.FollowupWithFileAsync(tempFileData, "language.png", string.Empty, embeds);
     }
 
     private SlashCommandBuilder BuildLanguageCommand()

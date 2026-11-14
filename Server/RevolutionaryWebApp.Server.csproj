@@ -75,4 +75,8 @@
   <ItemGroup>
     <SixLaborsLicenseFile Include="sixlabors.lic" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="RevolutionaryWebApp.Server.Tests" />
+  </ItemGroup>
 </Project>
