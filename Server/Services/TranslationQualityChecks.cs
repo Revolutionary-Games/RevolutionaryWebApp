@@ -46,8 +46,10 @@ public static partial class TranslationQualityChecks
             var translatedRunes = translation.Trim().EnumerateRunes().ToArray();
 
             // Only lowercase letters can be capitalized. Uncased scripts, such as Chinese, have
-            // no uppercase equivalent, and titlecase letters already have appropriate capitalization.
-            if (sourceRunes.Length > 0 && Rune.IsUpper(sourceRunes[0]) && Rune.IsLower(translatedRunes[0]))
+            // no uppercase equivalent; Georgian Mkhedruli has uppercase equivalents but does not
+            // normally use capitals. Titlecase letters already have appropriate capitalization.
+            if (sourceRunes.Length > 0 && Rune.IsUpper(sourceRunes[0]) && Rune.IsLower(translatedRunes[0]) &&
+                translatedRunes[0].Value is not (>= 0x10D0 and <= 0x10FF))
             {
                 problems[TranslationProblemKind.InitialCapitalization] =
                     "Start the translation with a capital letter, as the source starts with a capital letter. " +

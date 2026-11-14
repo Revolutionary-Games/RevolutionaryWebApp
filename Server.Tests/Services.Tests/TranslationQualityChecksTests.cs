@@ -56,6 +56,7 @@ public class TranslationQualityChecksTests
     [InlineData("（AI物种突变的速度）", "(speed at which AI species mutate)", false, false)]
     [InlineData("𐐀 hello!", "𐐨 hei!", true, false)]
     [InlineData("Abilities", "能力", false, false)]
+    [InlineData("Abilities", "შესაძლებლობები", false, false)]
     [InlineData("Abilities", "能力（测试）", false, false)]
     [InlineData("Abilities", "能力（测试）。", false, true)]
     [InlineData("Abilities", "能力ABC", false, false)]
