@@ -99,6 +99,7 @@ public static class UserFromCookiesHelper
 
         var session = await database.Sessions.WhereHashed(nameof(Session.Id), sessionId).Include(s => s.User)
             .ThenInclude(u => u!.AssociationMember)
+            .Include(s => s.User).ThenInclude(u => u!.ContributionCount)
             .ToAsyncEnumerable().FirstOrDefaultAsync(s => s.Id == parsed);
 
         if (session == null)
