@@ -21,6 +21,9 @@ public class RevolutionaryDiscordBotServiceTests
     private const string StatisticsApiUrl =
         "https://dev.revolutionarygamesstudio.com/api/v1/translations/projects/thrive/languages";
 
+    private const string ProgressImageUrl =
+        "https://dev.revolutionarygamesstudio.com/widgets/thrive/horizontal-auto.png";
+
     private const string TranslationProjectUrl = "https://dev.revolutionarygamesstudio.com/translations/thrive";
 
     [Fact]
@@ -85,6 +88,44 @@ public class RevolutionaryDiscordBotServiceTests
         await Assert.ThrowsAsync<HttpRequestException>(service.LoadTranslationLanguageStatisticsAsync);
     }
 
+    [Fact]
+    public async Task DownloadsProgressPngBytesFromConfiguredBackend()
+    {
+        const string imageData = "progress-png-data";
+        var handler = new ResponseHandler(imageData);
+        using var httpClient = new HttpClient(handler);
+        await using var database = CreateDatabase();
+        using var service = CreateService(httpClient, database);
+
+        var downloadedData = await service.DownloadTranslationProgressImageAsync();
+
+        Assert.Equal(ProgressImageUrl, handler.RequestUrl);
+        Assert.Equal(Encoding.UTF8.GetBytes(imageData), downloadedData);
+    }
+
+    [Fact]
+    public async Task ProgressImageHttpErrorsArePropagatedToOptionalImageHandling()
+    {
+        using var httpClient = new HttpClient(new ResponseHandler(string.Empty, HttpStatusCode.ServiceUnavailable));
+        await using var database = CreateDatabase();
+        using var service = CreateService(httpClient, database);
+
+        await Assert.ThrowsAsync<HttpRequestException>(service.DownloadTranslationProgressImageAsync);
+    }
+
+    [Fact]
+    public void FallbackEmbedRetainsTranslationProjectLink()
+    {
+        using var httpClient = new HttpClient();
+        using var database = CreateDatabase();
+        using var service = CreateService(httpClient, database);
+
+        var embed = service.BuildTranslationProjectEmbed();
+
+        Assert.Equal(TranslationProjectUrl, embed.Url);
+        Assert.Contains("View the Thrive translation project", embed.Description);
+    }
+
     private static ApplicationDbContext CreateDatabase()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -101,8 +142,7 @@ public class RevolutionaryDiscordBotServiceTests
             ["Discord:RevolutionaryBot:Token"] = string.Empty,
             ["Discord:RevolutionaryBot:PreferDayProgressForRelease"] = "false",
             ["Discord:RevolutionaryBot:WikiBaseUrl"] = "https://wiki.revolutionarygamesstudio.com/wiki/",
-            ["Discord:RevolutionaryBot:TranslationProgressUrl"] =
-                "https://dev.revolutionarygamesstudio.com/widgets/thrive/horizontal-auto.svg",
+            ["Discord:RevolutionaryBot:TranslationProgressUrl"] = ProgressImageUrl,
             ["Discord:RevolutionaryBot:TranslationStatisticsApiUrl"] = StatisticsApiUrl,
             ["Discord:RevolutionaryBot:TranslationProjectUrl"] = TranslationProjectUrl,
             ["Discord:RevolutionaryBot:WikiDefaultPreviewImage"] =

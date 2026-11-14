@@ -31,8 +31,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SkiaSharp;
-using Svg.Skia;
 using Utilities;
 using Color = SixLabors.ImageSharp.Color;
 using Image = SixLabors.ImageSharp.Image;
@@ -94,7 +92,7 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private Lazy<Task<FontCollection>>? fonts;
     private DisposableTimedResourceCache<Image>? progressBackgroundImage;
 
-    private DisposableTimedResourceCache<Image>? translationProgress;
+    private TimedResourceCache<byte[]>? translationProgress;
 
     private DateTime? disconnectedSince;
 
@@ -287,6 +285,19 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             .WithDescription(description).WithColor(new Discord.Color(43, 148, 100)).Build();
     }
 
+    internal Embed BuildTranslationProjectEmbed()
+    {
+        return new EmbedBuilder().WithTitle("Thrive translation progress").WithUrl(translationProjectUrl.ToString())
+            .WithDescription("View the Thrive translation project to help translate the game.")
+            .WithColor(new Discord.Color(43, 148, 100)).Build();
+    }
+
+    internal async Task<byte[]> DownloadTranslationProgressImageAsync()
+    {
+        var httpClient = httpClientFactory.CreateClient();
+        return await httpClient.GetByteArrayAsync(translationProgressUrl);
+    }
+
     private Task OnConnected()
     {
         logger.LogTrace("We are now connected to Discord");
@@ -317,8 +328,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         progressBackgroundImage =
             new DisposableTimedResourceCache<Image>(() => DownloadImage(progressImageUrl), TimeSpan.FromMinutes(15));
 
-        translationProgress = new DisposableTimedResourceCache<Image>(
-            () => DownloadSvg(translationProgressUrl), TimeSpan.FromMinutes(10));
+        translationProgress = new TimedResourceCache<byte[]>(DownloadTranslationProgressImageAsync,
+            TimeSpan.FromMinutes(10));
 
         githubMilestones = new TimedResourceCache<List<GithubMilestone>>(async () =>
         {
@@ -741,20 +752,6 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task PerformSlowLanguagePart(SocketSlashCommand command)
     {
-        Image progressImage;
-
-        try
-        {
-            progressImage = await translationProgress!.GetData();
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Translation progress connection error");
-            await command.ModifyOriginalResponseAsync(properties =>
-                properties.Content = "Failed to get translation progress");
-            return;
-        }
-
         Embed? statisticsEmbed = null;
         try
         {
@@ -765,26 +762,26 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
             logger.LogError(e, "Translation statistics connection error");
         }
 
-        using var tempFileData = new MemoryStream();
-
-        using (await expensiveOperationLimiter.LockAsync())
+        byte[] imageData;
+        try
         {
-            try
+            imageData = await translationProgress!.GetData();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Translation progress image download failed");
+            var failureEmbeds = new[] { statisticsEmbed ?? BuildTranslationProjectEmbed() };
+            await command.ModifyOriginalResponseAsync(properties =>
             {
-                await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Language image drawing problem");
-                await command.ModifyOriginalResponseAsync(properties =>
-                    properties.Content = "Failed to draw language progress image");
-                return;
-            }
+                properties.Content = "Failed to get translation progress image";
+                properties.Embeds = failureEmbeds;
+            });
+            return;
         }
 
-        tempFileData.Position = 0;
-        var embeds = statisticsEmbed is { } embed ? new[] { embed } : Array.Empty<Embed>();
-        await command.FollowupWithFileAsync(tempFileData, "language.png", string.Empty, embeds);
+        using var imageDataStream = new MemoryStream(imageData, false);
+        var embeds = new[] { statisticsEmbed ?? BuildTranslationProjectEmbed() };
+        await command.FollowupWithFileAsync(imageDataStream, "language.png", string.Empty, embeds);
     }
 
     private SlashCommandBuilder BuildLanguageCommand()
@@ -1332,28 +1329,5 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         var content = await response.Content.ReadAsStreamAsync();
 
         return await Image.LoadAsync(content);
-    }
-
-    private async Task<Image> DownloadSvg(Uri url)
-    {
-        var httpClient = httpClientFactory.CreateClient();
-
-        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        response.EnsureSuccessStatusCode();
-
-        var content = await response.Content.ReadAsStreamAsync();
-
-        using var svg = new SKSvg();
-        using var svgAsPngData = new MemoryStream();
-
-        if (svg.Load(content) is null)
-            throw new Exception("Failed to load the svg data");
-
-        svg.Picture!.ToImage(svgAsPngData, SKColor.Empty, SKEncodedImageFormat.Png, 100, 1.0f, 1.0f,
-            SKColorType.Rgba8888, SKAlphaType.Unpremul, SKColorSpace.CreateSrgb());
-
-        // Reset the stream position after writing, this is very important to make sure this works
-        svgAsPngData.Position = 0;
-        return await Image.LoadAsync(svgAsPngData);
     }
 }
