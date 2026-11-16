@@ -220,8 +220,7 @@ public static partial class TranslationQualityChecks
         return arguments;
     }
 
-    [GeneratedRegex(
-        @"\[(?:/(?<closeName>[a-zA-Z][a-zA-Z0-9_-]*)\s*|(?<openName>[a-zA-Z][a-zA-Z0-9_-]*)" +
+    [GeneratedRegex(@"\[(?:/(?<closeName>[a-zA-Z][a-zA-Z0-9_-]*)\s*|(?<openName>[a-zA-Z][a-zA-Z0-9_-]*)" +
         @"(?<args>=[^\r\n\]]*|\s+[^\r\n\]]*)?)\]", RegexOptions.CultureInvariant)]
     private static partial Regex BbCodeTag();
 
@@ -289,13 +288,11 @@ public static partial class TranslationQualityChecks
         return new ParsedBbCode(openTags, closedTags, unmatchedClosingTags);
     }
 
-    [GeneratedRegex(
-        @"\[(?:/(?<closeName>thrive:[a-zA-Z]+)\s*|(?<openName>thrive:[a-zA-Z]+)(?<attrs>[^\]]*)?)\]",
+    [GeneratedRegex(@"\[(?:/(?<closeName>thrive:[a-zA-Z]+)\s*|(?<openName>thrive:[a-zA-Z]+)(?<attrs>[^\]]*)?)\]",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex ThriveBbCodeTag();
 
-    [GeneratedRegex(
-        @"(?<key>[a-zA-Z0-9_-]+)(?:=(?:""(?<val>[^""]*)""|'(?<val>[^']*)'|(?<val>[^\s\]]+)))?",
+    [GeneratedRegex(@"(?<key>[a-zA-Z0-9_-]+)(?:=(?:""(?<val>[^""]*)""|'(?<val>[^']*)'|(?<val>[^\s\]]+)))?",
         RegexOptions.CultureInvariant)]
     private static partial Regex AttributeKeyValuePair();
 
@@ -356,7 +353,17 @@ public static partial class TranslationQualityChecks
         return tag is "compound" or "resource";
     }
 
-    private static string NormalizeAttributes(string attrs)
+    private static bool IsKeyAttribute(string tag, string attribute)
+    {
+        return tag switch
+        {
+            "compound" or "resource" => attribute == "type",
+            "constant" => attribute == "format",
+            _ => false,
+        };
+    }
+
+    private static string NormalizeAttributes(string tag, string attrs)
     {
         if (string.IsNullOrWhiteSpace(attrs))
         {
@@ -367,6 +374,11 @@ public static partial class TranslationQualityChecks
         foreach (Match match in AttributeKeyValuePair().Matches(attrs))
         {
             var key = match.Groups["key"].Value.ToLowerInvariant();
+            if (!IsKeyAttribute(tag, key))
+            {
+                continue;
+            }
+
             var val = match.Groups["val"].Success ? match.Groups["val"].Value : string.Empty;
             dict[key] = val;
         }
@@ -404,12 +416,14 @@ public static partial class TranslationQualityChecks
 
                     if (IsMutableContentTag(tag))
                     {
-                        var key = $"[{tag} {attrs}]";
+                        var key = string.IsNullOrEmpty(attrs) ? $"[{tag}]" : $"[{tag} {attrs}]";
                         mutableTags[key] = mutableTags.GetValueOrDefault(key) + 1;
                     }
                     else
                     {
-                        var key = $"[{tag} {attrs}]{rawContent}";
+                        var key = string.IsNullOrEmpty(attrs) ?
+                            $"[{tag}]{rawContent}" :
+                            $"[{tag} {attrs}]{rawContent}";
                         immutableTags[key] = immutableTags.GetValueOrDefault(key) + 1;
                     }
                 }
@@ -422,7 +436,7 @@ public static partial class TranslationQualityChecks
             {
                 var openName = match.Groups["openName"].Value;
                 var tag = openName.Substring("thrive:".Length).ToLowerInvariant();
-                var attrs = NormalizeAttributes(match.Groups["attrs"].Value);
+                var attrs = NormalizeAttributes(tag, match.Groups["attrs"].Value);
                 var contentStartIndex = match.Index + match.Length;
 
                 tagStack.Push((tag, attrs, contentStartIndex));
@@ -436,12 +450,14 @@ public static partial class TranslationQualityChecks
             var rawContent = text.Substring(contentStartIndex).Trim();
             if (IsMutableContentTag(tag))
             {
-                var key = $"[unclosed:{tag} {attrs}]";
+                var key = string.IsNullOrEmpty(attrs) ? $"[unclosed:{tag}]" : $"[unclosed:{tag} {attrs}]";
                 mutableTags[key] = mutableTags.GetValueOrDefault(key) + 1;
             }
             else
             {
-                var key = $"[unclosed:{tag} {attrs}]{rawContent}";
+                var key = string.IsNullOrEmpty(attrs) ?
+                    $"[unclosed:{tag}]{rawContent}" :
+                    $"[unclosed:{tag} {attrs}]{rawContent}";
                 immutableTags[key] = immutableTags.GetValueOrDefault(key) + 1;
             }
         }
@@ -449,13 +465,11 @@ public static partial class TranslationQualityChecks
         return new ParsedThriveBbCode(immutableTags, mutableTags, closedTags, unmatchedClosingTags, totalOpenTags);
     }
 
-    private readonly record struct ParsedBbCode(
-        Dictionary<string, int> OpenTags,
+    private readonly record struct ParsedBbCode(Dictionary<string, int> OpenTags,
         Dictionary<string, int> ClosedTags,
         int UnmatchedClosingTags);
 
-    private readonly record struct ParsedThriveBbCode(
-        Dictionary<string, int> ImmutableTags,
+    private readonly record struct ParsedThriveBbCode(Dictionary<string, int> ImmutableTags,
         Dictionary<string, int> MutableTags,
         Dictionary<string, int> ClosedTags,
         int UnmatchedClosingTags,

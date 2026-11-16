@@ -121,6 +121,56 @@ public class TranslationQualityChecksTests
         Assert.Equal(fails, problems.ContainsKey(TranslationProblemKind.BbCodeTagSyntax));
     }
 
+    [Theory]
+    [InlineData("Press [thrive:input]help[/thrive:input]", "Нажмите [thrive:input]help[/thrive:input]", false)]
+    [InlineData("Press [thrive:input]help[/thrive:input]", "Нажмите [thrive:input]помощи[/thrive:input]", true)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound type=\"glucose\"]Глюкоза[/thrive:compound]", false)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound type=\"glucose\"][/thrive:compound]", false)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound type=\"глюкоза\"]Глюкоза[/thrive:compound]", true)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound]Глюкоза[/thrive:compound]", true)]
+    [InlineData("[thrive:compound type=\"glucose\" size=\"20\"]Glucose[/thrive:compound]",
+        "[thrive:compound size=\"20\" type=\"glucose\"]Глюкоза[/thrive:compound]", false)]
+    [InlineData("[thrive:compound type=\"glucose\" size=\"20\"]Glucose[/thrive:compound]",
+        "[thrive:compound size=\"18\" type=\"glucose\"]Глюкоза[/thrive:compound]", false)]
+    [InlineData("[thrive:resource type=\"iron\" size=\"20\"]Iron[/thrive:resource]",
+        "[thrive:resource size=\"16\" type=\"iron\"]Rauta[/thrive:resource]", false)]
+    [InlineData("[thrive:icon]ConditionInsufficient[/thrive:icon]",
+        "[thrive:icon size=\"16\"]ConditionInsufficient[/thrive:icon]", false)]
+    [InlineData("[thrive:constant]OXYTOXY_DAMAGE[/thrive:constant]",
+        "[thrive:constant]OXYTOXY_DAMAGE[/thrive:constant]", false)]
+    [InlineData("[thrive:constant]OXYTOXY_DAMAGE[/thrive:constant]", "[thrive:constant]DAMAGE[/thrive:constant]",
+        true)]
+    [InlineData("[thrive:constant format=\"0.0\"]OXYTOXY_DAMAGE[/thrive:constant]",
+        "[thrive:constant format=\"0.0\"]OXYTOXY_DAMAGE[/thrive:constant]", false)]
+    [InlineData("[thrive:constant format=\"0.0\"]OXYTOXY_DAMAGE[/thrive:constant]",
+        "[thrive:constant format=\"0.00\"]OXYTOXY_DAMAGE[/thrive:constant]", true)]
+    [InlineData("[thrive:resource type=\"iron\"]Iron[/thrive:resource]",
+        "[thrive:resource type=\"iron\"]Rauta[/thrive:resource]", false)]
+    [InlineData("[thrive:resource type=\"iron\"]Iron[/thrive:resource]",
+        "[thrive:resource type=\"rauta\"]Rauta[/thrive:resource]", true)]
+    [InlineData("[thrive:icon]ConditionInsufficient[/thrive:icon]",
+        "[thrive:icon]ConditionInsufficient[/thrive:icon]", false)]
+    [InlineData("[thrive:icon]ConditionInsufficient[/thrive:icon]", "[thrive:icon]Недостаточно[/thrive:icon]", true)]
+    [InlineData("[thrive:input]a[/thrive:input] and [thrive:input]b[/thrive:input]",
+        "[thrive:input]b[/thrive:input] ja [thrive:input]a[/thrive:input]", false)]
+    [InlineData("[thrive:input]help[/thrive:input]", "[thrive:input]help", true)]
+    [InlineData("[thrive:input]help[/thrive:input]", "help[/thrive:input]", true)]
+    [InlineData("[thrive:input]help[/thrive:input]", "[thrive:input]help[/thrive:input][/thrive:input]", true)]
+    [InlineData("No thrive tags", "No thrive tags", false)]
+    [InlineData("No thrive tags", "[thrive:input]help[/thrive:input]", true)]
+    [InlineData("[b]Standard[/b]", "[b]Standard[/b]", false)]
+    [InlineData("Typo in attribute [thrive:compound type=\"glucose\"][/thrive:compound]",
+        "Typo in attribute [thrive:compound type=\"=glucose\"][/thrive:compound]", true)]
+    public void ThriveBbCodeChecksTagsAndClosures(string source, string translation, bool fails)
+    {
+        var problems = TranslationQualityChecks.Evaluate(source, translation, TranslationQualityCheck.ThriveBbCode);
+        Assert.Equal(fails, problems.ContainsKey(TranslationProblemKind.ThriveBbCodeTagSyntax));
+    }
+
     [Fact]
     public void EmptyTranslationsAndDisabledChecksHaveNoProblems()
     {
