@@ -93,6 +93,34 @@ public class TranslationQualityChecksTests
         Assert.Equal(punctuationProblem, problems.ContainsKey(TranslationProblemKind.EndingPunctuation));
     }
 
+    [Theory]
+    [InlineData("[b]Hello[/b]", "[b]Hei[/b]", false)]
+    [InlineData("[b][i]Hello[/i][/b]", "[i][b]Hei[/b][/i]", false)]
+    [InlineData("[b][i]Hello[/i][/b]", "[b][i]Hei[/b][/i]", false)]
+    [InlineData("[color=#3796e1][url={0}]GitHub[/url][/color]", "[color=#3796e1][url={0}]GitHub[/url][/color]", false)]
+    [InlineData("[color=#3796e1][url={0}]GitHub[/url][/color]", "[url={0}][color=#3796e1]GitHub[/color][/url]", false)]
+    [InlineData("No tags", "No tags", false)]
+    [InlineData("Array[0] and [1]", "Array[0] and [1]", false)]
+    [InlineData("[B]Hello[/B]", "[b]Hei[/b]", false)]
+    [InlineData("[b]One[/b] and [b]Two[/b]", "[b]Yksi[/b] ja [b]Kaksi[/b]", false)]
+    [InlineData("[b]unclosed", "[b]ei suljettu", false)]
+    [InlineData("[b]Hello[/b]", "[b]Hei", true)]
+    [InlineData("[b]Hello[/b]", "Hei[/b]", true)]
+    [InlineData("[b]Hello[/b]", "Hei", true)]
+    [InlineData("[b]Hello[/b]", "[b]Hei[/b][/b]", true)]
+    [InlineData("[b]Hello[/b]", "[/b]Hei[b]", true)]
+    [InlineData("[b]Hello[/b]", "[i]Hei[/i]", true)]
+    [InlineData("[b]One[/b] and [b]Two[/b]", "[b]Yksi[/b] and Kaksi", true)]
+    [InlineData("[b]One[/b] and [b]Two[/b]", "[b]Yksi[/b] and [b]Kaksi", true)]
+    [InlineData("[color=#3796e1]Text[/color]", "[color=#ffffff]Teksti[/color]", true)]
+    [InlineData("No tags", "[b]Tags[/b]", true)]
+    [InlineData("[b]unclosed", "ei suljettu", true)]
+    public void BbCodeChecksTagsAndClosures(string source, string translation, bool fails)
+    {
+        var problems = TranslationQualityChecks.Evaluate(source, translation, TranslationQualityCheck.BbCodeTags);
+        Assert.Equal(fails, problems.ContainsKey(TranslationProblemKind.BbCodeTagSyntax));
+    }
+
     [Fact]
     public void EmptyTranslationsAndDisabledChecksHaveNoProblems()
     {

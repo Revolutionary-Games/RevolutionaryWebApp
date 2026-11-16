@@ -163,6 +163,11 @@
                         <span
                             class="form-check-label">Sentence consistency: initial capital and final punctuation</span>
                     </label>
+                    <label class="form-check" for="translation-check-bbcode">
+                        <InputCheckbox id="translation-check-bbcode" class="form-check-input"
+                                       @bind-Value="CheckBbCodeTags"/>
+                        <span class="form-check-label">BBCode tags: match tags and closing tags from the source</span>
+                    </label>
                     <small>Warnings help translators review text and can be ignored when appropriate.</small>
                 </fieldset>
 
@@ -340,6 +345,14 @@
         set => form.QualityChecks = value ?
             form.QualityChecks | TranslationQualityCheck.SentenceConsistency :
             form.QualityChecks & ~TranslationQualityCheck.SentenceConsistency;
+    }
+
+    private bool CheckBbCodeTags
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.BbCodeTags);
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.BbCodeTags :
+            form.QualityChecks & ~TranslationQualityCheck.BbCodeTags;
     }
 
     private bool HasUnsavedSettings => loadedForm == null ||

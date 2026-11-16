@@ -11,6 +11,7 @@ public enum TranslationQualityCheck
     None = 0,
     CSharpFormatting = 1,
     SentenceConsistency = 2,
+    BbCodeTags = 4,
 }
 
 public enum TranslationProblemKind
@@ -18,4 +19,5 @@ public enum TranslationProblemKind
     MissingFormatPlaceholder,
     InitialCapitalization,
     EndingPunctuation,
+    BbCodeTagSyntax,
 }

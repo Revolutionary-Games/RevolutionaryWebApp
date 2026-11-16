@@ -107,7 +107,7 @@ public class TranslationProjectsControllerTests
         Assert.IsType<BadRequestObjectResult>((await controller.Create(new TranslationProjectConfigurationDTO
         {
             Slug = "test", Name = "Test", Format = TranslationFormat.Manual,
-            QualityChecks = (TranslationQualityCheck)4,
+            QualityChecks = (TranslationQualityCheck)8,
         })).Result);
         Assert.Empty(database.TranslationProjects);
     }

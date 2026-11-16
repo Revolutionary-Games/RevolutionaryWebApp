@@ -315,7 +315,8 @@ public class TranslationProjectsController : Controller
             .Select(credit => new TranslationCreditDTO
             {
                 Name = string.IsNullOrWhiteSpace(credit.User.DisplayName) ?
-                    credit.User.UserName : credit.User.DisplayName,
+                    credit.User.UserName :
+                    credit.User.DisplayName,
                 ContributionCount = credit.Count,
                 Email = credit.User.Email,
             }).ToArrayAsync(cancellationToken);
@@ -569,9 +570,11 @@ public class TranslationProjectsController : Controller
         project.SourceFilePattern = format == TranslationFormat.Manual ? null : request.SourceFilePath;
         project.TranslationFilePattern = format == TranslationFormat.Manual ? null : request.TranslationFilePattern;
         project.SourceLocationBaseUrl = string.IsNullOrWhiteSpace(request.SourceLocationBaseUrl) ?
-            null : request.SourceLocationBaseUrl;
+            null :
+            request.SourceLocationBaseUrl;
         project.SourceLocationUrlTemplate = string.IsNullOrWhiteSpace(request.SourceLocationUrlTemplate) ?
-            null : request.SourceLocationUrlTemplate;
+            null :
+            request.SourceLocationUrlTemplate;
         project.QualityChecks = request.QualityChecks;
         project.DictionaryId = request.DictionaryId;
         project.Enabled = request.Enabled;
@@ -583,7 +586,7 @@ public class TranslationProjectsController : Controller
         format = request.Format;
         error = null;
         if ((request.QualityChecks & ~(TranslationQualityCheck.CSharpFormatting |
-                TranslationQualityCheck.SentenceConsistency)) != 0)
+                TranslationQualityCheck.SentenceConsistency | TranslationQualityCheck.BbCodeTags)) != 0)
         {
             error = "Invalid translation quality checks";
             return false;

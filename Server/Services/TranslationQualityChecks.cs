@@ -73,6 +73,13 @@ public static partial class TranslationQualityChecks
             }
         }
 
+        if (checks.HasFlag(TranslationQualityCheck.BbCodeTags) && HasBbCodeProblems(source, translation))
+        {
+            problems[TranslationProblemKind.BbCodeTagSyntax] =
+                "Ensure the translation contains the same BBCode tags as the source and that any tags closed in " +
+                "the source are closed in the translation.";
+        }
+
         return problems;
     }
 
@@ -204,4 +211,78 @@ public static partial class TranslationQualityChecks
 
         return arguments;
     }
+
+    [GeneratedRegex(
+        @"\[(?:/(?<closeName>[a-zA-Z][a-zA-Z0-9_-]*)\s*|(?<openName>[a-zA-Z][a-zA-Z0-9_-]*)" +
+        @"(?<args>=[^\r\n\]]*|\s+[^\r\n\]]*)?)\]", RegexOptions.CultureInvariant)]
+    private static partial Regex BbCodeTag();
+
+    private static bool HasBbCodeProblems(string source, string translation)
+    {
+        var parsedSource = ParseBbCode(source);
+        var parsedTranslation = ParseBbCode(translation);
+
+        if (parsedSource.OpenTags.Count != parsedTranslation.OpenTags.Count)
+            return true;
+
+        foreach (var (tag, count) in parsedSource.OpenTags)
+        {
+            if (parsedTranslation.OpenTags.GetValueOrDefault(tag) != count)
+                return true;
+        }
+
+        if (parsedTranslation.UnmatchedClosingTags > parsedSource.UnmatchedClosingTags)
+            return true;
+
+        foreach (var (tagName, sourceClosedCount) in parsedSource.ClosedTags)
+        {
+            if (parsedTranslation.ClosedTags.GetValueOrDefault(tagName) < sourceClosedCount)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static ParsedBbCode ParseBbCode(string text)
+    {
+        var openTags = new Dictionary<string, int>(StringComparer.Ordinal);
+        var closedTags = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var activeOpenCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var unmatchedClosingTags = 0;
+
+        foreach (Match match in BbCodeTag().Matches(text))
+        {
+            var closeGroup = match.Groups["closeName"];
+            if (closeGroup.Success)
+            {
+                var name = closeGroup.Value;
+                if (activeOpenCounts.TryGetValue(name, out var activeCount) && activeCount > 0)
+                {
+                    activeOpenCounts[name] = activeCount - 1;
+                    closedTags[name] = closedTags.GetValueOrDefault(name) + 1;
+                }
+                else
+                {
+                    ++unmatchedClosingTags;
+                }
+            }
+            else
+            {
+                var openGroup = match.Groups["openName"];
+                var name = openGroup.Value.ToLowerInvariant();
+                var args = match.Groups["args"].Value;
+                var fullTag = $"[{name}{args}]";
+
+                openTags[fullTag] = openTags.GetValueOrDefault(fullTag) + 1;
+                activeOpenCounts[name] = activeOpenCounts.GetValueOrDefault(name) + 1;
+            }
+        }
+
+        return new ParsedBbCode(openTags, closedTags, unmatchedClosingTags);
+    }
+
+    private readonly record struct ParsedBbCode(
+        Dictionary<string, int> OpenTags,
+        Dictionary<string, int> ClosedTags,
+        int UnmatchedClosingTags);
 }
