@@ -168,6 +168,12 @@
                                        @bind-Value="CheckBbCodeTags"/>
                         <span class="form-check-label">BBCode tags: match tags and closing tags from the source</span>
                     </label>
+                    <label class="form-check" for="translation-check-thrive-bbcode">
+                        <InputCheckbox id="translation-check-thrive-bbcode" class="form-check-input"
+                                       @bind-Value="CheckThriveBbCode"/>
+                        <span
+                            class="form-check-label">Thrive BBCode tags: match Thrive tags and preserve key names</span>
+                    </label>
                     <small>Warnings help translators review text and can be ignored when appropriate.</small>
                 </fieldset>
 
@@ -353,6 +359,14 @@
         set => form.QualityChecks = value ?
             form.QualityChecks | TranslationQualityCheck.BbCodeTags :
             form.QualityChecks & ~TranslationQualityCheck.BbCodeTags;
+    }
+
+    private bool CheckThriveBbCode
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.ThriveBbCode);
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.ThriveBbCode :
+            form.QualityChecks & ~TranslationQualityCheck.ThriveBbCode;
     }
 
     private bool HasUnsavedSettings => loadedForm == null ||

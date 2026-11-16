@@ -586,7 +586,8 @@ public class TranslationProjectsController : Controller
         format = request.Format;
         error = null;
         if ((request.QualityChecks & ~(TranslationQualityCheck.CSharpFormatting |
-                TranslationQualityCheck.SentenceConsistency | TranslationQualityCheck.BbCodeTags)) != 0)
+                TranslationQualityCheck.SentenceConsistency | TranslationQualityCheck.BbCodeTags |
+                TranslationQualityCheck.ThriveBbCode)) != 0)
         {
             error = "Invalid translation quality checks";
             return false;

@@ -80,6 +80,14 @@ public static partial class TranslationQualityChecks
                 "the source are closed in the translation.";
         }
 
+        if (checks.HasFlag(TranslationQualityCheck.ThriveBbCode) && HasThriveBbCodeProblems(source, translation))
+        {
+            problems[TranslationProblemKind.ThriveBbCodeTagSyntax] =
+                "Ensure custom Thrive BBCode tags match the source: keep internal keys inside [thrive:input], " +
+                "[thrive:constant], and [thrive:icon] unchanged, keep 'type' attributes in [thrive:compound] and " +
+                "[thrive:resource] unchanged, and ensure all tags are closed properly.";
+        }
+
         return problems;
     }
 
@@ -281,8 +289,175 @@ public static partial class TranslationQualityChecks
         return new ParsedBbCode(openTags, closedTags, unmatchedClosingTags);
     }
 
+    [GeneratedRegex(
+        @"\[(?:/(?<closeName>thrive:[a-zA-Z]+)\s*|(?<openName>thrive:[a-zA-Z]+)(?<attrs>[^\]]*)?)\]",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex ThriveBbCodeTag();
+
+    [GeneratedRegex(
+        @"(?<key>[a-zA-Z0-9_-]+)(?:=(?:""(?<val>[^""]*)""|'(?<val>[^']*)'|(?<val>[^\s\]]+)))?",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex AttributeKeyValuePair();
+
+    private static bool HasThriveBbCodeProblems(string source, string translation)
+    {
+        var parsedSource = ParseThriveBbCode(source);
+        var parsedTranslation = ParseThriveBbCode(translation);
+
+        if (parsedSource.TotalOpenTags != parsedTranslation.TotalOpenTags)
+        {
+            return true;
+        }
+
+        if (parsedTranslation.UnmatchedClosingTags > parsedSource.UnmatchedClosingTags)
+        {
+            return true;
+        }
+
+        if (parsedSource.ImmutableTags.Count != parsedTranslation.ImmutableTags.Count)
+        {
+            return true;
+        }
+
+        foreach (var (key, count) in parsedSource.ImmutableTags)
+        {
+            if (parsedTranslation.ImmutableTags.GetValueOrDefault(key) != count)
+            {
+                return true;
+            }
+        }
+
+        if (parsedSource.MutableTags.Count != parsedTranslation.MutableTags.Count)
+        {
+            return true;
+        }
+
+        foreach (var (key, count) in parsedSource.MutableTags)
+        {
+            if (parsedTranslation.MutableTags.GetValueOrDefault(key) != count)
+            {
+                return true;
+            }
+        }
+
+        foreach (var (tagName, sourceClosedCount) in parsedSource.ClosedTags)
+        {
+            if (parsedTranslation.ClosedTags.GetValueOrDefault(tagName) < sourceClosedCount)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMutableContentTag(string tag)
+    {
+        return tag is "compound" or "resource";
+    }
+
+    private static string NormalizeAttributes(string attrs)
+    {
+        if (string.IsNullOrWhiteSpace(attrs))
+        {
+            return string.Empty;
+        }
+
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Match match in AttributeKeyValuePair().Matches(attrs))
+        {
+            var key = match.Groups["key"].Value.ToLowerInvariant();
+            var val = match.Groups["val"].Success ? match.Groups["val"].Value : string.Empty;
+            dict[key] = val;
+        }
+
+        if (dict.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(",", dict.OrderBy(p => p.Key, StringComparer.Ordinal)
+            .Select(p => $"{p.Key}=\"{p.Value}\""));
+    }
+
+    private static ParsedThriveBbCode ParseThriveBbCode(string text)
+    {
+        var immutableTags = new Dictionary<string, int>(StringComparer.Ordinal);
+        var mutableTags = new Dictionary<string, int>(StringComparer.Ordinal);
+        var closedTags = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var tagStack = new Stack<(string Tag, string Attrs, int ContentStartIndex)>();
+        var unmatchedClosingTags = 0;
+        var totalOpenTags = 0;
+
+        foreach (Match match in ThriveBbCodeTag().Matches(text))
+        {
+            var closeGroup = match.Groups["closeName"];
+            if (closeGroup.Success)
+            {
+                var closeTag = closeGroup.Value.Substring("thrive:".Length).ToLowerInvariant();
+                if (tagStack.Count > 0 && tagStack.Peek().Tag == closeTag)
+                {
+                    var (tag, attrs, contentStartIndex) = tagStack.Pop();
+                    closedTags[tag] = closedTags.GetValueOrDefault(tag) + 1;
+
+                    var rawContent = text.Substring(contentStartIndex, match.Index - contentStartIndex).Trim();
+
+                    if (IsMutableContentTag(tag))
+                    {
+                        var key = $"[{tag} {attrs}]";
+                        mutableTags[key] = mutableTags.GetValueOrDefault(key) + 1;
+                    }
+                    else
+                    {
+                        var key = $"[{tag} {attrs}]{rawContent}";
+                        immutableTags[key] = immutableTags.GetValueOrDefault(key) + 1;
+                    }
+                }
+                else
+                {
+                    ++unmatchedClosingTags;
+                }
+            }
+            else
+            {
+                var openName = match.Groups["openName"].Value;
+                var tag = openName.Substring("thrive:".Length).ToLowerInvariant();
+                var attrs = NormalizeAttributes(match.Groups["attrs"].Value);
+                var contentStartIndex = match.Index + match.Length;
+
+                tagStack.Push((tag, attrs, contentStartIndex));
+                ++totalOpenTags;
+            }
+        }
+
+        while (tagStack.Count > 0)
+        {
+            var (tag, attrs, contentStartIndex) = tagStack.Pop();
+            var rawContent = text.Substring(contentStartIndex).Trim();
+            if (IsMutableContentTag(tag))
+            {
+                var key = $"[unclosed:{tag} {attrs}]";
+                mutableTags[key] = mutableTags.GetValueOrDefault(key) + 1;
+            }
+            else
+            {
+                var key = $"[unclosed:{tag} {attrs}]{rawContent}";
+                immutableTags[key] = immutableTags.GetValueOrDefault(key) + 1;
+            }
+        }
+
+        return new ParsedThriveBbCode(immutableTags, mutableTags, closedTags, unmatchedClosingTags, totalOpenTags);
+    }
+
     private readonly record struct ParsedBbCode(
         Dictionary<string, int> OpenTags,
         Dictionary<string, int> ClosedTags,
         int UnmatchedClosingTags);
+
+    private readonly record struct ParsedThriveBbCode(
+        Dictionary<string, int> ImmutableTags,
+        Dictionary<string, int> MutableTags,
+        Dictionary<string, int> ClosedTags,
+        int UnmatchedClosingTags,
+        int TotalOpenTags);
 }

@@ -12,6 +12,7 @@ public enum TranslationQualityCheck
     CSharpFormatting = 1,
     SentenceConsistency = 2,
     BbCodeTags = 4,
+    ThriveBbCode = 8,
 }
 
 public enum TranslationProblemKind
@@ -20,4 +21,5 @@ public enum TranslationProblemKind
     InitialCapitalization,
     EndingPunctuation,
     BbCodeTagSyntax,
+    ThriveBbCodeTagSyntax,
 }
