@@ -24,7 +24,7 @@ public class TranslationProjectAdvisoryLockRealDbTests : IClassFixture<RealUnitT
     }
 
     [Theory]
-    [InlineData(1L)]
+    [InlineData(900_000_001L)]
     [InlineData(long.MaxValue)]
     public async Task SyncStateIsVisibleAcrossConnectionsAndClearedBeforeReleaseNotification(long projectId)
     {
@@ -66,7 +66,7 @@ public class TranslationProjectAdvisoryLockRealDbTests : IClassFixture<RealUnitT
         await using var worker = new ApplicationDbContext(options);
         await using var otherWorker = new ApplicationDbContext(options);
         var sender = Substitute.For<IModelUpdateNotificationSender>();
-        const long projectId = 1234;
+        const long projectId = 900_000_002L;
 
         await using (await TranslationProjectAdvisoryLock.AcquireForRepositorySyncAsync(worker, projectId))
         {
