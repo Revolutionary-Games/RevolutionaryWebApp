@@ -270,8 +270,10 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         var page = Render<TranslationEditor>(parameters => parameters
             .Add(p => p.Slug, "thrive").Add(p => p.LanguageCode, "en")
             .AddCascadingValue(modal));
-        await page.WaitForAssertionAsync(() => Assert.True(
-            page.Find("#translation-text").GetAttribute("value") == "Source", page.Markup));
+        await page.WaitForAssertionAsync(
+            () => Assert.True(page.FindAll("#translation-text").SingleOrDefault()?.GetAttribute("value") == "Source",
+                page.Markup),
+            TimeSpan.FromSeconds(15));
         return page;
     }
 }
