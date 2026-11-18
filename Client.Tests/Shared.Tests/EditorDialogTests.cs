@@ -173,13 +173,14 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
         // A dropped file reaches the existing upload and completion flow inside the popup.
         host.Find(".block-container").DragEnter();
         host.WaitForAssertion(() => Assert.Single(host.FindAll("input[type=file]")));
-        Assert.Contains(JSInterop.Invocations, invocation => invocation.Identifier == "registerFileDropArea");
+        await host.InvokeAsync(() => Assert.Contains(JSInterop.Invocations,
+            invocation => invocation.Identifier == "registerFileDropArea"));
         host.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("image data", "uploaded.png"));
         await host.InvokeAsync(() => host.Find(".block-overlay").Drop());
         host.WaitForAssertion(() => Assert.Equal(1, http.GetMatchCount(finishUpload)));
         Assert.Equal(1, http.GetMatchCount(startUpload));
-        Assert.Contains(JSInterop.Invocations, invocation => invocation.Identifier == "putFormFile" &&
-            (string?)invocation.Arguments[0] == "uploaded.png");
+        await host.InvokeAsync(() => Assert.Contains(JSInterop.Invocations, invocation =>
+            invocation.Identifier == "putFormFile" && (string?)invocation.Arguments[0] == "uploaded.png"));
 
         await host.InvokeAsync(() => host.Find("tbody button").Click());
         host.Find("input[type=checkbox]").Change(centered);
@@ -191,7 +192,8 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
         var markdown = $"![photo.png](media:png:{imageId})";
         Assert.Equal(centered ? $"[center]{markdown}[/center]" : markdown, result.Data);
         Assert.Equal(originalUri, navigation.Uri);
-        Assert.DoesNotContain(JSInterop.Invocations, invocation => invocation.Identifier == "addToHistory");
+        await host.InvokeAsync(() => Assert.DoesNotContain(JSInterop.Invocations,
+            invocation => invocation.Identifier == "addToHistory"));
     }
 
     Task IAsyncLifetime.DisposeAsync()
