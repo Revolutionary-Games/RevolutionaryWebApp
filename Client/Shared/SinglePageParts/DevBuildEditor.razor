@@ -21,6 +21,13 @@
             <div>@error</div>
         }
 
+        @if (HasLongLines)
+        {
+            <Button class="my-1" ButtonStyle="secondary" Enabled="@(!processing)" OnPressed="@CutLongLines">
+                Automatically cut long lines
+            </Button>
+        }
+
         <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />
 
         <Button class="my-1 me-1" Enabled="@CanSave" OnPressed="@Save" Spinner="@processing" ButtonStyle="primary">
@@ -57,6 +64,9 @@ else
 
     private bool CanSave => GetErrors().Count < 1;
 
+    private bool HasLongLines => description?.Split('\n')
+        .Any(line => line.Length > AppInfo.MaxDevBuildDescriptionNiceLineLength) == true;
+
     private void ShowForm()
     {
         description = Data.Description;
@@ -72,6 +82,41 @@ else
     private void HideStatusMessage()
     {
         statusMessage = null;
+    }
+
+    private void CutLongLines()
+    {
+        if (string.IsNullOrEmpty(description))
+            return;
+
+        var lines = new List<string>();
+
+        foreach (var originalLine in description.Split('\n'))
+        {
+            var line = originalLine;
+
+            while (line.Length > AppInfo.MaxDevBuildDescriptionNiceLineLength)
+            {
+                line = line.TrimEnd();
+                if (line.Length <= AppInfo.MaxDevBuildDescriptionNiceLineLength)
+                    break;
+
+                var cutAt = AppInfo.MaxDevBuildDescriptionNiceLineLength;
+                while (cutAt > 0 && !char.IsWhiteSpace(line[cutAt]))
+                    --cutAt;
+
+                // Split an oversized word if there is no word boundary that allows progress.
+                if (cutAt == 0 || string.IsNullOrWhiteSpace(line[..cutAt]))
+                    cutAt = AppInfo.MaxDevBuildDescriptionNiceLineLength;
+
+                lines.Add(line[..cutAt].TrimEnd());
+                line = "  " + line[cutAt..].TrimStart();
+            }
+
+            lines.Add(line);
+        }
+
+        description = string.Join('\n', lines);
     }
 
     private List<string> GetErrors()
