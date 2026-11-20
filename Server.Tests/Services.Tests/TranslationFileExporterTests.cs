@@ -9,6 +9,28 @@ using Xunit;
 
 public class TranslationFileExporterTests
 {
+    [Theory]
+    [InlineData("[thrive:compound type=\"glucose\"]glukozu[/thrive:compound]",
+        "[thrive:compound type=\\\"glucose\\\"]glukozu[/thrive:compound]")]
+    [InlineData("[thrive:compound type=\"glucose\"]glukozu[/thrive:compound] " +
+        "[thrive:compound type=\\\"oxygen\\\"]oksijen[/thrive:compound]",
+        "[thrive:compound type=\\\"glucose\\\"]glukozu[/thrive:compound] " +
+        "[thrive:compound type=\\\\\\\"oxygen\\\\\\\"]oksijen[/thrive:compound]")]
+    public void GettextExportEscapesBbcodeQuotesExactlyOnce(string text, string encoded)
+    {
+        const string catalog = "msgid \"PROCESS\"\nmsgstr \"Old\"\n";
+        var value = new TranslationValue
+        {
+            Key = "PROCESS", Text = text, State = TranslationState.Translated,
+        };
+
+        var output = TranslationFileExporter.ExportGettext(catalog, catalog, [value]);
+
+        Assert.Equal("msgid \"PROCESS\"\nmsgstr \"" + encoded + "\"\n", output);
+        Assert.Equal(text, Assert.Single(GettextTranslationParser.Parse(catalog, output, output)).TargetText);
+        Assert.Equal(output, TranslationFileExporter.ExportGettext(catalog, output, [value]));
+    }
+
     [Fact]
     public void ActiveWarningsDoNotChangeGettextOrResxExports()
     {
