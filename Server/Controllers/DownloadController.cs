@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -167,6 +168,6 @@ public class DownloadController : Controller
                 !string.IsNullOrWhiteSpace(displayName) ?
                     displayName :
                     p.Username)
-            .OrderBy(name => name).ToList();
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 }
