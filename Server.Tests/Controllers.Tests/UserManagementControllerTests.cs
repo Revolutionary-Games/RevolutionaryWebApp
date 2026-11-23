@@ -2,11 +2,13 @@ namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests;
 
 using System;
 using System.Threading.Tasks;
+using Hangfire;
 using Hubs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Server.Authorization;
@@ -21,6 +23,39 @@ using Xunit;
 
 public class UserManagementControllerTests
 {
+    [Fact]
+    public async Task ManualSuspensionRestrictsImmediatelyAndQueuesTheBan()
+    {
+        await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options, Substitute.For<IModelUpdateNotificationSender>());
+        var actor = new User("admin@example.org", "Admin");
+        actor.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.Admin));
+        var target = new User("user@example.org", "User");
+        target.ProcessGroupDataFromLoadedGroups();
+        database.Users.AddRange(actor, target);
+        await database.SaveChangesAsync();
+        var notifications = Substitute.For<IHubContext<NotificationsHub, INotifications>>();
+        var jobs = Substitute.For<IBackgroundJobClient>();
+        var moderation = new ModerationService(database, new ConfigurationBuilder().Build(),
+            new ModerationSessionService(database, notifications), jobs);
+        var context = new DefaultHttpContext();
+        context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
+        var controller = new UserManagementController(Substitute.For<ILogger<UserManagementController>>(), database,
+            notifications, moderation)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+        };
+        var until = DateTime.UtcNow.AddDays(2);
+        Assert.IsType<OkObjectResult>(await controller.SuspendUser(target.Id,
+            new UserSuspendRequest { Reason = "Spam", SuspendedUntil = until }));
+        Assert.False(target.Suspended);
+        Assert.True(target.ModerationPending);
+        Assert.False(target.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.User));
+        var action = await database.PendingUserModeration.SingleAsync();
+        Assert.Equal(until, action.BanUntil);
+        Assert.Single(await database.AdminActions.ToListAsync());
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
@@ -43,7 +78,7 @@ public class UserManagementControllerTests
             context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
         context.Items[AppInfo.AuthenticationScopeRestrictionMiddleWareKey] = AuthenticationScopeRestriction.None;
         var controller = new UserManagementController(Substitute.For<ILogger<UserManagementController>>(), database,
-            Substitute.For<IHubContext<NotificationsHub, INotifications>>())
+            Substitute.For<IHubContext<NotificationsHub, INotifications>>(), null!)
         {
             ControllerContext = new ControllerContext { HttpContext = context },
         };
@@ -113,7 +148,7 @@ public class UserManagementControllerTests
         context.Items[AppInfo.CurrentUserMiddlewareKey] = actor;
         context.Items[AppInfo.AuthenticationScopeRestrictionMiddleWareKey] = AuthenticationScopeRestriction.None;
         var controller = new UserManagementController(Substitute.For<ILogger<UserManagementController>>(), database,
-            Substitute.For<IHubContext<NotificationsHub, INotifications>>())
+            Substitute.For<IHubContext<NotificationsHub, INotifications>>(), null!)
         {
             ControllerContext = new ControllerContext { HttpContext = context },
         };
