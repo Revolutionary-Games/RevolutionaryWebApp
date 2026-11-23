@@ -161,6 +161,23 @@ controllers. Keep the controller class name aligned with its route. Use a
 custom route only when the public API intentionally has a different shape, and
 preserve existing route shapes when refactoring a controller.
 
+For especially dangerous operations, add `[RequireSudoMode]` alongside the normal
+access attributes. It runs after those permission checks and requires a fresh
+authenticator or single-use backup code, even after a recent login. Sudo mode
+lasts 15 minutes for the current browser session and requires enabled two-factor
+authentication. Grants use the existing Redis-backed distributed cache shared
+by all server instances. Redis must be configured to use sudo mode. Disabling or
+replacing the authenticator invalidates grants. API keys cannot use these endpoints.
+
+Use the injected client `HttpClient` for sudo-protected requests. Its
+`SudoModeHandler` recognizes the server's forbidden response with the
+`X-Sudo-Mode: required` header and `SudoModeRequiredDTO` body, opens the two-factor
+modal, and retries the original request once after success. Cancellation leaves
+the original error available to the caller without retrying. Concurrent
+requests share one modal. Request content must remain replayable; the currently
+protected actions use empty or JSON bodies. Continue to catch request failures
+and show feedback using the usual action handlers.
+
 Instead of using random string keys to denote operation type or category,
 use Enum values put in the Shared project to share between client and server
 for easy verification what values API calls accept.

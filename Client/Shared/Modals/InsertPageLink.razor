@@ -1,0 +1,59 @@
+@using RevolutionaryWebApp.Shared
+
+<BootstrapModal OnCancel="@Cancel">
+    <form @onsubmit="@Accept" @onsubmit:preventDefault="@true">
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label" for="@($"{inputId}-text")">Link text</label>
+                <input class="form-control" id="@($"{inputId}-text")" @bind="linkText" @bind:event="oninput"/>
+            </div>
+            <label class="form-label" for="@($"{inputId}-url")">URL</label>
+            <input class="form-control" id="@($"{inputId}-url")" @bind="url" @bind:event="oninput"
+                   placeholder="https://example.com or page:page-permalink"/>
+            <StatusMessageShower Message="@error" Type="SiteNoticeType.Danger"/>
+        </div>
+        <div class="modal-footer">
+            <Button ButtonStyle="secondary" OnPressed="@Cancel">Cancel</Button>
+            <Button type="submit" OnPressed="@Accept">OK</Button>
+        </div>
+    </form>
+</BootstrapModal>
+
+@code {
+    private readonly string inputId = $"pageLink-{Guid.NewGuid():N}";
+
+    private string? linkText;
+    private string? url;
+    private string? error;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    [Parameter]
+    public string? SelectedText { get; set; }
+
+    protected override void OnInitialized()
+    {
+        linkText = SelectedText;
+    }
+
+    private Task Accept()
+    {
+        if (string.IsNullOrWhiteSpace(linkText) || string.IsNullOrWhiteSpace(url))
+        {
+            error = "Enter link text and a URL.";
+            return Task.CompletedTask;
+        }
+
+        var text = linkText.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
+        var destination = url.Trim().Replace("<", "%3C").Replace(">", "%3E")
+            .Replace("(", "%28").Replace(")", "%29").Replace(" ", "%20")
+            .Replace("\r", string.Empty).Replace("\n", string.Empty);
+        return ModalInstance.CloseAsync(ModalResult.Ok($"[{text}]({destination})"));
+    }
+
+    private Task Cancel()
+    {
+        return ModalInstance.CancelAsync();
+    }
+}

@@ -266,6 +266,16 @@ public class Startup
             opts.SchedulePollingInterval = TimeSpan.FromSeconds(10);
         });
 
+        if (!string.IsNullOrEmpty(Configuration["Crashes:StackwalkService"]))
+        {
+            // Create additional worker pool if we have stackwalk available
+            services.AddHangfireServer(opts =>
+            {
+                opts.Queues = new[] { "stackwalk" };
+                opts.WorkerCount = 1;
+            });
+        }
+
         services.AddControllers(options =>
         {
             options.ModelMetadataDetailsProviders.Add(new RequiredBindingMetadataProvider());
@@ -314,6 +324,7 @@ public class Startup
         services.AddSingleton<ILocalTempFileLocks, LocalTempFileLocks>();
         services.AddSingleton<IRemoteResourceHashCalculator, RemoteResourceHashCalculator>();
         services.AddSingleton<MarkdownService>();
+        services.AddSingleton<SteamPostConverter>();
         services.AddSingleton<HtmlSanitizerService>();
         services.AddSingleton<IMarkdownBbCodeService, MarkdownBbCodeService>();
         services.AddSingleton<IMediaLinkConverter, MediaLinkConverter>();
@@ -323,7 +334,12 @@ public class Startup
         services.AddSingleton<HealthTracker>();
         services.AddSingleton<ImageGenerator>();
 
+        services.AddSingleton(TimeProvider.System);
+
         services.AddScoped<IPatreonAPI, PatreonAPI>();
+        services.AddScoped<TwoFactorService>();
+        services.AddScoped<SudoModeService>();
+        services.AddScoped<IGithubOAuthClient, GithubOAuthClient>();
         services.AddSingleton<IPatreonCreatorAPI, PatreonCreatorAPI>();
         services.AddScoped<LfsRemoteStorage>();
         services.AddScoped<IGeneralRemoteStorage, GeneralRemoteStorage>();
@@ -422,6 +438,8 @@ public class Startup
 
         // Routing has to be initialised before the rate limiter is invoked
         app.UseRouting();
+
+        app.UseMiddleware<LFSUserAgentMiddleware>();
 
         // Authentication to specific routes setup
         app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/v1/lfs"),
@@ -610,6 +628,7 @@ public class Startup
 
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
     {
+        AddJobHelper<TwoFactorRecoveryJob>("*/5 * * * *");
         AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
         AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
         AddJobHelper<RefreshLFSProjectFileTreesJob>(configurationSection["RefreshLFSFileTrees"]);
@@ -648,6 +667,7 @@ public class Startup
         AddJobHelper<MaintainGitHubIssueStatusJob>(configurationSection["MaintainGitHubIssueStatus"]);
         AddJobHelper<DeleteOldPendingSignupsJob>(configurationSection["DeleteOldPendingSignups"]);
         AddJobHelper<DigestUnreadNotificationsJob>(configurationSection["DigestUnreadNotifications"]);
+        AddJobHelper<CheckTranslationQualityJob>(configurationSection["CheckTranslationQuality"]);
         AddJobHelper<RecountTranslationSuggestionScoresJob>(configurationSection["RecountTranslationSuggestionScores"]);
         AddJobHelper<PurgeDeletedTranslationResourcesJob>(configurationSection["PurgeDeletedTranslationResources"]);
         AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);
@@ -663,6 +683,7 @@ public class Startup
 
         BackgroundJob.Enqueue<CreateDefaultFoldersJob>(x => x.Execute(CancellationToken.None));
         BackgroundJob.Enqueue<RecountTranslationSuggestionScoresJob>(x => x.Execute(CancellationToken.None));
+        BackgroundJob.Enqueue<RemoveAdminWithoutTwoFactorJob>(x => x.Execute(CancellationToken.None));
 
         // This is kept here if in the future more hashed fields are needed to be added, so this might be needed
         // in the future as well to update info in the db

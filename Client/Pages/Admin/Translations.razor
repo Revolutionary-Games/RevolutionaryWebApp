@@ -7,6 +7,7 @@
 @using RevolutionaryWebApp.Client.Services
 @using System.Threading
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
 @inject NotificationHandler NotificationHandler
 @implements INotificationHandler<TranslationProjectListUpdated>
 @implements INotificationHandler<TranslationDictionaryListUpdated>
@@ -29,6 +30,12 @@
     }
     else
     {
+        <Button ButtonStyle="outline-primary" Enabled="@(!recheckingQuality)" Spinner="@recheckingQuality"
+                OnPressed="@RecheckQuality" class="mb-3">
+            Re-run all translation quality checks
+        </Button>
+        <StatusMessageShower Message="@qualityMessage" Type="@qualityMessageType"/>
+
         <div class="input-group mb-3">
             <input class="form-control" placeholder="New dictionary name" @bind="dictionaryName"/>
             <Button ButtonStyle="outline-primary" Enabled="@(!processingDictionary)"
@@ -143,6 +150,33 @@
                     </div>
                 </div>
 
+                <fieldset class="mb-3">
+                    <legend class="fs-6">Translation quality checks</legend>
+                    <label class="form-check" for="translation-check-formatting">
+                        <InputCheckbox id="translation-check-formatting" class="form-check-input"
+                                       @bind-Value="CheckCSharpFormatting"/>
+                        <span class="form-check-label">C# formatting: keep numbered placeholders from the source</span>
+                    </label>
+                    <label class="form-check" for="translation-check-sentences">
+                        <InputCheckbox id="translation-check-sentences" class="form-check-input"
+                                       @bind-Value="CheckSentenceConsistency"/>
+                        <span
+                            class="form-check-label">Sentence consistency: initial capital and final punctuation</span>
+                    </label>
+                    <label class="form-check" for="translation-check-bbcode">
+                        <InputCheckbox id="translation-check-bbcode" class="form-check-input"
+                                       @bind-Value="CheckBbCodeTags"/>
+                        <span class="form-check-label">BBCode tags: match tags and closing tags from the source</span>
+                    </label>
+                    <label class="form-check" for="translation-check-thrive-bbcode">
+                        <InputCheckbox id="translation-check-thrive-bbcode" class="form-check-input"
+                                       @bind-Value="CheckThriveBbCode"/>
+                        <span
+                            class="form-check-label">Thrive BBCode tags: match Thrive tags and preserve key names</span>
+                    </label>
+                    <small>Warnings help translators review text and can be ignored when appropriate.</small>
+                </fieldset>
+
                 <label class="form-check mb-3">
                     <InputCheckbox class="form-check-input" @bind-Value="form.Enabled"/>
                     <span class="form-check-label">Enabled</span>
@@ -166,6 +200,10 @@
 
             @if (form.Id > 0)
             {
+                <Button class="mt-3" ButtonStyle="outline-primary" Enabled="@(!exportingCredits)"
+                        Spinner="@exportingCredits" OnPressed="@ExportCredits">
+                    Export translation credits
+                </Button>
                 <TranslationAnnouncementControls ProjectId="@form.Id" Slug="@form.Slug" @key="form.Id"/>
             }
 
@@ -289,11 +327,47 @@
     private TranslationImportConflictDTO[] conflicts = [];
     private bool saving;
     private bool processingDictionary;
+    private bool exportingCredits;
+    private bool recheckingQuality;
+    private string? qualityMessage;
+    private SiteNoticeType qualityMessageType = SiteNoticeType.Danger;
     private string? processingOperation;
     private bool remoteSettingsChanged;
     private bool registered;
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
+
+    private bool CheckCSharpFormatting
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.CSharpFormatting);
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.CSharpFormatting :
+            form.QualityChecks & ~TranslationQualityCheck.CSharpFormatting;
+    }
+
+    private bool CheckSentenceConsistency
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.SentenceConsistency);
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.SentenceConsistency :
+            form.QualityChecks & ~TranslationQualityCheck.SentenceConsistency;
+    }
+
+    private bool CheckBbCodeTags
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.BbCodeTags);
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.BbCodeTags :
+            form.QualityChecks & ~TranslationQualityCheck.BbCodeTags;
+    }
+
+    private bool CheckThriveBbCode
+    {
+        get => form.QualityChecks.HasFlag(TranslationQualityCheck.ThriveBbCode);
+        set => form.QualityChecks = value ?
+            form.QualityChecks | TranslationQualityCheck.ThriveBbCode :
+            form.QualityChecks & ~TranslationQualityCheck.ThriveBbCode;
+    }
 
     private bool HasUnsavedSettings => loadedForm == null ||
         form.Id != loadedForm.Id || form.Slug != loadedForm.Slug || form.Name != loadedForm.Name ||
@@ -303,7 +377,7 @@
         form.TranslationFilePattern != loadedForm.TranslationFilePattern || form.Enabled != loadedForm.Enabled ||
         form.SourceLocationBaseUrl != loadedForm.SourceLocationBaseUrl ||
         form.SourceLocationUrlTemplate != loadedForm.SourceLocationUrlTemplate ||
-        form.DictionaryId != loadedForm.DictionaryId;
+        form.DictionaryId != loadedForm.DictionaryId || form.QualityChecks != loadedForm.QualityChecks;
 
     public Task Handle(TranslationProjectListUpdated notification, CancellationToken cancellationToken)
     {
@@ -376,8 +450,73 @@
             TranslationFilePattern = project.TranslationFilePattern, Enabled = project.Enabled,
             SourceLocationBaseUrl = project.SourceLocationBaseUrl,
             SourceLocationUrlTemplate = project.SourceLocationUrlTemplate,
-            DictionaryId = project.DictionaryId,
+            DictionaryId = project.DictionaryId, QualityChecks = project.QualityChecks,
         };
+    }
+
+    private async Task ExportCredits()
+    {
+        exportingCredits = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync($"api/v1/admin/translationProjects/{form.Id}/credits", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not export translation credits: {await response.Content.ReadAsStringAsync()}, " +
+                    $"{response.StatusCode}";
+                return;
+            }
+
+            var file = await response.Content.ReadAsByteArrayAsync();
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", "translators.json", "application/json", file);
+            message = "Translation credits exported.";
+            messageType = SiteNoticeType.Success;
+        }
+        catch (Exception e)
+        {
+            message = $"Error while exporting translation credits: {e.Message}";
+        }
+        finally
+        {
+            exportingCredits = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RecheckQuality()
+    {
+        recheckingQuality = true;
+        qualityMessage = null;
+        qualityMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsync("api/v1/admin/translationProjects/qualityChecks/recheck", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                qualityMessage = $"Could not queue quality checks: {await response.Content.ReadAsStringAsync()}, " +
+                    $"{response.StatusCode}";
+                return;
+            }
+
+            qualityMessage = "Full quality checks queued for all enabled translation projects with checks configured. " +
+                "Results will update as background jobs finish.";
+            qualityMessageType = SiteNoticeType.Success;
+        }
+        catch (Exception e)
+        {
+            qualityMessage = $"Error while queuing quality checks: {e.Message}";
+        }
+        finally
+        {
+            recheckingQuality = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task Reload()

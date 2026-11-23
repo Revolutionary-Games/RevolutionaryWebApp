@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Server.Controllers;
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -18,7 +19,6 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Utilities;
 
-[APIKeyScope(APIKeyScope.Builds)]
 [ApiController]
 [Route("api/v1/download")]
 public class DownloadController : Controller
@@ -36,6 +36,7 @@ public class DownloadController : Controller
     }
 
     [HttpGet("{id:long}")]
+    [APIKeyScope(APIKeyScope.Storage)]
     public async Task<ActionResult> DownloadStorageItem([Required] long id, int? version)
     {
         if (!remoteDownload.Configured)
@@ -71,7 +72,7 @@ public class DownloadController : Controller
                 }
 
                 // User with write access accessing a specific version of a deleted file can access it (just so to look
-                // at it without having to undelete a it).
+                // at it without having to undelete it).
             }
             else
             {
@@ -164,7 +165,9 @@ public class DownloadController : Controller
         IReadOnlyDictionary<string, string?> displayNames)
     {
         return group.Select(p => displayNames.TryGetValue(p.Email, out var displayName) &&
-                !string.IsNullOrWhiteSpace(displayName) ? displayName : p.Username)
-            .OrderBy(name => name).ToList();
+                !string.IsNullOrWhiteSpace(displayName) ?
+                    displayName :
+                    p.Username)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 }

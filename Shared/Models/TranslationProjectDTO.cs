@@ -12,6 +12,11 @@ public sealed class TranslationProjectDTO : IIdentifiable
 
     public bool ClosedForMaintenance { get; set; }
 
+    /// <summary>
+    ///   A project operation currently holds the lock that translation saves need.
+    /// </summary>
+    public bool OperationInProgress { get; set; }
+
     public TranslationAnnouncementDTO? Announcement { get; set; }
 
     [MaxLength(120)]
@@ -36,6 +41,7 @@ public sealed class TranslationProjectDTO : IIdentifiable
     public string? SourceLocationUrlTemplate { get; set; }
 
     public TranslationFormat Format { get; set; }
+    public TranslationQualityCheck QualityChecks { get; set; }
 
     public long? DictionaryId { get; set; }
 
@@ -60,4 +66,5 @@ public sealed class TranslationLanguageDTO
     public int NeedsTranslation { get; set; }
     public int Translated { get; set; }
     public int Verified { get; set; }
+    public int CheckFailures { get; set; }
 }

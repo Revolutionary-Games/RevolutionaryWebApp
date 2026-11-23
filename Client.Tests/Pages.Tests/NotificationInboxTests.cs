@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Bunit;
 using Client.Pages;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +14,7 @@ using Xunit;
 public class NotificationInboxTests : BunitContext
 {
     [Fact]
-    public void PrioritiesHaveDifferentStylesAndMarkAllReadUpdatesTheInbox()
+    public async Task PrioritiesHaveDifferentStylesAndMarkAllReadUpdatesTheInbox()
     {
         Services.AddSingleton<InboxNotificationState>();
         var http = Services.AddMockHttpClient();
@@ -26,13 +27,13 @@ public class NotificationInboxTests : BunitContext
         var markRead = http.When(HttpMethod.Post, "/api/v1/userNotifications/readAll")
             .Respond(HttpStatusCode.NoContent);
         var page = Render<NotificationInbox>();
-        page.WaitForAssertion(() => Assert.Equal(3, page.FindAll("li").Count));
+        await page.WaitForAssertionAsync(() => Assert.Equal(3, page.FindAll("li").Count));
         Assert.Contains("small", page.FindAll("li")[0].ClassList);
         Assert.DoesNotContain("small", page.FindAll("li")[1].ClassList);
         Assert.Contains("alert-danger", page.FindAll("li")[2].ClassList);
         Assert.Contains("Important", page.FindAll("li")[2].TextContent);
         page.Find("button").Click();
-        page.WaitForAssertion(() => Assert.Empty(page.FindAll(".list-group-item-info")));
+        await page.WaitForAssertionAsync(() => Assert.Empty(page.FindAll(".list-group-item-info")));
         Assert.Equal(1, http.GetMatchCount(markRead));
     }
 }

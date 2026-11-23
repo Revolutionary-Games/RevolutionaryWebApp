@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Models;
@@ -36,6 +37,7 @@ public class LoginController : SSOLoginController
     public const string SsoTypeDevForum = "devforum";
     public const string SsoTypeCommunityForum = "communityforum";
     public const string SsoTypePatreon = "patreon";
+    public const string SsoTypeGithub = "github";
 
     public const string InvalidPatreonEmailMessage =
         "Patreon login requires a valid email address. Patreon rewards cannot sync properly without one; " +
@@ -73,6 +75,9 @@ public class LoginController : SSOLoginController
 
     private bool PatreonConfigured => !string.IsNullOrEmpty(configuration["Login:Patreon:ClientId"]) &&
         !string.IsNullOrEmpty(configuration["Login:Patreon:ClientSecret"]);
+
+    private bool GithubConfigured => !string.IsNullOrEmpty(configuration["Login:Github:ClientId"]) &&
+        !string.IsNullOrEmpty(configuration["Login:Github:ClientSecret"]);
 
     [NonAction]
     public static string? GetPatreonEmailError(string? email)
@@ -146,6 +151,12 @@ public class LoginController : SSOLoginController
                             InternalName = SsoTypeCommunityForum,
                             Active = CommunityForumConfigured,
                         },
+                        new()
+                        {
+                            ReadableName = "Login Using GitHub",
+                            InternalName = SsoTypeGithub,
+                            Active = GithubConfigured,
+                        },
                     },
                 },
                 new()
@@ -186,6 +197,24 @@ public class LoginController : SSOLoginController
 
         switch (data.SsoType)
         {
+            case SsoTypeGithub:
+            {
+                if (!GithubConfigured)
+                    return CreateResponseForDisabledOption();
+
+                var returnUrl = new Uri(configuration.GetBaseUrl(), GithubOAuthClient.CallbackPath).ToString();
+                var session = await BeginSsoLogin(SsoTypeGithub, data.ReturnUrl);
+
+                return Redirect(QueryHelpers.AddQueryString("https://github.com/login/oauth/authorize",
+                    new Dictionary<string, string?>
+                    {
+                        { "client_id", configuration["Login:Github:ClientId"] },
+                        { "redirect_uri", returnUrl },
+                        { "scope", GithubOAuthClient.RequiredScopes },
+                        { "state", session.SsoNonce },
+                    }));
+            }
+
             case SsoTypeDevForum:
             {
                 if (!DevForumConfigured)
@@ -283,7 +312,8 @@ public class LoginController : SSOLoginController
 
         await PerformPreLoginChecks(login.CSRF);
 
-        var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
+        var user = await Database.Users.Include(u => u.TwoFactorAuthentication)
+            .FirstOrDefaultAsync(u => u.Email == login.Email && u.Local);
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash) ||
             !Passwords.CheckPassword(user.PasswordHash, login.Password))
@@ -296,6 +326,9 @@ public class LoginController : SSOLoginController
         {
             return CreateSuspendedUserRedirect(user);
         }
+
+        if (user.TwoFactorAuthentication?.Enabled == true)
+            return await BeginTwoFactorLogin(user, null, login.ReturnUrl);
 
         await user.ComputeUserGroups(Database);
 
@@ -311,6 +344,185 @@ public class LoginController : SSOLoginController
         return Redirect(redirect ?? "/");
     }
 
+    [HttpGet("return/" + SsoTypeGithub)]
+    public async Task<IActionResult> SsoReturnGithub([Required] string state, string? code, string? error,
+        [FromServices] IGithubOAuthClient githubOAuth)
+    {
+        if (!GithubConfigured)
+            return CreateResponseForDisabledOption();
+
+        var (session, result) = await FetchAndCheckSessionForSsoReturn(state, SsoTypeGithub);
+        if (result != null)
+            return result;
+
+        if (session == null)
+            throw new Exception("Logic error, returned null session without returning an error result");
+
+        // Consume the nonce before making remote requests, including when GitHub denies authorization.
+        await Database.SaveChangesAsync();
+
+        bool requireSave = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(error) || string.IsNullOrEmpty(code))
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "GitHub authorization was cancelled or failed. Please try again."));
+            }
+
+            var (user, emails) = await githubOAuth.GetUser(code,
+                new Uri(configuration.GetBaseUrl(), GithubOAuthClient.CallbackPath).ToString());
+
+            var email = emails.Where(e => e.Verified && !string.IsNullOrWhiteSpace(e.Email) &&
+                    !e.Email.Contains("noreply", StringComparison.OrdinalIgnoreCase) &&
+                    !e.Email.Contains("no-reply", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(e => e.Primary).FirstOrDefault();
+
+            if (email == null)
+            {
+                return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                    "GitHub login requires a verified email address that is not a noreply address. " +
+                    "Please add and verify an email address on GitHub and try again."));
+            }
+
+            var tuple = await HandleSsoLoginToAccount(session, email.Email, user.Login, SsoTypeGithub, false, false);
+            requireSave = !tuple.Saved;
+            return tuple.Result;
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Exception when processing GitHub return");
+            return Redirect(QueryHelpers.AddQueryString("/login", "error",
+                "Failed to retrieve account details from GitHub."));
+        }
+        finally
+        {
+            if (requireSave)
+            {
+                ClearSSOParametersFromSession(session);
+                await Database.SaveChangesAsync();
+            }
+        }
+    }
+
+    [HttpGet("two-factor")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<TwoFactorStatusDTO>> GetTwoFactorChallenge([FromServices] TwoFactorService twoFactor)
+    {
+        var pending = await GetPendingTwoFactorLogin(twoFactor);
+        if (pending == null)
+            return Unauthorized("Your login challenge has expired. Please log in again.");
+
+        return await twoFactor.GetStatus(pending.Value.User.Id);
+    }
+
+    [HttpPost("two-factor")]
+    [EnableRateLimiting(RateLimitCategories.LoginLimit)]
+    public async Task<IActionResult> CompleteTwoFactorLogin([FromForm] TwoFactorLoginFormData data,
+        [FromServices] TwoFactorService twoFactor)
+    {
+        await PerformPreLoginChecks(data.CSRF);
+        var pending = await GetPendingTwoFactorLogin(twoFactor);
+        if (pending == null)
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Your login challenge has expired."));
+
+        var (session, user) = pending.Value;
+        if (!await twoFactor.VerifyCode(user.TwoFactorAuthentication!, data.Code))
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login/two-factor", "error",
+                "Invalid or already used code. After five failures, wait ten minutes before trying again."));
+        }
+
+        var returnUrl = session.PendingTwoFactorReturnUrl;
+        session.TwoFactorVerifiedAt = twoFactor.UtcNow;
+        await user.ComputeUserGroups(Database);
+        await BeginNewSession(user);
+
+        if (string.IsNullOrEmpty(returnUrl) || !redirectVerifier.SanitizeRedirectUrl(returnUrl, out var redirect))
+            return Redirect("/");
+
+        return Redirect(redirect ?? "/");
+    }
+
+    [HttpPost("two-factor/recovery")]
+    [EnableRateLimiting(RateLimitCategories.LoginLimit)]
+    public async Task<IActionResult> RequestTwoFactorRecovery([FromForm] TwoFactorRecoveryFormData data,
+        [FromServices] TwoFactorService twoFactor)
+    {
+        await PerformPreLoginChecks(data.CSRF);
+        var pending = await GetPendingTwoFactorLogin(twoFactor);
+        if (pending == null)
+            return Redirect(QueryHelpers.AddQueryString("/login", "error", "Your login challenge has expired."));
+
+        try
+        {
+            await twoFactor.RequestRecovery(pending.Value.User.Id);
+        }
+        catch (HttpResponseException e)
+        {
+            return Redirect(QueryHelpers.AddQueryString("/login/two-factor", "error",
+                e.Value?.ToString() ?? "Could not request two-factor recovery."));
+        }
+
+        return Redirect("/login/two-factor");
+    }
+
+    [NonAction]
+    private async Task<IActionResult> BeginTwoFactorLogin(User user, Session? session, string? returnUrl)
+    {
+        var twoFactor = HttpContext.RequestServices.GetRequiredService<TwoFactorService>();
+        session ??= await HttpContext.Request.Cookies.GetSession(Database);
+        if (session == null)
+        {
+            session = new Session();
+            await Database.Sessions.AddAsync(session);
+        }
+        else
+        {
+            session = await CreateDerivedSessionForLogin(session);
+        }
+
+        session.User = null;
+        session.UserId = null;
+        session.CachedUserGroups = null;
+        session.LastLoggedIn = null;
+        session.TwoFactorVerifiedAt = null;
+        session.PendingTwoFactorUserId = user.Id;
+        session.PendingTwoFactorKeyVersion = user.TwoFactorAuthentication!.KeyVersion;
+        session.PendingTwoFactorExpiresAt = twoFactor.UtcNow + TwoFactorService.ChallengeLifetime;
+        session.PendingTwoFactorReturnUrl = returnUrl;
+        session.LastUsed = twoFactor.UtcNow;
+        session.LastUsedFrom = HttpContext.Connection.RemoteIpAddress;
+        ClearSSOParametersFromSession(session);
+        session.SsoNonce = null;
+
+        await Database.SaveChangesAsync();
+
+        SetSessionCookie(session, Response, useSecureCookies);
+        return Redirect("/login/two-factor");
+    }
+
+    [NonAction]
+    private async Task<(Session Session, User User)?> GetPendingTwoFactorLogin(TwoFactorService twoFactor)
+    {
+        var session = await HttpContext.Request.Cookies.GetSession(Database);
+        if (session?.PendingTwoFactorUserId == null || session.UserId != null ||
+            session.PendingTwoFactorExpiresAt == null || session.PendingTwoFactorExpiresAt <= twoFactor.UtcNow)
+        {
+            return null;
+        }
+
+        var user = await Database.Users.Include(u => u.TwoFactorAuthentication)
+            .FirstOrDefaultAsync(u => u.Id == session.PendingTwoFactorUserId);
+        if (user == null || user.Suspended || user.TwoFactorAuthentication?.Enabled != true ||
+            user.TwoFactorAuthentication.KeyVersion != session.PendingTwoFactorKeyVersion)
+        {
+            return null;
+        }
+
+        return (session, user);
+    }
+
     [NonAction]
     private async Task BeginNewSession(User user)
     {
@@ -318,6 +530,7 @@ public class LoginController : SSOLoginController
             throw new InvalidOperationException("Cannot begin a session for a suspended user");
 
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
+        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(remoteAddress);
 
         // Re-use existing session if there is one
         var session = await HttpContext.Request.Cookies.GetSession(Database);
@@ -332,6 +545,9 @@ public class LoginController : SSOLoginController
         {
             session = await CreateDerivedSessionForLogin(session);
         }
+
+        if (user.TwoFactorAuthentication?.Enabled == true && session.TwoFactorVerifiedAt == null)
+            throw new InvalidOperationException("Two-factor authentication must succeed before attaching a user");
 
         session.LastLoggedIn = DateTime.UtcNow;
 
@@ -728,13 +944,14 @@ public class LoginController : SSOLoginController
 
         Logger.LogInformation("Logging in SSO login user with email: {Email}", email);
 
-        var user = await Database.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await Database.Users.Include(u => u.TwoFactorAuthentication)
+            .FirstOrDefaultAsync(u => u.Email == email);
 
         if (user != null)
         {
             await user.ComputeUserGroups(Database);
 
-            if ((ssoType == SsoTypeCommunityForum || user.SsoSource != ssoType) &&
+            if ((ssoType == SsoTypeCommunityForum || ssoType == SsoTypeGithub || user.SsoSource != ssoType) &&
                 (user.SsoSource == SsoTypeDevForum ||
                     user.AccessCachedGroupsOrThrow().HasAccessLevel(GroupType.Developer)))
             {
@@ -821,6 +1038,10 @@ public class LoginController : SSOLoginController
                 Logger.LogInformation("Community forum user logged in using patreon");
                 ChangeSsoSourceForNormalUser(user, ssoType);
             }
+            else if (ssoType == SsoTypeGithub || user.SsoSource == SsoTypeGithub)
+            {
+                ChangeSsoSourceForNormalUser(user, ssoType);
+            }
             else if (user.SsoSource == null)
             {
                 Logger.LogInformation("Local user logging with SSO for the first time");
@@ -856,6 +1077,8 @@ public class LoginController : SSOLoginController
             }
         }
 
+        // TODO: this should probably be removed (or only allow changing the username for the first few days after
+        // account creation)
         // Change username from SSO login
         if (user.UserName != username)
         {
@@ -898,8 +1121,11 @@ public class LoginController : SSOLoginController
     [NonAction]
     private async Task<IActionResult> FinishSsoLoginToAccount(User user, Session session)
     {
-        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(HttpContext.Connection.RemoteIpAddress);
+        if (user.TwoFactorAuthentication?.Enabled == true)
+            return await BeginTwoFactorLogin(user, session, session.SsoReturnUrl);
+
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
+        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(remoteAddress);
 
         string? returnUrl = session.SsoReturnUrl;
 
@@ -908,6 +1134,7 @@ public class LoginController : SSOLoginController
         session.User = user;
         session.UserId = user.Id;
         session.LastUsed = DateTime.UtcNow;
+        session.LastLoggedIn = DateTime.UtcNow;
         session.CachedUserGroups = user.AccessCachedGroupsOrThrow();
 
         ClearSSOParametersFromSession(session);
@@ -959,4 +1186,18 @@ public class SsoStartFormData
     public string CSRF { get; set; } = string.Empty;
 
     public string? ReturnUrl { get; set; }
+}
+
+public class TwoFactorRecoveryFormData
+{
+    [Required]
+    [MaxLength(CommunicationConstants.MAXIMUM_TOKEN_LENGTH)]
+    public string CSRF { get; set; } = string.Empty;
+}
+
+public class TwoFactorLoginFormData : TwoFactorRecoveryFormData
+{
+    [Required]
+    [StringLength(64)]
+    public string Code { get; set; } = string.Empty;
 }

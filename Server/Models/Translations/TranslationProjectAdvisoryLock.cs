@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Services;
 
 /// <summary>
 ///   A PostgreSQL advisory lock for serializing changes to one translation project across application instances.
@@ -16,28 +17,156 @@ public sealed class TranslationProjectAdvisoryLock : IAsyncDisposable
     private const string LockKeyExpression =
         "hashtextextended('RevolutionaryWebApp:TranslationProject:' || CAST(@projectId AS text), 0)";
 
+    private const string SyncLockKeyExpression =
+        "hashtextextended('RevolutionaryWebApp:TranslationProjectSync:' || CAST(@projectId AS text), 0)";
+
+    private const string RepositoryLockKeyExpression =
+        "hashtextextended('RevolutionaryWebApp:TranslationRepositorySync:' || CAST(@projectId AS text), 0)";
+
     private readonly DbConnection? connection;
     private readonly long projectId;
     private readonly bool closeConnection;
+    private readonly string lockKeyExpression;
 
-    private TranslationProjectAdvisoryLock(DbConnection? connection, long projectId, bool closeConnection)
+    private IModelUpdateNotificationSender? notificationSender;
+
+    private TranslationProjectAdvisoryLock(DbConnection? connection, long projectId, bool closeConnection,
+        string lockKeyExpression)
     {
         this.connection = connection;
         this.projectId = projectId;
         this.closeConnection = closeConnection;
+        this.lockKeyExpression = lockKeyExpression;
     }
 
-    public static async Task<TranslationProjectAdvisoryLock> AcquireAsync(ApplicationDbContext database,
+    public static Task<TranslationProjectAdvisoryLock> AcquireAsync(ApplicationDbContext database,
         long projectId, CancellationToken cancellationToken = default)
+    {
+        return Acquire(database, projectId, LockKeyExpression, cancellationToken);
+    }
+
+    /// <summary>
+    ///   Serializes repository sync jobs across instances without blocking translation edits. Acquire this
+    ///   before the project editing lock, and hold it until the sync's database bookkeeping is saved.
+    /// </summary>
+    public static Task<TranslationProjectAdvisoryLock> AcquireForRepositorySyncAsync(ApplicationDbContext database,
+        long projectId, CancellationToken cancellationToken = default)
+    {
+        return Acquire(database, projectId, RepositoryLockKeyExpression, cancellationToken);
+    }
+
+    /// <summary>
+    ///   Acquires a lock for a long-running sync and notifies project viewers on acquisition and release.
+    /// </summary>
+    public static async Task<TranslationProjectAdvisoryLock> AcquireForSyncAsync(ApplicationDbContext database,
+        long projectId, IModelUpdateNotificationSender notificationSender,
+        CancellationToken cancellationToken = default)
+    {
+        var projectLock = await AcquireAsync(database, projectId, cancellationToken);
+        projectLock.notificationSender = notificationSender;
+        try
+        {
+            if (projectLock.connection != null)
+                await projectLock.ExecuteSyncLockCommand(true);
+
+            await notificationSender.SendNotifications([TranslationNotificationHelper.ProjectUpdated(projectId)]);
+            return projectLock;
+        }
+        catch
+        {
+            await projectLock.DisposeAsync();
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///   Checks the live database lock without waiting for an operation to finish. PostgreSQL releases this
+    ///   lock even if the worker process dies, so a failed worker cannot leave a stale busy flag.
+    /// </summary>
+    public static async Task<bool> IsHeldAsync(ApplicationDbContext database, long projectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (database.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
+            return false;
+
+        var connection = database.Database.GetDbConnection();
+        var closeConnection = connection.State != ConnectionState.Open;
+        if (closeConnection)
+            await connection.OpenAsync(cancellationToken);
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+#pragma warning disable CA2100 // Query uses a const value input
+            command.CommandText = $"""
+                                   SELECT EXISTS (
+                                       SELECT 1 FROM pg_locks
+                                       WHERE locktype = 'advisory' AND granted AND objsubid = 1
+                                           AND database = (SELECT oid FROM pg_database 
+                                                                      WHERE datname = current_database())
+                                           AND classid = (({SyncLockKeyExpression} >> 32) & 4294967295)::oid
+                                           AND objid = ({SyncLockKeyExpression} & 4294967295)::oid
+                                   )
+                                   """;
+#pragma warning restore CA2100
+
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "projectId";
+            parameter.DbType = DbType.Int64;
+            parameter.Value = projectId;
+
+            command.Parameters.Add(parameter);
+            return (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
+        }
+        finally
+        {
+            if (closeConnection)
+                await connection.CloseAsync();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (connection != null)
+            {
+                try
+                {
+                    try
+                    {
+                        if (notificationSender != null)
+                            await ExecuteSyncLockCommand(false);
+                    }
+                    finally
+                    {
+                        await ExecuteLockCommand(connection, projectId, lockKeyExpression, false,
+                            CancellationToken.None);
+                    }
+                }
+                finally
+                {
+                    if (closeConnection)
+                        await connection.CloseAsync();
+                }
+            }
+        }
+        finally
+        {
+            if (notificationSender != null)
+                await notificationSender.SendNotifications([TranslationNotificationHelper.ProjectUpdated(projectId)]);
+        }
+    }
+
+    private static async Task<TranslationProjectAdvisoryLock> Acquire(ApplicationDbContext database,
+        long projectId, string lockKeyExpression, CancellationToken cancellationToken)
     {
         if (database.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
         {
             if (database.Database.IsRelational())
-            {
                 throw new InvalidOperationException("Translation project locks require the PostgreSQL provider");
-            }
 
-            return new TranslationProjectAdvisoryLock(null, projectId, false);
+            return new TranslationProjectAdvisoryLock(null, projectId, false, lockKeyExpression);
         }
 
         var connection = database.Database.GetDbConnection();
@@ -47,8 +176,8 @@ public sealed class TranslationProjectAdvisoryLock : IAsyncDisposable
 
         try
         {
-            await ExecuteLockCommand(connection, projectId, true, cancellationToken);
-            return new TranslationProjectAdvisoryLock(connection, projectId, closeConnection);
+            await ExecuteLockCommand(connection, projectId, lockKeyExpression, true, cancellationToken);
+            return new TranslationProjectAdvisoryLock(connection, projectId, closeConnection, lockKeyExpression);
         }
         catch
         {
@@ -59,32 +188,16 @@ public sealed class TranslationProjectAdvisoryLock : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        if (connection == null)
-            return;
-
-        try
-        {
-            await ExecuteLockCommand(connection, projectId, false, CancellationToken.None);
-        }
-        finally
-        {
-            if (closeConnection)
-                await connection.CloseAsync();
-        }
-    }
-
-    private static async Task ExecuteLockCommand(DbConnection connection, long projectId, bool acquire,
-        CancellationToken cancellationToken)
+    private static async Task ExecuteLockCommand(DbConnection connection, long projectId, string lockKeyExpression,
+        bool acquire, CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
         command.CommandTimeout = 0;
 
 #pragma warning disable CA2100 // Query uses a const value input
         command.CommandText = acquire ?
-            $"SELECT pg_advisory_lock({LockKeyExpression})" :
-            $"SELECT pg_advisory_unlock({LockKeyExpression})";
+            $"SELECT pg_advisory_lock({lockKeyExpression})" :
+            $"SELECT pg_advisory_unlock({lockKeyExpression})";
 #pragma warning restore CA2100
 
         var projectIdParameter = command.CreateParameter();
@@ -93,5 +206,22 @@ public sealed class TranslationProjectAdvisoryLock : IAsyncDisposable
         projectIdParameter.Value = projectId;
         command.Parameters.Add(projectIdParameter);
         await command.ExecuteScalarAsync(cancellationToken);
+    }
+
+    private async Task ExecuteSyncLockCommand(bool acquire)
+    {
+        await using var command = connection!.CreateCommand();
+#pragma warning disable CA2100 // Query uses a const value input
+        command.CommandText = acquire ?
+            $"SELECT pg_advisory_lock({SyncLockKeyExpression})" :
+            $"SELECT pg_advisory_unlock({SyncLockKeyExpression})";
+#pragma warning restore CA2100
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "projectId";
+        parameter.DbType = DbType.Int64;
+        parameter.Value = projectId;
+        command.Parameters.Add(parameter);
+        await command.ExecuteScalarAsync(CancellationToken.None);
     }
 }

@@ -249,6 +249,24 @@ table.non-fixed {
     width: 100%;
 }
 
+.media-image-picker .modal-content {
+    max-height: calc(100dvh - 3.5rem);
+}
+
+.media-image-picker .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.media-image-picker .block-container {
+    min-height: 380px;
+}
+
+.media-image-picker .block-container > div:not(.block-overlay) {
+    max-height: 50dvh;
+    overflow-y: auto;
+}
+
 .block-container {
     position: relative;
 }

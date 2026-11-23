@@ -59,7 +59,7 @@ public class DigestUnreadNotificationsJob : IJob
             if (user.EmailPreferences == null || user.EmailPreferences.Allows(EmailReason.Notifications))
             {
                 var baseUrl = configuration["BaseUrl"]?.TrimEnd('/') ?? string.Empty;
-                var inboxUrl = $"{baseUrl}/notifications";
+                var inboxUrl = $"{baseUrl}/userNotifications";
                 var body = new StringBuilder();
                 body.AppendLine($"You have {notifications.Count} unread notifications:");
                 body.AppendLine();
@@ -69,7 +69,7 @@ public class DigestUnreadNotificationsJob : IJob
                     body.Append("- ").AppendLine(notification.Message);
                 }
 
-                body.AppendLine().Append("View your inbox: ").Append(baseUrl).Append("/notifications");
+                body.AppendLine().Append("View your inbox: ").Append(inboxUrl);
 
                 var htmlBody = new StringBuilder();
                 htmlBody.Append("<h1>Unread notifications</h1>");

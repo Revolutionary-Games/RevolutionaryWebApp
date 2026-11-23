@@ -36,6 +36,12 @@ public class StagedModerationTests
             if (call.Arg<IState>() is ScheduledState state)
                 calls.Add((call.Arg<Job>(), state));
         });
+        await database.Sessions.AddRangeAsync(
+            new Session { UserId = target.Id },
+            new Session { PendingTwoFactorUserId = target.Id },
+            new Session { UserId = actor.Id });
+        await database.SaveChangesAsync();
+
         var moderation = CreateService(database, jobs);
         var cutoff = DateTime.UtcNow.AddHours(-48);
         await moderation.StageBan(actor, target, DateTime.MaxValue, "Spam", cutoff);
@@ -61,6 +67,9 @@ public class StagedModerationTests
             (long)job.Args[0] == action.Id && !(bool)job.Args[1]), Arg.Any<EnqueuedState>());
 
         await moderation.ProcessPendingAction(action.Id, false, CancellationToken.None);
+        var remainingSession = Assert.Single(await database.Sessions.ToListAsync());
+        Assert.Equal(actor.Id, remainingSession.UserId);
+
         jobs.ClearReceivedCalls();
         await new RecoverPendingModerationJob(database, jobs).Execute(CancellationToken.None);
         jobs.Received(1).Create(Arg.Is<Job>(job => (bool)job.Args[1]), Arg.Any<EnqueuedState>());

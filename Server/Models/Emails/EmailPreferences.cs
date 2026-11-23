@@ -11,7 +11,7 @@ using Utilities;
 public abstract class EmailPreferences : IDTOCreator<EmailPreferencesDTO>
 {
     /// <summary>
-    ///   When true, no emails are sent regardless of individual category settings.
+    ///   When true, emails other than mandatory account security warnings are disabled.
     /// </summary>
     [UpdateFromClientRequest]
     public bool DisableAllEmails { get; set; } = false;
@@ -51,6 +51,9 @@ public abstract class EmailPreferences : IDTOCreator<EmailPreferencesDTO>
 
     public bool Allows(EmailReason reason)
     {
+        if (reason == EmailReason.AccountSecurity)
+            return true;
+
         if (DisableAllEmails)
             return false;
 

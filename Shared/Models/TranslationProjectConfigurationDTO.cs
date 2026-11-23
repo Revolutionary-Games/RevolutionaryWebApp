@@ -48,6 +48,8 @@ public sealed class TranslationProjectConfigurationDTO
     [MaxLength(500)]
     public string TranslationFilePattern { get; set; } = string.Empty;
 
+    public TranslationQualityCheck QualityChecks { get; set; }
+
     public bool Enabled { get; set; } = true;
     public long? DictionaryId { get; set; }
     public DateTime? LastImportedAt { get; set; }

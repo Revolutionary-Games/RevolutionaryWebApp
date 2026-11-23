@@ -4211,6 +4211,24 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("inet")
                         .HasColumnName("last_used_from");
 
+                    b.Property<DateTime?>("PendingTwoFactorExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pending_two_factor_expires_at");
+
+                    b.Property<Guid?>("PendingTwoFactorKeyVersion")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pending_two_factor_key_version");
+
+                    b.Property<string>("PendingTwoFactorReturnUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("pending_two_factor_return_url");
+
+                    b.Property<long?>("PendingTwoFactorUserId")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("pending_two_factor_user_id");
+
                     b.Property<string>("SsoNonce")
                         .HasColumnType("text")
                         .HasColumnName("sso_nonce");
@@ -4233,6 +4251,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("started_sso_login");
 
+                    b.Property<DateTime?>("TwoFactorVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("two_factor_verified_at");
+
                     b.Property<long?>("UserId")
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
@@ -4243,6 +4265,9 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasIndex("HashedId")
                         .IsUnique()
                         .HasDatabaseName("ix_sessions_hashed_id");
+
+                    b.HasIndex("PendingTwoFactorUserId")
+                        .HasDatabaseName("ix_sessions_pending_two_factor_user_id");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_sessions_user_id");
@@ -5086,6 +5111,69 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("translation_import_conflicts", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProblem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Ignored")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ignored");
+
+                    b.Property<DateTime?>("IgnoredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ignored_at");
+
+                    b.Property<long?>("IgnoredByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ignored_by_user_id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("key");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language_code");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("message");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("project_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_translation_problems");
+
+                    b.HasIndex("IgnoredByUserId")
+                        .HasDatabaseName("ix_translation_problems_ignored_by_user_id");
+
+                    b.HasIndex("ProjectId", "LanguageCode", "Ignored")
+                        .HasDatabaseName("ix_translation_problems_project_id_language_code_ignored");
+
+                    b.HasIndex("ProjectId", "Key", "LanguageCode", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_translation_problems_project_id_key_language_code_kind");
+
+                    b.ToTable("translation_problems", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
                 {
                     b.Property<long>("Id")
@@ -5154,6 +5242,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
+
+                    b.Property<int>("QualityChecks")
+                        .HasColumnType("integer")
+                        .HasColumnName("quality_checks");
 
                     b.Property<string>("RepositoryFullName")
                         .HasMaxLength(240)
@@ -5679,6 +5771,70 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasDatabaseName("ix_translation_values_project_id_language_code_state");
 
                     b.ToTable("translation_values", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.TwoFactorAuthentication", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("BackupCodeHashes")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("backup_code_hashes");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_attempts");
+
+                    b.Property<Guid>("KeyVersion")
+                        .HasColumnType("uuid")
+                        .HasColumnName("key_version");
+
+                    b.Property<DateTime?>("LastRecoveryWarningAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_recovery_warning_at");
+
+                    b.Property<long?>("LastUsedTimeStep")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_used_time_step");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<string>("ProtectedSecret")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("protected_secret");
+
+                    b.Property<DateTime?>("RecoveryRequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recovery_requested_at");
+
+                    b.Property<int>("RecoveryWarningsSent")
+                        .HasColumnType("integer")
+                        .HasColumnName("recovery_warnings_sent");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("revision");
+
+                    b.Property<DateTime?>("SetupExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("setup_expires_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_two_factor_authentications");
+
+                    b.ToTable("two_factor_authentications", (string)null);
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.User", b =>
@@ -7188,6 +7344,12 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Session", b =>
                 {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("PendingTwoFactorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_sessions_users_pending_two_factor_user_id");
+
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
                         .WithMany("Sessions")
                         .HasForeignKey("UserId")
@@ -7439,6 +7601,26 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("Value");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProblem", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "IgnoredByUser")
+                        .WithMany()
+                        .HasForeignKey("IgnoredByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_problems_users_ignored_by_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationValue", "Value")
+                        .WithMany("Problems")
+                        .HasForeignKey("ProjectId", "Key", "LanguageCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_translation_problems_translation_values_project_id_key_lang");
+
+                    b.Navigation("IgnoredByUser");
+
+                    b.Navigation("Value");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationDictionary", "Dictionary")
@@ -7604,6 +7786,18 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("LastEditedByUser");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.TwoFactorAuthentication", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithOne("TwoFactorAuthentication")
+                        .HasForeignKey("RevolutionaryWebApp.Server.Models.TwoFactorAuthentication", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_two_factor_authentications_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserContributionCount", b =>
@@ -7918,6 +8112,8 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.Navigation("ImportConflicts");
 
+                    b.Navigation("Problems");
+
                     b.Navigation("Suggestions");
                 });
 
@@ -8014,6 +8210,8 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("TranslationSubscriptions");
 
                     b.Navigation("TranslationSuggestionVotes");
+
+                    b.Navigation("TwoFactorAuthentication");
 
                     b.Navigation("UploadedStorageItemVersions");
 

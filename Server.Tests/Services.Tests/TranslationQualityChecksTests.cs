@@ -1,0 +1,381 @@
+namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
+
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using NSubstitute;
+using Server.Jobs.RegularlyScheduled;
+using Server.Models;
+using Server.Models.Translations;
+using Server.Services;
+using Shared.Models;
+using Xunit;
+
+public class TranslationQualityChecksTests
+{
+    [Theory]
+    [InlineData("Hello {0}, {1}!", "Hei {1}, {0}!", false)]
+    [InlineData("Hello {0}, {1}!", "Hei {0}!", true)]
+    [InlineData("Value {0,10:N2}", "Arvo {0:N3}", false)]
+    [InlineData("Value {0,-10:N2}", "Arvo", true)]
+    [InlineData("Literal {{0}}", "Teksti", false)]
+    [InlineData("Value {{{0}}}", "Arvo {{0}}", true)]
+    [InlineData("Value {{{0}}}", "Arvo {0}", false)]
+    [InlineData("Value {0}", "Arvo {00}", false)]
+    [InlineData("Value {0}", "Arvo {{0}}", true)]
+    public void FormattingChecksArgumentsAndSkipsEscapedBraces(string source, string translation, bool fails)
+    {
+        var problems = TranslationQualityChecks.Evaluate(source, translation, TranslationQualityCheck.CSharpFormatting);
+        Assert.Equal(fails, problems.ContainsKey(TranslationProblemKind.MissingFormatPlaceholder));
+    }
+
+    [Theory]
+    [InlineData("Hello!", "Hei。", false, false)]
+    [InlineData("Hello!", "hei!", true, false)]
+    [InlineData(" Hello!\n", " Hei?  ", false, false)]
+    [InlineData("hello", "Hei", false, false)]
+    [InlineData("Art by {0}", "由 {0} 創作", false, false)]
+    [InlineData("{0} Agent", "العميل المستقل {0}", false, false)]
+    [InlineData("- {2} Backup save(s)", "- {2} Còpia(es) de seguretat", false, false)]
+    [InlineData("Backup saves", "Còpia(es)", false, false)]
+    [InlineData("Backup save(s).", "Còpia(es)", false, true)]
+    [InlineData("Backup saves", "Còpia(es).", false, true)]
+    [InlineData("Art by {0}", "{0} 由", false, false)]
+    [InlineData("Art", "由 {0}", false, false)]
+    [InlineData("Value", "值 {0:N2}", false, false)]
+    [InlineData("Value!", "值 {0}!", false, false)]
+    [InlineData("Value!", "值 {0}", false, true)]
+    [InlineData("Value", "值 {0}!", false, true)]
+    [InlineData("Hello", "Hei!", false, true)]
+    [InlineData("Hello!", "Hei", false, true)]
+    [InlineData("Hello…", "Hei؟", false, false)]
+    [InlineData("Hello", "Hei🙂", false, false)]
+    [InlineData("This language is {0}% complete", "此語言已翻譯完成 {0}%", false, false)]
+    [InlineData("此語言已翻譯完成 {0}%", "This language is {0}% complete", false, false)]
+    [InlineData("Progress {0}%", "進度 {0}％", false, false)]
+    [InlineData("Progress {0}%", "進度 {0}%。", false, true)]
+    [InlineData("Progress {0}%.", "進度 {0}%。", false, false)]
+    [InlineData("{0}: specified mod class \"{1}\" not found in mod's assembly",
+        "{0}：在模組程式集中找不到指定的模組類 「{1}」", false, false)]
+    [InlineData("{0}：在模組程式集中找不到指定的模組類 「{1}」",
+        "{0}: specified mod class \"{1}\" not found in mod's assembly", false, false)]
+    [InlineData("Value", "值「测试」。", false, true)]
+    [InlineData("View the full details of this release on [color=#3796e1][url={0}]GitHub[/url][/color]",
+        "იხილეთ ამ რელიზის სრული დეტალები [color=#3796e1][url={0}]GitHub[/url][/color]-ზე", false, false)]
+    [InlineData("იხილეთ ამ რელიზის სრული დეტალები [color=#3796e1][url={0}]GitHub[/url][/color]-ზე",
+        "View the full details of this release on [color=#3796e1][url={0}]GitHub[/url][/color]", false, false)]
+    [InlineData("See [link].", "იხილეთ [link]", false, true)]
+    [InlineData("(speed at which AI species mutate)", "（AI物种突变的速度）", false, false)]
+    [InlineData("（AI物种突变的速度）", "(speed at which AI species mutate)", false, false)]
+    [InlineData("𐐀 hello!", "𐐨 hei!", true, false)]
+    [InlineData("Abilities", "能力", false, false)]
+    [InlineData("Abilities", "შესაძლებლობები", false, false)]
+    [InlineData("Abilities", "能力（测试）", false, false)]
+    [InlineData("Abilities", "能力（测试）。", false, true)]
+    [InlineData("Abilities", "能力ABC", false, false)]
+    [InlineData("Abilities", "アビリティ", false, false)]
+    [InlineData("Abilities", "능력", false, false)]
+    [InlineData("Abilities", "قدرات", false, false)]
+    [InlineData("Abilities", "יכולות", false, false)]
+    [InlineData("Abilities", "ความสามารถ", false, false)]
+    [InlineData("Abilities", "क्षमताएँ", false, false)]
+    [InlineData("Abilities", "способности", true, false)]
+    [InlineData("Abilities", "ικανότητες", true, false)]
+    [InlineData("Abilities", "ǅungla", false, false)]
+    public void SentenceChecksUnicodeCapitalizationAndPresenceOfPunctuation(string source, string translation,
+        bool capitalProblem, bool punctuationProblem)
+    {
+        var problems = TranslationQualityChecks.Evaluate(source, translation,
+            TranslationQualityCheck.SentenceConsistency);
+        Assert.Equal(capitalProblem, problems.ContainsKey(TranslationProblemKind.InitialCapitalization));
+        Assert.Equal(punctuationProblem, problems.ContainsKey(TranslationProblemKind.EndingPunctuation));
+    }
+
+    [Theory]
+    [InlineData("[b]Hello[/b]", "[b]Hei[/b]", false)]
+    [InlineData("[b][i]Hello[/i][/b]", "[i][b]Hei[/b][/i]", false)]
+    [InlineData("[b][i]Hello[/i][/b]", "[b][i]Hei[/b][/i]", false)]
+    [InlineData("[color=#3796e1][url={0}]GitHub[/url][/color]", "[color=#3796e1][url={0}]GitHub[/url][/color]", false)]
+    [InlineData("[color=#3796e1][url={0}]GitHub[/url][/color]", "[url={0}][color=#3796e1]GitHub[/color][/url]", false)]
+    [InlineData("No tags", "No tags", false)]
+    [InlineData("Array[0] and [1]", "Array[0] and [1]", false)]
+    [InlineData("[B]Hello[/B]", "[b]Hei[/b]", false)]
+    [InlineData("[b]One[/b] and [b]Two[/b]", "[b]Yksi[/b] ja [b]Kaksi[/b]", false)]
+    [InlineData("[b]unclosed", "[b]ei suljettu", false)]
+    [InlineData("[b]Hello[/b]", "[b]Hei", true)]
+    [InlineData("[b]Hello[/b]", "Hei[/b]", true)]
+    [InlineData("[b]Hello[/b]", "Hei", true)]
+    [InlineData("[b]Hello[/b]", "[b]Hei[/b][/b]", true)]
+    [InlineData("[b]Hello[/b]", "[/b]Hei[b]", true)]
+    [InlineData("[b]Hello[/b]", "[i]Hei[/i]", true)]
+    [InlineData("[b]One[/b] and [b]Two[/b]", "[b]Yksi[/b] and Kaksi", true)]
+    [InlineData("[b]One[/b] and [b]Two[/b]", "[b]Yksi[/b] and [b]Kaksi", true)]
+    [InlineData("[color=#3796e1]Text[/color]", "[color=#ffffff]Teksti[/color]", true)]
+    [InlineData("No tags", "[b]Tags[/b]", true)]
+    [InlineData("[b]unclosed", "ei suljettu", true)]
+    public void BbCodeChecksTagsAndClosures(string source, string translation, bool fails)
+    {
+        var problems = TranslationQualityChecks.Evaluate(source, translation, TranslationQualityCheck.BbCodeTags);
+        Assert.Equal(fails, problems.ContainsKey(TranslationProblemKind.BbCodeTagSyntax));
+    }
+
+    [Theory]
+    [InlineData("Press [thrive:input]help[/thrive:input]", "Нажмите [thrive:input]help[/thrive:input]", false)]
+    [InlineData("Press [thrive:input]help[/thrive:input]", "Нажмите [thrive:input]помощи[/thrive:input]", true)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound type=\"glucose\"]Глюкоза[/thrive:compound]", false)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound type=\"glucose\"][/thrive:compound]", false)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound type=\"глюкоза\"]Глюкоза[/thrive:compound]", true)]
+    [InlineData("[thrive:compound type=\"glucose\"]Glucose[/thrive:compound]",
+        "[thrive:compound]Глюкоза[/thrive:compound]", true)]
+    [InlineData("[thrive:compound type=\"glucose\" size=\"20\"]Glucose[/thrive:compound]",
+        "[thrive:compound size=\"20\" type=\"glucose\"]Глюкоза[/thrive:compound]", false)]
+    [InlineData("[thrive:compound type=\"glucose\" size=\"20\"]Glucose[/thrive:compound]",
+        "[thrive:compound size=\"18\" type=\"glucose\"]Глюкоза[/thrive:compound]", false)]
+    [InlineData("[thrive:resource type=\"iron\" size=\"20\"]Iron[/thrive:resource]",
+        "[thrive:resource size=\"16\" type=\"iron\"]Rauta[/thrive:resource]", false)]
+    [InlineData("[thrive:icon]ConditionInsufficient[/thrive:icon]",
+        "[thrive:icon size=\"16\"]ConditionInsufficient[/thrive:icon]", false)]
+    [InlineData("[thrive:constant]OXYTOXY_DAMAGE[/thrive:constant]",
+        "[thrive:constant]OXYTOXY_DAMAGE[/thrive:constant]", false)]
+    [InlineData("[thrive:constant]OXYTOXY_DAMAGE[/thrive:constant]", "[thrive:constant]DAMAGE[/thrive:constant]",
+        true)]
+    [InlineData("[thrive:constant format=\"0.0\"]OXYTOXY_DAMAGE[/thrive:constant]",
+        "[thrive:constant format=\"0.0\"]OXYTOXY_DAMAGE[/thrive:constant]", false)]
+    [InlineData("[thrive:constant format=\"0.0\"]OXYTOXY_DAMAGE[/thrive:constant]",
+        "[thrive:constant format=\"0.00\"]OXYTOXY_DAMAGE[/thrive:constant]", true)]
+    [InlineData("[thrive:resource type=\"iron\"]Iron[/thrive:resource]",
+        "[thrive:resource type=\"iron\"]Rauta[/thrive:resource]", false)]
+    [InlineData("[thrive:resource type=\"iron\"]Iron[/thrive:resource]",
+        "[thrive:resource type=\"rauta\"]Rauta[/thrive:resource]", true)]
+    [InlineData("[thrive:icon]ConditionInsufficient[/thrive:icon]",
+        "[thrive:icon]ConditionInsufficient[/thrive:icon]", false)]
+    [InlineData("[thrive:icon]ConditionInsufficient[/thrive:icon]", "[thrive:icon]Недостаточно[/thrive:icon]", true)]
+    [InlineData("[thrive:input]a[/thrive:input] and [thrive:input]b[/thrive:input]",
+        "[thrive:input]b[/thrive:input] ja [thrive:input]a[/thrive:input]", false)]
+    [InlineData("[thrive:input]help[/thrive:input]", "[thrive:input]help", true)]
+    [InlineData("[thrive:input]help[/thrive:input]", "help[/thrive:input]", true)]
+    [InlineData("[thrive:input]help[/thrive:input]", "[thrive:input]help[/thrive:input][/thrive:input]", true)]
+    [InlineData("No thrive tags", "No thrive tags", false)]
+    [InlineData("No thrive tags", "[thrive:input]help[/thrive:input]", true)]
+    [InlineData("[b]Standard[/b]", "[b]Standard[/b]", false)]
+    [InlineData("Typo in attribute [thrive:compound type=\"glucose\"][/thrive:compound]",
+        "Typo in attribute [thrive:compound type=\"=glucose\"][/thrive:compound]", true)]
+    public void ThriveBbCodeChecksTagsAndClosures(string source, string translation, bool fails)
+    {
+        var problems = TranslationQualityChecks.Evaluate(source, translation, TranslationQualityCheck.ThriveBbCode);
+        Assert.Equal(fails, problems.ContainsKey(TranslationProblemKind.ThriveBbCodeTagSyntax));
+    }
+
+    [Fact]
+    public void EmptyTranslationsAndDisabledChecksHaveNoProblems()
+    {
+        Assert.Empty(TranslationQualityChecks.Evaluate("Hello {0}!", " ",
+            TranslationQualityCheck.CSharpFormatting | TranslationQualityCheck.SentenceConsistency));
+        Assert.Empty(TranslationQualityChecks.Evaluate("Hello {0}!", "hei", TranslationQualityCheck.None));
+    }
+
+    [Fact]
+    public async Task WarningsAreIdempotentPreserveIgnoresAndDisappearWhenFixedOrDisabled()
+    {
+        await using var database = CreateDatabase();
+        var value = AddValue(database, "key", "Hello {0}!", "hei", DateTime.UtcNow);
+        var project = value.Unit.Project;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Equal(3, await database.TranslationProblems.CountAsync());
+        var ignored = value.Problems.Single(problem => problem.Kind == TranslationProblemKind.InitialCapitalization);
+        ignored.Ignored = true;
+        ignored.IgnoredByUser = new User("translator@example.com", "Translator");
+        ignored.IgnoredAt = DateTime.UtcNow.AddHours(-1);
+        await database.SaveChangesAsync();
+        var ignoredBy = ignored.IgnoredByUserId;
+        var ignoredAt = ignored.IgnoredAt;
+
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Equal(3, await database.TranslationProblems.CountAsync());
+        Assert.True(ignored.Ignored);
+        Assert.Equal(ignoredBy, ignored.IgnoredByUserId);
+        Assert.Equal(ignoredAt, ignored.IgnoredAt);
+        Assert.Null(value.PendingRevision);
+        Assert.Equal(TranslationState.Translated, value.State);
+
+        value.Text = "Hei {0}!";
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Empty(database.TranslationProblems);
+
+        value.Text = "hei";
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.All(database.TranslationProblems, problem =>
+        {
+            Assert.False(problem.Ignored);
+            Assert.Null(problem.IgnoredByUserId);
+            Assert.Null(problem.IgnoredAt);
+        });
+        project.QualityChecks = TranslationQualityCheck.None;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Empty(database.TranslationProblems);
+    }
+
+    [Theory]
+    [InlineData(TranslationState.Translated)]
+    [InlineData(TranslationState.Verified)]
+    public async Task NeedsChangesSkipsChecksClearsWarningsAndChecksAgainWhenReady(TranslationState readyState)
+    {
+        await using var database = CreateDatabase();
+        var value = AddValue(database, "key", "Hello {0}!", "hei", DateTime.UtcNow);
+        var project = value.Unit.Project;
+        value.State = TranslationState.NeedsTranslation;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Empty(database.TranslationProblems);
+
+        value.State = readyState;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Equal(3, await database.TranslationProblems.CountAsync());
+
+        value.State = TranslationState.NeedsTranslation;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
+        await database.SaveChangesAsync();
+        Assert.Empty(value.Problems);
+        Assert.Empty(database.TranslationProblems);
+    }
+
+    [Fact]
+    public async Task ChangedMissingArgumentsRequireReviewAgain()
+    {
+        await using var database = CreateDatabase();
+        var value = AddValue(database, "key", "Hello {0} {1}!", "Hei {0}!", DateTime.UtcNow);
+        TranslationQualityChecks.UpdateProblems(database, value.Unit.Project, value);
+        await database.SaveChangesAsync();
+        var warning = Assert.Single(value.Problems);
+        warning.Ignored = true;
+        warning.IgnoredByUser = new User("translator@example.com", "Translator");
+        warning.IgnoredAt = DateTime.UtcNow;
+        await database.SaveChangesAsync();
+        value.Text = "Hei {1}!";
+        TranslationQualityChecks.UpdateProblems(database, value.Unit.Project, value);
+        await database.SaveChangesAsync();
+        Assert.False(warning.Ignored);
+        Assert.Null(warning.IgnoredByUserId);
+        Assert.Null(warning.IgnoredByUser);
+        Assert.Null(warning.IgnoredAt);
+        Assert.Contains("{0}", warning.Message);
+    }
+
+    [Fact]
+    public async Task DailyJobChecksRecentEditsImportsAndSourceChangesAndCleansOldWarnings()
+    {
+        await using var database = CreateDatabase();
+        var old = DateTime.UtcNow.AddDays(-10);
+        AddValue(database, "recent", "Hello!", "hei", DateTime.UtcNow.AddHours(-71));
+        var imported = AddValue(database, "imported", "Hello!", "hei", old);
+        imported.LastEditedAt = DateTime.UtcNow.AddHours(-1);
+        var sourceChanged = AddValue(database, "sourceChanged", "Hello!", "hei", old);
+        sourceChanged.Unit.SourceUpdatedAt = DateTime.UtcNow;
+        AddValue(database, "old", "Hello!", "hei", old);
+        var fixedValue = AddValue(database, "fixed", "Hello!", "Hei!", old);
+        fixedValue.Problems.Add(new TranslationProblem
+        {
+            ProjectId = 1, Key = fixedValue.Key, LanguageCode = "fi",
+            Kind = TranslationProblemKind.InitialCapitalization,
+        });
+        var inactive = AddValue(database, "inactive", "Hello!", "hei", DateTime.UtcNow);
+        inactive.Unit.Active = false;
+        var needsChanges = AddValue(database, "needsChanges", "Hello!", "hei", DateTime.UtcNow);
+        needsChanges.State = TranslationState.NeedsTranslation;
+        var oldNeedsChanges = AddValue(database, "oldNeedsChanges", "Hello!", "hei", old);
+        oldNeedsChanges.State = TranslationState.NeedsTranslation;
+        oldNeedsChanges.Problems.Add(new TranslationProblem
+        {
+            ProjectId = 1, Key = oldNeedsChanges.Key, LanguageCode = "fi",
+            Kind = TranslationProblemKind.InitialCapitalization,
+        });
+        var source = AddValue(database, "source", "Hello!", "hei", DateTime.UtcNow);
+        source.LanguageCode = "en";
+        source.Language = new TranslationProjectLanguage { Project = source.Unit.Project, LanguageCode = "en" };
+        await database.SaveChangesAsync();
+
+        await new CheckTranslationQualityJob(database).Execute(CancellationToken.None);
+
+        Assert.Equal(6, await database.TranslationProblems.CountAsync());
+        Assert.All(await database.TranslationProblems.ToListAsync(), problem =>
+            Assert.Contains(problem.Key, new[] { "recent", "imported", "sourceChanged" }));
+    }
+
+    [Fact]
+    public async Task CleanupDoesNotSkipBatchesWhenOldWarningsDisappear()
+    {
+        await using var database = CreateDatabase();
+        var old = DateTime.UtcNow.AddDays(-10);
+        for (var index = 0; index < 205; ++index)
+        {
+            var value = AddValue(database, $"key{index:D3}", "Hello!", "Hei!", old);
+            value.Problems.Add(new TranslationProblem
+            {
+                ProjectId = 1, Key = value.Key, LanguageCode = "fi",
+                Kind = TranslationProblemKind.InitialCapitalization,
+            });
+        }
+
+        await database.SaveChangesAsync();
+        await new CheckTranslationQualityJob(database).Execute(CancellationToken.None);
+        Assert.Empty(database.TranslationProblems);
+    }
+
+    [Fact]
+    public async Task FullRecheckIncludesOlderTextAndClearsDisabledWarnings()
+    {
+        await using var database = CreateDatabase();
+        AddValue(database, "old", "Hello!", "hei", DateTime.UtcNow.AddDays(-10));
+        await database.SaveChangesAsync();
+        var job = new CheckTranslationQualityJob(database);
+        await job.ExecuteForProject(1, true, CancellationToken.None);
+        Assert.Equal(2, await database.TranslationProblems.CountAsync());
+        var project = await database.TranslationProjects.SingleAsync();
+        project.QualityChecks = TranslationQualityCheck.None;
+        await database.SaveChangesAsync();
+        await job.ExecuteForProject(1, true, CancellationToken.None);
+        Assert.Empty(database.TranslationProblems);
+    }
+
+    private static NotificationsEnabledDb CreateDatabase()
+    {
+        return new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options, Substitute.For<IModelUpdateNotificationSender>());
+    }
+
+    private static TranslationValue AddValue(ApplicationDbContext database, string key, string source, string text,
+        DateTime changedAt)
+    {
+        var project = database.TranslationProjects.Local.FirstOrDefault() ?? new TranslationProject
+        {
+            Id = 1, Slug = "test", SourceLanguage = "en", Format = TranslationFormat.Manual,
+            QualityChecks = TranslationQualityCheck.CSharpFormatting | TranslationQualityCheck.SentenceConsistency,
+        };
+        var language = database.TranslationProjectLanguages.Local.FirstOrDefault() ?? new TranslationProjectLanguage
+        {
+            Project = project, LanguageCode = "fi",
+        };
+        var value = new TranslationValue
+        {
+            ProjectId = 1, Key = key, LanguageCode = "fi", Text = text, Language = language,
+            CreatedAt = changedAt, LastEditedAt = changedAt, State = TranslationState.Translated,
+            Unit = new TranslationUnit
+            {
+                Project = project, Key = key, SourceText = source, SourceUpdatedAt = changedAt,
+            },
+        };
+        database.TranslationValues.Add(value);
+        return value;
+    }
+}

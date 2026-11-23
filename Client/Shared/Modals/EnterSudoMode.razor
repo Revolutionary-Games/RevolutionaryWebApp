@@ -1,0 +1,89 @@
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Forms
+@inject HttpClient Http
+
+<BootstrapModal OnCancel="@Cancel">
+    <EditForm Model="@form">
+        <DataAnnotationsValidator/>
+        <div class="modal-body">
+            @if (TwoFactorEnabled)
+            {
+                <p>
+                    This operation requires sudo mode. Enter a fresh authenticator code or an unused backup code.
+                    Sudo mode lasts for @AppInfo.SudoModeDurationMinutes minutes in this browser session.
+                    Continuing will retry the operation you requested.
+                </p>
+                <label for="sudo-mode-code" class="form-label">Authenticator or backup code</label>
+                <CustomInputText id="sudo-mode-code" class="form-control mb-2" @bind-Value="form.Code"
+                                 maxlength="64" autocomplete="one-time-code" disabled="@processing"/>
+                <ValidationSummary/>
+            }
+            else
+            {
+                <p>
+                    Set up two-factor authentication in <NavLink href="/me" @onclick="Cancel">your account settings</NavLink>
+                    before performing this operation. Then return and try the operation again.
+                </p>
+            }
+            <StatusMessageShower Message="@error" Type="SiteNoticeType.Danger"/>
+        </div>
+        <div class="modal-footer">
+            <Button ButtonStyle="secondary" OnPressed="Cancel" Enabled="@(!processing)">Cancel</Button>
+            <Button type="submit" OnPressed="Continue" Enabled="@(TwoFactorEnabled && !processing)"
+                    Spinner="@processing">Continue</Button>
+        </div>
+    </EditForm>
+</BootstrapModal>
+
+@code {
+    private TwoFactorCodeForm form = new();
+    private bool processing;
+    private string? error;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    [Parameter]
+    public bool TwoFactorEnabled { get; set; }
+
+    private async Task Continue()
+    {
+        if (processing || !TwoFactorEnabled)
+            return;
+
+        processing = true;
+        error = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/SudoMode", form);
+            if (response.IsSuccessStatusCode)
+            {
+                form = new TwoFactorCodeForm();
+                await ModalInstance.CloseAsync(ModalResult.Ok(true));
+            }
+            else
+            {
+                error = $"Could not enter sudo mode: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception e)
+        {
+            error = $"Could not enter sudo mode: {e.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        if (processing)
+            return;
+
+        form = new TwoFactorCodeForm();
+        await ModalInstance.CancelAsync();
+    }
+}

@@ -43,11 +43,15 @@ public class Program
         builder.Services.AddSingleton(sp => new MarkdownService(sp.GetRequiredService<HtmlSanitizerService>(),
             sp.GetRequiredService<IMarkdownBbCodeService>()));
 
-        builder.Services.AddScoped(sp => new HttpClient
+        builder.Services.AddScoped<SudoModeService>();
+        builder.Services.AddScoped(sp => new HttpClient(new SudoModeHandler(sp.GetRequiredService<SudoModeService>())
+        {
+            InnerHandler = new HttpCookieHandler { InnerHandler = new HttpClientHandler() },
+        })
         {
             BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
             DefaultRequestHeaders = { { "X-CSRF-Token", sp.GetRequiredService<ICSRFTokenReader>().Token } },
-        }).AddTransient<HttpCookieHandler>();
+        });
 
         builder.Services.AddScoped(sp =>
             new UsernameRetriever(sp.GetRequiredService<CurrentUserInfo>(), sp.GetRequiredService<HttpClient>()));

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Models;
+using Services;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
@@ -96,5 +97,13 @@ public class PostsController : BasePageController
         [Required] int version)
     {
         return base.RevertResourceVersion(id, version);
+    }
+
+    [HttpPost("convertToSteam")]
+    [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Developer)]
+    public ActionResult ConvertToSteam([FromBody] SteamConversionRequest request,
+        [FromServices] SteamPostConverter converter)
+    {
+        return Content(converter.Convert(request.Content), "text/plain");
     }
 }

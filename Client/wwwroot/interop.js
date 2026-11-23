@@ -321,3 +321,34 @@ function configureTranslationShortcuts(element) {
         }
     };
 }
+
+function printTwoFactorBackupCodes(account, codes) {
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    document.body.appendChild(frame);
+
+    const doc = frame.contentDocument;
+    doc.documentElement.lang = "en";
+    doc.title = "Thrive Account backup codes";
+
+    const heading = doc.createElement("h1");
+    heading.textContent = doc.title;
+    const accountDetails = doc.createElement("p");
+    accountDetails.textContent = account;
+    const instructions = doc.createElement("p");
+    instructions.textContent =
+        "Keep these codes somewhere safe, separately from your authenticator. Each code works once.";
+    const codeList = doc.createElement("ul");
+    for (const code of codes) {
+        const item = doc.createElement("li");
+        item.textContent = code;
+        codeList.appendChild(item);
+    }
+    doc.body.append(heading, accountDetails, instructions, codeList);
+    frame.contentWindow.onafterprint = () => frame.remove();
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+}

@@ -16,4 +16,9 @@ public enum EmailReason
     ///   Important emails, used for very important things. Cannot be turned off without turning off *all* emails.
     /// </summary>
     ImportantEmails,
+
+    /// <summary>
+    ///   Mandatory warnings about account security changes, including two-factor recovery.
+    /// </summary>
+    AccountSecurity,
 }

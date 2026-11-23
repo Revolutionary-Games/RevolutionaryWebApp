@@ -88,6 +88,15 @@ internal static class TranslationNotificationHelper
         }, projectId, key, languageCode);
     }
 
+    public static Tuple<SerializedNotification, string> ProblemsUpdated(long projectId, string key,
+        string languageCode)
+    {
+        return Scoped(new TranslationProblemsUpdated
+        {
+            ProjectId = projectId, Key = key, LanguageCode = languageCode,
+        }, projectId, key, languageCode);
+    }
+
     public static Tuple<SerializedNotification, string> HistoryUpdated(long projectId, string key,
         string languageCode)
     {

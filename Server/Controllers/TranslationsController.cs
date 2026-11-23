@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Models.Translations;
 using Services;
 using Shared;
 using Shared.Models;
@@ -53,7 +54,10 @@ public class TranslationsController : Controller
 
         var groups = HttpContext.AuthenticatedUser()?.AccessCachedGroupsOrThrow();
         var canEditSource = groups != null && TranslationPermissions.CanTranslate(groups, true);
-        return project.GetDTO(canEditSource);
+        var result = project.GetDTO(canEditSource);
+        result.OperationInProgress = await TranslationProjectAdvisoryLock.IsHeldAsync(database, project.Id,
+            HttpContext.RequestAborted);
+        return result;
     }
 
     [HttpGet("projects/{slug}/recent")]
@@ -107,6 +111,8 @@ public class TranslationsController : Controller
                     v.State == TranslationState.NeedsTranslation),
                 Translated = database.TranslationValues.Count(v => v.ProjectId == project.Id &&
                     v.LanguageCode == l.LanguageCode && v.State == TranslationState.Translated),
+                CheckFailures = database.TranslationProblems.Count(problem => problem.ProjectId == project.Id &&
+                    problem.LanguageCode == l.LanguageCode && !problem.Ignored && problem.Value.Unit.Active),
                 Verified = database.TranslationValues.Count(v => v.ProjectId == project.Id &&
                     v.LanguageCode == l.LanguageCode && v.State == TranslationState.Verified),
             })

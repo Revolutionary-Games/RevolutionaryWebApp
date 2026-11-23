@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Fixtures;
 using Microsoft.Playwright;
+using RevolutionaryWebApp.Server.Authorization;
+using RevolutionaryWebApp.Server.Models;
 using RevolutionaryWebApp.Shared.Models.Enums;
 using Xunit;
 
@@ -17,6 +19,59 @@ public class LocalAccountTests : IClassFixture<LocalAccountServerFixture>, IClas
     {
         this.server = server;
         this.driver = driver;
+    }
+
+    [Fact]
+    public async Task LocalAccount_CanChangeDisplayNameToChineseThroughProfile()
+    {
+        var username = "uitest" + Guid.NewGuid().ToString("N")[..12];
+        const string password = "UI test account password 123!";
+        const string displayName = "王小明";
+        var user = new User(username + "@example.com", username)
+        {
+            Local = true,
+            PasswordHash = Passwords.CreateSaltedPasswordHash(password),
+            DisplayName = "Original Name",
+        };
+        user.ComputeNormalizedEmail();
+        var database = server.DatabaseFixture.Database;
+        await database.Users.AddAsync(user);
+        await database.SaveChangesAsync();
+
+        var page = await driver.NewPage(new Uri(server.RootUri, "login"));
+        try
+        {
+            await driver.WaitUntilBlazorIsLoaded(page);
+            await page.Locator(".login-form input[type=email]").FillAsync(user.Email);
+            await page.Locator(".login-form input[type=password]").FillAsync(password);
+            await page.Locator("#localLoginButton").ClickAsync();
+            await Assertions.Expect(page.Locator("#userWidgetLoggedIn")).ToHaveTextAsync(username);
+            await page.Locator("#userWidgetLoggedIn").ClickAsync();
+            await Assertions.Expect(page).ToHaveURLAsync(new Uri(server.RootUri, "me").ToString());
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true }))
+                .ToHaveValueAsync("Original Name");
+
+            await page.GetByLabel("Name", new() { Exact = true }).FillAsync(displayName);
+            await page.GetByRole(AriaRole.Button, new() { Name = "Save Name", Exact = true }).ClickAsync();
+            await Assertions.Expect(page.GetByText("Name updated successfully", new() { Exact = true }))
+                .ToBeVisibleAsync();
+
+            // Reload to verify the saved name rather than just the form's draft value.
+            await page.ReloadAsync();
+            await Assertions.Expect(page.GetByLabel("Name", new() { Exact = true }))
+                .ToHaveValueAsync(displayName);
+            await Assertions.Expect(page.Locator(".content li").Filter(new() { HasTextRegex = new Regex("^Name:") }))
+                .ToHaveTextAsync("Name: " + displayName);
+            await Assertions.Expect(page.Locator("#userWidgetLoggedIn")).ToHaveTextAsync(username);
+
+            await database.Entry(user).ReloadAsync();
+            Assert.Equal(displayName, user.DisplayName);
+            Assert.Equal(username, user.UserName);
+        }
+        finally
+        {
+            await page.Context.CloseAsync();
+        }
     }
 
     [Fact]

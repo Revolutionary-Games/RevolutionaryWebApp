@@ -31,8 +31,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SkiaSharp;
-using Svg.Skia;
 using Utilities;
 using Color = SixLabors.ImageSharp.Color;
 using Image = SixLabors.ImageSharp.Image;
@@ -79,6 +77,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private readonly Uri progressFontUrl;
     private readonly Uri progressImageUrl;
     private readonly Uri releaseStatsApiUrl;
+    private readonly Uri translationStatisticsApiUrl;
+    private readonly Uri translationProjectUrl;
     private readonly Regex underWaterCivRegex;
     private readonly Regex sentientPlantRegex;
     private readonly Regex spaceWhalesRegex;
@@ -88,10 +88,11 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
     private DiscordSocketClient? client;
 
     private TimedResourceCache<List<GithubMilestone>>? githubMilestones;
+    private TimedResourceCache<TranslationLanguageDTO[]>? translationLanguages;
     private Lazy<Task<FontCollection>>? fonts;
     private DisposableTimedResourceCache<Image>? progressBackgroundImage;
 
-    private DisposableTimedResourceCache<Image>? translationProgress;
+    private TimedResourceCache<byte[]>? translationProgress;
 
     private DateTime? disconnectedSince;
 
@@ -121,6 +122,10 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         progressImageUrl = configuration.BaseUrlRelative("Discord:RevolutionaryBot:ProgressBackgroundImage");
 
         releaseStatsApiUrl = new Uri(configuration.GetBaseUrl(), "/api/v1/ReleaseStats");
+        translationStatisticsApiUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationStatisticsApiUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
+        translationProjectUrl = new Uri(configuration["Discord:RevolutionaryBot:TranslationProjectUrl"] ??
+            throw new InvalidOperationException("Bot default variables need to exist when when not used"));
 
         // Probably a bit obsessive for this one joke, as it's still pretty easy to bypass
         underWaterCivRegex = new Regex(
@@ -253,8 +258,44 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         databaseReadWriteLock.Dispose();
         client?.Dispose();
         githubMilestones?.Dispose();
+        translationLanguages?.Dispose();
         progressBackgroundImage?.Dispose();
         translationProgress?.Dispose();
+    }
+
+    internal async Task<TranslationLanguageDTO[]> LoadTranslationLanguageStatisticsAsync()
+    {
+        var httpClient = httpClientFactory.CreateClient();
+        return await httpClient.GetFromJsonAsync<TranslationLanguageDTO[]>(translationStatisticsApiUrl) ??
+            throw new NullDecodedJsonException();
+    }
+
+    internal Embed BuildTranslationStatisticsEmbed(TranslationLanguageDTO[] languages)
+    {
+        var total = languages.Sum(language => (long)language.Total);
+        var completed = languages.Sum(language => (long)language.Translated + language.Verified);
+        var percentage = total == 0 ? 0 : Math.Clamp(100d * completed / total, 0, 100);
+
+        var description = $"**{completed.ToString("N0", CultureInfo.InvariantCulture)} of " +
+            $"{total.ToString("N0", CultureInfo.InvariantCulture)} translation entries complete " +
+            $"({percentage.ToString("0.#", CultureInfo.InvariantCulture)}%)**\nAcross " +
+            $"{languages.Length.ToString("N0", CultureInfo.InvariantCulture)} languages.";
+
+        return new EmbedBuilder().WithTitle("Thrive translation progress").WithUrl(translationProjectUrl.ToString())
+            .WithDescription(description).WithColor(new Discord.Color(43, 148, 100)).Build();
+    }
+
+    internal Embed BuildTranslationProjectEmbed()
+    {
+        return new EmbedBuilder().WithTitle("Thrive translation progress").WithUrl(translationProjectUrl.ToString())
+            .WithDescription("View the Thrive translation project to help translate the game.")
+            .WithColor(new Discord.Color(43, 148, 100)).Build();
+    }
+
+    internal async Task<byte[]> DownloadTranslationProgressImageAsync()
+    {
+        var httpClient = httpClientFactory.CreateClient();
+        return await httpClient.GetByteArrayAsync(translationProgressUrl);
     }
 
     private Task OnConnected()
@@ -287,8 +328,8 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         progressBackgroundImage =
             new DisposableTimedResourceCache<Image>(() => DownloadImage(progressImageUrl), TimeSpan.FromMinutes(15));
 
-        translationProgress = new DisposableTimedResourceCache<Image>(
-            () => DownloadSvg(translationProgressUrl), TimeSpan.FromMinutes(10));
+        translationProgress = new TimedResourceCache<byte[]>(DownloadTranslationProgressImageAsync,
+            TimeSpan.FromMinutes(10));
 
         githubMilestones = new TimedResourceCache<List<GithubMilestone>>(async () =>
         {
@@ -303,6 +344,9 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
                     { "direction", "desc" },
                 })) ?? throw new NullDecodedJsonException();
         }, TimeSpan.FromMinutes(1));
+
+        translationLanguages = new TimedResourceCache<TranslationLanguageDTO[]>(LoadTranslationLanguageStatisticsAsync,
+            TimeSpan.FromMinutes(10));
     }
 
     private async Task ClientReady()
@@ -708,39 +752,36 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
 
     private async Task PerformSlowLanguagePart(SocketSlashCommand command)
     {
-        Image progressImage;
-
+        Embed? statisticsEmbed = null;
         try
         {
-            progressImage = await translationProgress!.GetData();
+            statisticsEmbed = BuildTranslationStatisticsEmbed(await translationLanguages!.GetData());
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Translation progress connection error");
+            logger.LogError(e, "Translation statistics connection error");
+        }
+
+        byte[] imageData;
+        try
+        {
+            imageData = await translationProgress!.GetData();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Translation progress image download failed");
+            var failureEmbeds = new[] { statisticsEmbed ?? BuildTranslationProjectEmbed() };
             await command.ModifyOriginalResponseAsync(properties =>
-                properties.Content = "Failed to get translation progress");
+            {
+                properties.Content = "Failed to get translation progress image";
+                properties.Embeds = failureEmbeds;
+            });
             return;
         }
 
-        using var tempFileData = new MemoryStream();
-
-        using (await expensiveOperationLimiter.LockAsync())
-        {
-            try
-            {
-                await progressImage.SaveAsync(tempFileData, PngFormat.Instance);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Language image drawing problem");
-                await command.ModifyOriginalResponseAsync(properties =>
-                    properties.Content = "Failed to draw language progress image");
-                return;
-            }
-        }
-
-        tempFileData.Position = 0;
-        await command.FollowupWithFileAsync(tempFileData, "language.png");
+        using var imageDataStream = new MemoryStream(imageData, false);
+        var embeds = new[] { statisticsEmbed ?? BuildTranslationProjectEmbed() };
+        await command.FollowupWithFileAsync(imageDataStream, "language.png", string.Empty, embeds);
     }
 
     private SlashCommandBuilder BuildLanguageCommand()
@@ -1288,28 +1329,5 @@ public sealed class RevolutionaryDiscordBotService : IDisposable
         var content = await response.Content.ReadAsStreamAsync();
 
         return await Image.LoadAsync(content);
-    }
-
-    private async Task<Image> DownloadSvg(Uri url)
-    {
-        var httpClient = httpClientFactory.CreateClient();
-
-        var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        response.EnsureSuccessStatusCode();
-
-        var content = await response.Content.ReadAsStreamAsync();
-
-        using var svg = new SKSvg();
-        using var svgAsPngData = new MemoryStream();
-
-        if (svg.Load(content) is null)
-            throw new Exception("Failed to load the svg data");
-
-        svg.Picture!.ToImage(svgAsPngData, SKColor.Empty, SKEncodedImageFormat.Png, 100, 1.0f, 1.0f,
-            SKColorType.Rgba8888, SKAlphaType.Unpremul, SKColorSpace.CreateSrgb());
-
-        // Reset the stream position after writing, this is very important to make sure this works
-        svgAsPngData.Position = 0;
-        return await Image.LoadAsync(svgAsPngData);
     }
 }

@@ -31,8 +31,10 @@ public class TranslationWorkflowTests
     [InlineData(TranslationFormat.Resx, false)]
     [InlineData(TranslationFormat.Gettext, true)]
     [InlineData(TranslationFormat.Resx, true)]
+    [InlineData(TranslationFormat.Gettext, false, "王小明")]
+    [InlineData(TranslationFormat.Gettext, true, "𠀀小明")]
     public async Task ImportEditsAndRepublishingPreserveCatalogsAndTranslatorAttribution(TranslationFormat format,
-        bool republishWithAutomatedChanges)
+        bool republishWithAutomatedChanges, string displayName = "Source translator")
     {
         await using var database = new NotificationsEnabledDb(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options,
@@ -48,7 +50,7 @@ public class TranslationWorkflowTests
             SourceFilePattern = format == TranslationFormat.Gettext ? "template.pot" : "en.resx",
             TranslationFilePattern = "{language}." + extension,
         };
-        var user = new User("translator@example.com", "Translator") { DisplayName = "Source translator" };
+        var user = new User("translator@example.com", "Translator") { DisplayName = displayName };
         user.SetGroupsFromLauncherLinkCache(new CachedUserGroups(GroupType.User, GroupType.SourceTextTranslator));
         var secondUser = new User("second@example.com", "Second translator")
         {
@@ -212,7 +214,8 @@ public class TranslationWorkflowTests
                 ["BaseUrl"] = "https://devcenter.example.com/",
             }).Build();
             var publish = new PublishTranslationProjectJob(database, locks, tokens, configuration,
-                NullLogger<PublishTranslationProjectJob>.Instance, repository);
+                NullLogger<PublishTranslationProjectJob>.Instance, Substitute.For<IModelUpdateNotificationSender>(),
+                repository);
             await publish.Execute(project.Id, CancellationToken.None);
 
             await github.Received(1).CreatePullRequest(project.RepositoryFullName, project.SourceBranch,
@@ -239,7 +242,7 @@ public class TranslationWorkflowTests
                 Assert.False(gettextEntries["CONFIRM_BUTTON"].Fuzzy);
                 Assert.False(gettextEntries["CANCEL_BUTTON"].Fuzzy);
                 Assert.False(gettextEntries["HELP_BUTTON"].Fuzzy);
-                Assert.Contains($"\"Last-Translator: Source translator <noreply+{user.Id}@example.com>\\n\"",
+                Assert.Contains($"\"Last-Translator: {displayName} <noreply+{user.Id}@example.com>\\n\"",
                     finalEnglish);
                 Assert.DoesNotContain(user.Email, finalEnglish);
                 Assert.Contains("\"Last-Translator: Second translator <second@example.com>\\n\"", finalFinnish);
@@ -266,7 +269,7 @@ public class TranslationWorkflowTests
             else
             {
                 Assert.Equal(new[] { "de.resx", "en.resx", "fi.resx", "sv.resx" }, checkout.GetFiles()
-                    .Select(file => file.Name).OrderBy(name => name).ToArray());
+                    .Select(file => file.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray());
             }
 
             Assert.Null(source.PendingRevision);

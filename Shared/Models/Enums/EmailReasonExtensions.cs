@@ -11,6 +11,7 @@ public static class EmailReasonExtensions
         return reason switch
         {
             EmailReason.ImportantEmails => false,
+            EmailReason.AccountSecurity => false,
             _ => true,
         };
     }

@@ -4,11 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -16,34 +13,33 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Models;
 using Services;
-using SharedBase.Utilities;
 using Utilities;
 
 [ApiController]
 [Route("[controller]")]
 public class OAuthReturnController : SSOLoginController
 {
-    private readonly string githubClientId;
-    private readonly string githubClientSecret;
-    private readonly ILogger<GithubAPI> githubLog;
+    private readonly IGithubOAuthClient githubOAuth;
     private readonly ICLAExemptions claExemptions;
 
     private readonly bool githubConfigured;
 
     // ReSharper disable ContextualLoggerProblem
     public OAuthReturnController(ILogger<OAuthReturnController> logger, IConfiguration configuration,
-        NotificationsEnabledDb database, ILogger<GithubAPI> githubLog, ICLAExemptions claExemptions) : base(logger,
+        NotificationsEnabledDb database, IGithubOAuthClient githubOAuth, ICLAExemptions claExemptions) : base(logger,
         database)
     {
         // ReSharper restore ContextualLoggerProblem
 
-        this.githubLog = githubLog;
+        this.githubOAuth = githubOAuth;
         this.claExemptions = claExemptions;
 
-        githubClientId = configuration["Login:Github:ClientId"] ?? string.Empty;
-        githubClientSecret = configuration["Login:Github:ClientSecret"] ?? string.Empty;
+        // These are local variables as the client interface does authentication, so we just know whether this is
+        // configured or not
+        var githubClientId1 = configuration["Login:Github:ClientId"] ?? string.Empty;
+        var githubClientSecret1 = configuration["Login:Github:ClientSecret"] ?? string.Empty;
 
-        if (string.IsNullOrEmpty(githubClientId) || string.IsNullOrEmpty(githubClientSecret))
+        if (string.IsNullOrEmpty(githubClientId1) || string.IsNullOrEmpty(githubClientSecret1))
         {
             githubConfigured = false;
         }
@@ -54,10 +50,24 @@ public class OAuthReturnController : SSOLoginController
     }
 
     [HttpGet("github")]
-    public async Task<IActionResult> GithubReturn([Required] string code, [Required] string state)
+    public async Task<IActionResult> GithubReturn([Required] string state, string? code, string? error)
     {
         if (!githubConfigured)
             return Problem("Github OAuth is not configured on the server");
+
+        var currentSession = await HttpContext.Request.Cookies.GetSession(Database);
+        if (currentSession?.StartedSsoLogin == LoginController.SsoTypeGithub)
+        {
+            // Keep using the registered GitHub callback for both login and CLA authorization.
+            // The login controller validates and consumes the nonce before exchanging the code.
+            return Redirect(QueryHelpers.AddQueryString("/LoginController/return/github",
+                new Dictionary<string, string?>
+                {
+                    { "state", state },
+                    { "code", code },
+                    { "error", error },
+                }));
+        }
 
         var (session, result) = await FetchAndCheckSessionForSsoReturn(state, OAuthController.GithubCLASource);
 
@@ -76,31 +86,19 @@ public class OAuthReturnController : SSOLoginController
         if (string.IsNullOrEmpty(session.SsoReturnUrl))
             return NotFound("Session not setup with a return URL");
 
-        var accessToken = await GetAccessTokenFromCode(code, session.SsoReturnUrl);
+        var redirectUri = session.SsoReturnUrl;
 
-        // Clear things here already to make sure even on partial failure the request can't be repeated
         ClearSSOParametersFromSession(session);
+        await Database.SaveChangesAsync();
 
-        if (string.IsNullOrEmpty(accessToken))
-            return this.WorkingForbid("Failed to retrieve access token from Github");
+        if (!string.IsNullOrEmpty(error) || string.IsNullOrEmpty(code))
+            return this.WorkingForbid("GitHub authorization was cancelled or failed. Please try again.");
 
-        // We got an access token, authentication was successful. Now we can fetch the user data
-        var githubAPI = new GithubAPI(githubLog, accessToken) { ThrowIfNotConfigured = true };
-
-        GithubUserInfo? user;
-
+        GithubUserInfo user;
         List<GithubEmail> emails;
         try
         {
-            user = await githubAPI.GetCurrentUserInfo() ?? throw new Exception("Github user data is null");
-
-            if (string.IsNullOrWhiteSpace(user.Login) || user.Id == 0)
-                throw new Exception("Didn't get username or id");
-
-            emails = await githubAPI.GetCurrentUserEmails();
-
-            if (emails == null || emails.Count < 1)
-                throw new Exception("Didn't get user email info");
+            (user, emails) = await githubOAuth.GetUser(code, redirectUri);
         }
         catch (Exception e)
         {
@@ -139,67 +137,5 @@ public class OAuthReturnController : SSOLoginController
             user.Login, user.Id, session.Id, signature.GithubEmail);
 
         return Redirect("/cla/sign");
-    }
-
-    [NonAction]
-    private async Task<string?> GetAccessTokenFromCode(string code, string sessionRedirectUri)
-    {
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        try
-        {
-            var response = await client.PostAsync(QueryHelpers.AddQueryString(
-                "https://github.com/login/oauth/access_token",
-                new Dictionary<string, string?>
-                {
-                    { "client_id", githubClientId },
-                    { "client_secret", githubClientSecret },
-                    { "code", code },
-                    { "redirect_uri", sessionRedirectUri },
-                }), new StringContent(string.Empty));
-
-            var content = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"Non-success status code from Github: {response.StatusCode}, response: {content}");
-            }
-
-            var data = JsonSerializer.Deserialize<GithubAccessTokenResponse>(content,
-                new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new NullDecodedJsonException();
-
-            Validator.ValidateObject(data, new ValidationContext(data));
-
-            if (OAuthController.WantedGithubCLAScopes.Split(' ').Any(s => !data.Scope.Contains(s)))
-            {
-                throw new Exception($"We didn't get the scopes we asked for {data.Scope} != " +
-                    $"{OAuthController.WantedGithubCLAScopes}");
-            }
-
-            if (data.TokenType != "bearer")
-                throw new Exception($"Unexpected token type returned from github ({data.TokenType})");
-
-            return data.AccessToken;
-        }
-        catch (Exception e)
-        {
-            Logger.LogWarning(e, "Failed to get access token from github due to error");
-            return null;
-        }
-    }
-
-    private class GithubAccessTokenResponse
-    {
-        [Required]
-        [JsonPropertyName("access_token")]
-        public string AccessToken { get; set; } = string.Empty;
-
-        [Required]
-        public string Scope { get; set; } = string.Empty;
-
-        [Required]
-        [JsonPropertyName("token_type")]
-        public string TokenType { get; set; } = string.Empty;
     }
 }

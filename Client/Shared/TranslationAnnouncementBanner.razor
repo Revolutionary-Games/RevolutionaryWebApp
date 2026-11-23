@@ -9,6 +9,11 @@
 @implements INotificationHandler<TranslationProjectUpdated>
 @implements IAsyncDisposable
 
+@if (operationInProgress)
+{
+    <StatusMessageShower Type="SiteNoticeType.Warning" Message="@OperationMessage"/>
+}
+
 @if (closedForMaintenance)
 {
     <div class="alert alert-warning" role="alert">
@@ -36,7 +41,12 @@
 }
 
 @code {
+    private const string OperationMessage = "An operation is in progress on this project. " +
+        "Saving translations may time out or fail until it finishes. " +
+        "Please wait until this notice disappears before saving.";
+
     private bool closedForMaintenance;
+    private bool operationInProgress;
     private bool subscribing;
     private bool subscribed;
     private long loadedProjectId;
@@ -67,6 +77,7 @@
     public async ValueTask DisposeAsync()
     {
         disposed = true;
+        NotificationHandler.OnConnectionStatusChanged -= OnConnectionStatusChanged;
         expiryTimer?.Dispose();
         if (registered)
             await NotificationHandler.Unregister(this);
@@ -79,7 +90,17 @@
         {
             await NotificationHandler.Register(this);
             registered = true;
+            NotificationHandler.OnConnectionStatusChanged += OnConnectionStatusChanged;
+
+            // Recheck after joining the group in case the lock changed during the first request.
+            await Load();
         }
+    }
+
+    private void OnConnectionStatusChanged(object sender, bool connectionLost)
+    {
+        if (!connectionLost && !disposed)
+            _ = InvokeAsync(Load);
     }
 
     private async Task Load()
@@ -96,6 +117,7 @@
 
             announcement = project?.Announcement;
             closedForMaintenance = project?.ClosedForMaintenance == true;
+            operationInProgress = project?.OperationInProgress == true;
             loadedProjectId = project?.Id ?? 0;
             ScheduleExpiry();
         }

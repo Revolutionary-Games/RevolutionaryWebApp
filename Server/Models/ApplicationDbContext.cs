@@ -27,6 +27,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserContributionCount> UserContributionCounts { get; set; } = null!;
     public DbSet<APIKey> APIKeys { get; set; } = null!;
     public DbSet<Session> Sessions { get; set; } = null!;
+    public DbSet<TwoFactorAuthentication> TwoFactorAuthentications { get; set; } = null!;
     public DbSet<AccessKey> AccessKeys { get; set; } = null!;
     public DbSet<DehydratedObject> DehydratedObjects { get; set; } = null!;
     public DbSet<DevBuild> DevBuilds { get; set; } = null!;
@@ -109,6 +110,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TranslationUnit> TranslationUnits { get; set; } = null!;
     public DbSet<TranslationValue> TranslationValues { get; set; } = null!;
     public DbSet<TranslationChange> TranslationChanges { get; set; } = null!;
+    public DbSet<TranslationProblem> TranslationProblems { get; set; } = null!;
     public DbSet<TranslationComment> TranslationComments { get; set; } = null!;
     public DbSet<TranslationSuggestion> TranslationSuggestions { get; set; } = null!;
     public DbSet<TranslationSuggestionVote> TranslationSuggestionVotes { get; set; } = null!;
@@ -525,7 +527,16 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasOne(d => d.User).WithMany(p => p.Sessions).OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne<User>().WithMany().HasForeignKey(s => s.PendingTwoFactorUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.Property(e => e.StartedAt).HasDefaultValueSql("timezone('utc', now())");
+        });
+
+        modelBuilder.Entity<TwoFactorAuthentication>(entity =>
+        {
+            entity.HasOne(t => t.User).WithOne(u => u.TwoFactorAuthentication)
+                .HasForeignKey<TwoFactorAuthentication>(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RedeemableCode>(entity =>

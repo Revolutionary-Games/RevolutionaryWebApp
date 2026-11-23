@@ -29,6 +29,19 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
     public long? UserId { get; set; }
     public User? User { get; set; }
 
+    // A pending login never populates UserId, User, or CachedUserGroups.
+    [ConcurrencyCheck]
+    public long? PendingTwoFactorUserId { get; set; }
+
+    public Guid? PendingTwoFactorKeyVersion { get; set; }
+
+    public DateTime? PendingTwoFactorExpiresAt { get; set; }
+
+    [MaxLength(1024)]
+    public string? PendingTwoFactorReturnUrl { get; set; }
+
+    public DateTime? TwoFactorVerifiedAt { get; set; }
+
     public string? CachedUserGroupsRaw { get; set; }
 
     public string? SsoNonce { get; set; }
@@ -114,6 +127,7 @@ public class Session : IContainsHashedLookUps, IUpdateNotifications
             SsoReturnUrl = SsoReturnUrl,
             SsoStartTime = SsoStartTime,
             LastLoggedIn = LastLoggedIn,
+            TwoFactorVerifiedAt = TwoFactorVerifiedAt,
             StartedAt = StartedAt,
             LastUsedFrom = LastUsedFrom,
             InProgressClaSignature = InProgressClaSignature,

@@ -14,6 +14,10 @@ public static class AppInfo
 
     public const string SessionCookieName = "ThriveWebSession";
 
+    public const string SudoModeResponseHeader = "X-Sudo-Mode";
+    public const string SudoModeRequiredHeaderValue = "required";
+    public const string SudoModeWebsiteOnlyMessage = "This operation can only be performed on the website.";
+
     // TODO: find out why this is not used
     public const string SecondPrecisionDurationFormat = @"hh\:mm\:ss";
 
@@ -118,6 +122,8 @@ public static class AppInfo
     /// </summary>
     public const int SessionExpirySeconds = 60 * 60 * 24 * 30;
 
+    public const int SudoModeDurationMinutes = 15;
+
     public const int AbsoluteMaxSessionDuration = 60 * 60 * 24 * 90;
 
     /// <summary>
@@ -183,7 +189,7 @@ public static class AppInfo
 
     // When changed would be nice to also update the value in RevolutionaryWebApp.Server.csproj
     public const int Major = 3;
-    public const int Minor = 5;
+    public const int Minor = 6;
 
     public const int DefaultMaxLauncherLinks = 5;
 

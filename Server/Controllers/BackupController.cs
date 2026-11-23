@@ -77,6 +77,7 @@ public class BackupController : Controller
     }
 
     [HttpPost("{id:long}/download")]
+    [RequireSudoMode]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<string>> GetDownloadLink([Required] long id)
     {
@@ -105,6 +106,7 @@ public class BackupController : Controller
     }
 
     [HttpDelete("{id:long}")]
+    [RequireSudoMode]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
     public async Task<ActionResult<string>> Delete([Required] long id)
     {

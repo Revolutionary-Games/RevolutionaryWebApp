@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Models;
+using Shared;
 using Shared.Models;
 using Shared.Models.Enums;
 
@@ -29,6 +30,9 @@ public static class APIKeyAuthorization
         }
 
         var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<RequireSudoModeAttribute>() != null)
+            return AppInfo.SudoModeWebsiteOnlyMessage;
+
         var scope = endpoint?.Metadata.GetMetadata<APIKeyScopeAttribute>();
         if (scope == null)
             return "This operation does not allow API key authentication.";

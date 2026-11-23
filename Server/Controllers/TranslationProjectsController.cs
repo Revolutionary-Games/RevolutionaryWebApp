@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -11,6 +12,7 @@ using DevCenterCommunication.Models;
 using Filters;
 using Hangfire;
 using Jobs;
+using Jobs.RegularlyScheduled;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -27,6 +29,11 @@ using Shared.Utilities;
 [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.Admin)]
 public class TranslationProjectsController : Controller
 {
+    private static readonly JsonSerializerOptions CreditsJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+    };
+
     private readonly ILogger<TranslationProjectsController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobs;
@@ -37,6 +44,32 @@ public class TranslationProjectsController : Controller
         this.logger = logger;
         this.database = database;
         this.jobs = jobs;
+    }
+
+    [HttpPost("qualityChecks/recheck")]
+    [CountContribution(1000)]
+    public async Task<IActionResult> RecheckQuality()
+    {
+        var projectIds = await database.TranslationProjects.AsNoTracking()
+            .Where(project => project.Enabled && project.QualityChecks != TranslationQualityCheck.None)
+            .OrderBy(project => project.Id).Select(project => project.Id)
+            .ToListAsync(HttpContext.RequestAborted);
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        foreach (var projectId in projectIds)
+        {
+            jobs.Enqueue<CheckTranslationQualityJob>(job => job.ExecuteForProject(projectId, true,
+                CancellationToken.None));
+        }
+
+        database.AdminActions.Add(new AdminAction(
+            $"Queued full translation quality checks for {projectIds.Count} projects")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+        logger.LogInformation("Full translation quality checks queued for {Count} projects by {Email}",
+            projectIds.Count, user.Email);
+        return Ok($"Full quality checks queued for {projectIds.Count} translation projects.");
     }
 
     [HttpPut("{id:long}/maintenance")]
@@ -217,6 +250,7 @@ public class TranslationProjectsController : Controller
             return Conflict("Project slug already exists");
         }
 
+        var qualityChecksChanged = project.QualityChecks != request.QualityChecks;
         Apply(project, request, format);
         project.BumpUpdatedAt();
         var user = HttpContext.AuthenticatedUserOrThrow();
@@ -225,6 +259,12 @@ public class TranslationProjectsController : Controller
             PerformedById = user.Id,
         });
         await database.SaveChangesAsync();
+        if (qualityChecksChanged)
+        {
+            jobs.Enqueue<CheckTranslationQualityJob>(job => job.ExecuteForProject(project.Id, true,
+                CancellationToken.None));
+        }
+
         logger.LogInformation("Translation project {Slug} updated by {Email}", project.Slug, user.Email);
         return project.GetConfigurationDTO();
     }
@@ -254,6 +294,35 @@ public class TranslationProjectsController : Controller
         logger.LogInformation("Translation project publish queued for {ProjectId} by {Email}", id,
             HttpContext.AuthenticatedUserOrThrow().Email);
         return Accepted();
+    }
+
+    [HttpPost("{id:long}/credits")]
+    [APIKeyWrite(false)]
+    public async Task<IActionResult> ExportCredits(long id, CancellationToken cancellationToken)
+    {
+        if (!await database.TranslationProjects.AsNoTracking().AnyAsync(project => project.Id == id, cancellationToken))
+            return NotFound();
+
+        // Retain credit for overwritten translations, inactive keys, and deleted languages.
+        // ContributorUserId also credits accepted suggestions to their author rather than the reviewer.
+        var contributions = database.TranslationChanges.IgnoreQueryFilters().AsNoTracking()
+            .Where(change => change.ProjectId == id && change.CountsAsContribution && change.ContributorUserId != null)
+            .GroupBy(change => change.ContributorUserId!.Value)
+            .Select(group => new { UserId = group.Key, Count = group.Count() });
+        var credits = await contributions.Join(database.Users.AsNoTracking(), contribution => contribution.UserId,
+                user => user.Id, (contribution, user) => new { contribution.Count, User = user })
+            .OrderByDescending(credit => credit.Count).ThenBy(credit => credit.User.Id)
+            .Select(credit => new TranslationCreditDTO
+            {
+                Name = string.IsNullOrWhiteSpace(credit.User.DisplayName) ?
+                    credit.User.UserName :
+                    credit.User.DisplayName,
+                ContributionCount = credit.Count,
+                Email = credit.User.Email,
+            }).ToArrayAsync(cancellationToken);
+
+        return File(JsonSerializer.SerializeToUtf8Bytes(credits, CreditsJsonOptions), "application/json",
+            "translators.json");
     }
 
     [HttpGet("{id:long}/syncStatus")]
@@ -501,9 +570,12 @@ public class TranslationProjectsController : Controller
         project.SourceFilePattern = format == TranslationFormat.Manual ? null : request.SourceFilePath;
         project.TranslationFilePattern = format == TranslationFormat.Manual ? null : request.TranslationFilePattern;
         project.SourceLocationBaseUrl = string.IsNullOrWhiteSpace(request.SourceLocationBaseUrl) ?
-            null : request.SourceLocationBaseUrl;
+            null :
+            request.SourceLocationBaseUrl;
         project.SourceLocationUrlTemplate = string.IsNullOrWhiteSpace(request.SourceLocationUrlTemplate) ?
-            null : request.SourceLocationUrlTemplate;
+            null :
+            request.SourceLocationUrlTemplate;
+        project.QualityChecks = request.QualityChecks;
         project.DictionaryId = request.DictionaryId;
         project.Enabled = request.Enabled;
     }
@@ -513,6 +585,14 @@ public class TranslationProjectsController : Controller
     {
         format = request.Format;
         error = null;
+        if ((request.QualityChecks & ~(TranslationQualityCheck.CSharpFormatting |
+                TranslationQualityCheck.SentenceConsistency | TranslationQualityCheck.BbCodeTags |
+                TranslationQualityCheck.ThriveBbCode)) != 0)
+        {
+            error = "Invalid translation quality checks";
+            return false;
+        }
+
         if (!Enum.IsDefined(format))
         {
             error = "Invalid translation format";

@@ -16,6 +16,7 @@ using Utilities;
 ///   the easiest way to make sure that these tasks can't take up a lot of processing power from other potential tasks.
 /// </summary>
 [DisableConcurrentExecution(1000)]
+[Queue("stackwalk")]
 public class StartStackwalkOnReportJob
 {
     private readonly ILogger<StartStackwalkOnReportJob> logger;

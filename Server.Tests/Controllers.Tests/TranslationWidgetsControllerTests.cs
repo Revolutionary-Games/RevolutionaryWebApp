@@ -14,6 +14,8 @@ using Server.Controllers;
 using Server.Models;
 using Server.Models.Translations;
 using Shared.Models;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 public class TranslationWidgetsControllerTests
@@ -117,6 +119,55 @@ public class TranslationWidgetsControllerTests
         foreach (var slug in new[] { "missing", "disabled", "deleted" })
         {
             using var response = await client.GetAsync($"/widgets/{slug}/horizontal-auto.svg");
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        using var pngResponse = await client.GetAsync("/widgets/thrive/horizontal-auto.png");
+        pngResponse.EnsureSuccessStatusCode();
+        Assert.Equal("image/png", pngResponse.Content.Headers.ContentType!.MediaType);
+        Assert.True(pngResponse.Headers.CacheControl!.Public);
+        Assert.Equal(TimeSpan.FromMinutes(30), pngResponse.Headers.CacheControl.MaxAge);
+        var pngData = await pngResponse.Content.ReadAsByteArrayAsync();
+        using var pngImage = Image.Load<Rgba32>(pngData);
+        Assert.True(pngImage.Width > 500);
+        Assert.Equal(76 + 3 * 28, pngImage.Height);
+
+        var greenPixels = 0;
+        var grayPixels = 0;
+        for (int y = 0; y < pngImage.Height; ++y)
+        {
+            for (int x = 0; x < pngImage.Width; ++x)
+            {
+                var pixel = pngImage[x, y];
+                if (pixel == new Rgba32(43, 148, 100, 255))
+                    ++greenPixels;
+                if (pixel == new Rgba32(229, 233, 237, 255))
+                    ++grayPixels;
+            }
+        }
+
+        Assert.InRange(greenPixels, 260 * 20, 2 * 260 * 20);
+        Assert.True(grayPixels > 0);
+
+        var cachedPng = await client.GetByteArrayAsync("/widgets/thrive/horizontal-auto.png?ignored=1");
+        Assert.Equal(pngData, cachedPng);
+        project.Name = "Changed after png generation";
+        await database.SaveChangesAsync();
+        Assert.Equal(pngData, await client.GetByteArrayAsync("/widgets/thrive/horizontal-auto.png"));
+
+        using var emptyPngResponse = await client.GetAsync("/widgets/empty/horizontal-auto.png");
+        emptyPngResponse.EnsureSuccessStatusCode();
+        using var emptyPng = Image.Load<Rgba32>(await emptyPngResponse.Content.ReadAsByteArrayAsync());
+        Assert.Equal(76 + 28, emptyPng.Height);
+        Assert.Equal(new Rgba32(229, 233, 237, 255), emptyPng[213, 74]);
+        using var noLanguagesPngResponse = await client.GetAsync("/widgets/no-languages/horizontal-auto.png");
+        noLanguagesPngResponse.EnsureSuccessStatusCode();
+        using var noLanguagesPng = Image.Load<Rgba32>(await noLanguagesPngResponse.Content.ReadAsByteArrayAsync());
+        Assert.Equal(76 + 28, noLanguagesPng.Height);
+
+        foreach (var slug in new[] { "missing", "disabled", "deleted" })
+        {
+            using var response = await client.GetAsync($"/widgets/{slug}/horizontal-auto.png");
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
     }

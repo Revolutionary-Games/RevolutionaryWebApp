@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Server.Services;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,9 +21,20 @@ public static class TranslationSourceChangeHelper
         var subscribers = await database.TranslationSubscriptions.AsNoTracking()
             .Where(subscription => subscription.ProjectId == project.Id &&
                 subscription.EventType == TranslationSubscriptionEventType.SourceChange)
-            .Select(subscription => new { subscription.UserId, subscription.LanguageCode })
             .ToListAsync(cancellationToken);
-        foreach (var subscriber in subscribers.OrderBy(subscription => subscription.LanguageCode)
+        var targets = await database.TranslationValues.Where(value => value.ProjectId == project.Id &&
+                value.Key == unit.Key && value.LanguageCode != project.SourceLanguage &&
+                value.State != TranslationState.NeedsTranslation)
+            .ToListAsync(cancellationToken);
+        await MarkTargetsOutdated(database, project, unit, targets, subscribers, cancellationToken);
+    }
+
+    public static async Task MarkTargetsOutdated(ApplicationDbContext database, TranslationProject project,
+        TranslationUnit unit, IEnumerable<TranslationValue> targets, IEnumerable<TranslationSubscription> subscribers,
+        CancellationToken cancellationToken)
+    {
+        foreach (var subscriber in subscribers
+                     .OrderBy(subscription => subscription.LanguageCode, StringComparer.Ordinal)
                      .DistinctBy(subscription => subscription.UserId))
         {
             var path = $"/translations/{project.Slug}/{subscriber.LanguageCode}";
@@ -34,22 +46,17 @@ public static class TranslationSourceChangeHelper
                 continue;
             }
 
-            database.UserNotifications.Add(new UserNotification
+            await database.UserNotifications.AddAsync(new UserNotification
             {
                 UserId = subscriber.UserId,
                 Type = UserNotificationType.TranslationSourceChanged,
                 DeduplicationKey = $"source-change:{project.Id}:{subscriber.LanguageCode}:{Guid.NewGuid()}",
                 Message = $"Source text changed in {project.Name}. Please review translations needing changes.",
                 TargetPath = path,
-            });
+            }, cancellationToken);
         }
 
-        var targets = await database.TranslationValues.Where(value => value.ProjectId == project.Id &&
-                value.Key == unit.Key && value.LanguageCode != project.SourceLanguage &&
-                value.State != TranslationState.NeedsTranslation)
-            .ToListAsync(cancellationToken);
-
-        foreach (var target in targets)
+        foreach (var target in targets.Where(value => value.State != TranslationState.NeedsTranslation))
         {
             var priorState = target.State;
             target.State = TranslationState.NeedsTranslation;
@@ -71,7 +78,8 @@ public static class TranslationSourceChangeHelper
                 OldState = priorState,
                 NewState = target.State,
                 SourceRevision = unit.SourceRevision,
-                ProjectRevision = project.Format == TranslationFormat.Manual ? ++project.CurrentRevision :
+                ProjectRevision = project.Format == TranslationFormat.Manual ?
+                    ++project.CurrentRevision :
                     target.PendingRevision!.Value,
             }, cancellationToken);
         }

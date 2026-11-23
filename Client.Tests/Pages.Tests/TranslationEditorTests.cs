@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -41,7 +42,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         var reference = Substitute.For<IModalReference>();
         reference.Result.Returns(Task.FromResult(leave ? ModalResult.Ok(true) : ModalResult.Cancel()));
         modal.Show<ConfirmAction>(Arg.Any<string>(), Arg.Any<ModalParameters>()).Returns(reference);
-        var page = PrepareEditor(modal);
+        var page = await PrepareEditor(modal);
         var navigation = Services.GetRequiredService<NavigationManager>();
         var originalUri = navigation.Uri;
         Assert.False(page.FindComponent<NavigationLock>().Instance.ConfirmExternalNavigation);
@@ -74,7 +75,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
     public async Task RevertingChangesAllowsNavigationWithoutConfirmation()
     {
         var modal = Substitute.For<IModalService>();
-        var page = PrepareEditor(modal);
+        var page = await PrepareEditor(modal);
         await page.InvokeAsync(() => page.Find("#source-explanation").Input("Changed"));
         await page.WaitForAssertionAsync(() =>
             Assert.True(page.FindComponent<NavigationLock>().Instance.ConfirmExternalNavigation));
@@ -94,7 +95,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
     [InlineData(false)]
     public async Task OnlySuccessfulSaveClearsWarning(bool success)
     {
-        var page = PrepareEditor(Substitute.For<IModalService>(), success);
+        var page = await PrepareEditor(Substitute.For<IModalService>(), success);
         await page.InvokeAsync(() => page.Find("#source-explanation").Input("Changed"));
         await page.InvokeAsync(() => page.FindAll("button")
             .Single(button => button.TextContent.Trim() == "Save").Click());
@@ -113,7 +114,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         var reference = Substitute.For<IModalReference>();
         reference.Result.Returns(Task.FromResult(ModalResult.Ok(true)), Task.FromResult(ModalResult.Cancel()));
         modal.Show<ConfirmAction>(Arg.Any<string>(), Arg.Any<ModalParameters>()).Returns(reference);
-        var page = PrepareEditor(modal);
+        var page = await PrepareEditor(modal);
         await page.InvokeAsync(() => page.Find("#translation-text").Input("Unsaved draft"));
         await page.InvokeAsync(() => page.FindAll("button")
             .Single(button => button.TextContent.Trim() == "Next →").Click());
@@ -130,6 +131,71 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         Assert.Equal(originalUri, navigation.Uri);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SaveAndContinueStopsForActiveWarningsAndAllowsIgnoredWarnings(bool ignored)
+    {
+        var page = await PrepareEditor(Substitute.For<IModalService>(), savedProblems:
+        [
+            new TranslationProblemDTO { Id = 1, Message = "Fix capitalization", Ignored = ignored },
+        ]);
+        await page.InvokeAsync(() => page.Find("#source-explanation").Input("Changed"));
+        await page.InvokeAsync(() => page.FindAll("button")
+            .Single(button => button.TextContent.Trim() == "Save & Continue").Click());
+
+        await page.WaitForAssertionAsync(() =>
+        {
+            if (ignored)
+            {
+                Assert.Equal("NEXT", page.Instance.Key);
+            }
+            else
+            {
+                Assert.Equal("KEY", page.Instance.Key);
+                Assert.Contains("Please review the warnings before continuing", page.Markup);
+                Assert.Contains("Fix capitalization", page.Markup);
+                Assert.Contains("Ignore warning", page.Markup);
+            }
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IgnoringWarningRequiresConfirmationAndMovesItBelowEditor(bool confirm)
+    {
+        var modal = Substitute.For<IModalService>();
+        var reference = Substitute.For<IModalReference>();
+        reference.Result.Returns(Task.FromResult(confirm ? ModalResult.Ok(true) : ModalResult.Cancel()));
+        modal.Show<ConfirmAction>(Arg.Any<string>(), Arg.Any<ModalParameters>()).Returns(reference);
+        var page = await PrepareEditor(modal, initialProblems:
+        [
+            new TranslationProblemDTO { Id = 1, Message = "Fix capitalization" },
+        ]);
+        await page.InvokeAsync(() => page.FindAll("button")
+            .Single(button => button.TextContent.Trim() == "Ignore warning").Click());
+
+        modal.Received(1).Show<ConfirmAction>("Ignore translation warning?", Arg.Any<ModalParameters>());
+        await page.WaitForAssertionAsync(() =>
+        {
+            Assert.Equal(!confirm, page.FindAll("button").Any(button => button.TextContent.Trim() == "Ignore warning"));
+            Assert.Equal(confirm, page.Markup.Contains("Ignored warning: Fix capitalization",
+                StringComparison.Ordinal));
+            if (confirm)
+            {
+                Assert.Contains("Ignored by", page.Markup);
+                Assert.Equal(1, page.FindComponent<UsernameDisplayer>().Instance.UserId);
+                Assert.Contains(page.FindComponents<RecentTimeShortener>(), component =>
+                    component.Instance.Time == new DateTime(2026, 11, 12, 12, 0, 0, DateTimeKind.Utc));
+                var editorPosition = page.Markup.IndexOf("translation-text", StringComparison.Ordinal);
+                var warningPosition = page.Markup.IndexOf("Ignored warning: Fix capitalization",
+                    StringComparison.Ordinal);
+                Assert.True(warningPosition > editorPosition);
+            }
+        });
+    }
+
     Task IAsyncLifetime.DisposeAsync()
     {
         return DisposeAsync().AsTask();
@@ -140,7 +206,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
     {
         ComponentFactories.AddStub<MarkdownRenderer>();
         ComponentFactories.AddStub<UsernameDisplayer>();
-        var page = PrepareEditor(Substitute.For<IModalService>(), comments: new[]
+        var page = await PrepareEditor(Substitute.For<IModalService>(), comments: new[]
         {
             new TranslationCommentDTO
             {
@@ -158,7 +224,9 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         Assert.Single(page.FindComponents<ReportButton>());
     }
 
-    private IRenderedComponent<TranslationEditor> PrepareEditor(IModalService modal, bool saveSucceeds = true,
+    private async Task<IRenderedComponent<TranslationEditor>> PrepareEditor(IModalService modal,
+        bool saveSucceeds = true,
+        TranslationProblemDTO[]? savedProblems = null, TranslationProblemDTO[]? initialProblems = null,
         TranslationCommentDTO[]? comments = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -170,14 +238,18 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         Services.AddSingleton(userInfo);
         Services.AddSingleton(CSRFMockFactory.Create());
         Services.AddSingleton<NotificationHandler>();
+        Services.AddSingleton<UsernameRetriever>();
         ComponentFactories.AddStub<TranslationAnnouncementBanner>();
         var http = Services.AddMockHttpClient();
+        http.When(HttpMethod.Post, "/api/v1/UserManagement/usernames")
+            .RespondJson(new Dictionary<long, string> { { 1, "Translator" } });
         http.When(HttpMethod.Get, "/api/v1/translations/projects/thrive")
             .RespondJson(new TranslationProjectDTO { Id = 1, Slug = "thrive", SourceLanguage = "en" });
         var data = new TranslationEditorDTO
         {
             ProjectId = 1, LanguageCode = "en", Key = "KEY", Text = "Source", Explanation = "Context",
             CanEditSource = true, CanVerify = true, State = TranslationState.Translated,
+            Problems = initialProblems ?? [],
         };
         http.When(HttpMethod.Get, "/api/v1/translationEditor").WithQueryString("key", "NEXT")
             .RespondJson(new TranslationEditorDTO
@@ -187,6 +259,15 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
             });
         http.When(HttpMethod.Get, "/api/v1/translationEditor").WithQueryString("key", "KEY").RespondJson(data);
         http.When(HttpMethod.Get, "/api/v1/translationEditor/neighbor").RespondJson("NEXT");
+        http.When(HttpMethod.Post, "/api/v1/translationProblems/1/ignore").Respond(HttpStatusCode.NoContent);
+        http.When(HttpMethod.Get, "/api/v1/translationProblems").RespondJson(new[]
+        {
+            new TranslationProblemDTO
+            {
+                Id = 1, Message = "Fix capitalization", Ignored = true, IgnoredByUserId = 1,
+                IgnoredAt = new DateTime(2026, 11, 12, 12, 0, 0, DateTimeKind.Utc),
+            },
+        });
         http.When(HttpMethod.Get, "/api/v1/translationDiscussion/comments")
             .RespondJson(comments ?? Array.Empty<TranslationCommentDTO>());
         http.When(HttpMethod.Get, "/api/v1/translationSubscriptions")
@@ -202,7 +283,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
             http.When(HttpMethod.Put, "/api/v1/translationEditor").RespondJson(new TranslationEditorDTO
             {
                 ProjectId = 1, LanguageCode = "en", Key = "KEY", Text = "Source", Explanation = "Changed",
-                CanEditSource = true, State = TranslationState.Translated,
+                CanEditSource = true, State = TranslationState.Translated, Problems = savedProblems ?? [],
             });
             http.When(HttpMethod.Get, "/api/v1/translationSubscriptions/prompt")
                 .RespondJson(new TranslationSubscriptionPromptDTO());
@@ -216,8 +297,10 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         var page = Render<TranslationEditor>(parameters => parameters
             .Add(p => p.Slug, "thrive").Add(p => p.LanguageCode, "en")
             .AddCascadingValue(modal));
-        page.WaitForAssertion(() => Assert.True(
-            page.Find("#translation-text").GetAttribute("value") == "Source", page.Markup));
+        await page.WaitForAssertionAsync(
+            () => Assert.True(page.FindAll("#translation-text").SingleOrDefault()?.GetAttribute("value") == "Source",
+                page.Markup),
+            TimeSpan.FromSeconds(15));
         return page;
     }
 }
