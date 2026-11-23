@@ -1,0 +1,43 @@
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+
+<AccessLimited RequiredAccess="GroupType.User" AutoRedirectIfNotLoggedIn="false">
+    <Button Small="true" ButtonStyle="outline-danger" class="ms-2" OnPressed="@OpenReport"
+            title="Report for moderator review">
+        <i class="fa-solid fa-flag" aria-hidden="true"></i> Report
+    </Button>
+</AccessLimited>
+@if (submitted)
+{
+    <span class="text-muted ms-2" role="status">Report submitted for review.</span>
+}
+
+@code {
+    private bool submitted;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    [Parameter]
+    public UserReportTarget Target { get; set; }
+
+    [Parameter]
+    public long TargetId { get; set; }
+
+    [Parameter]
+    public string TargetName { get; set; } = "content";
+
+    private async Task OpenReport()
+    {
+        var parameters = new ModalParameters
+        {
+            { nameof(ReportContent.Target), Target },
+            { nameof(ReportContent.TargetId), TargetId },
+            { nameof(ReportContent.TargetName), TargetName },
+        };
+
+        var result = await Modal.Show<ReportContent>("Report Content", parameters).Result;
+        if (!result.Cancelled)
+            submitted = true;
+    }
+}

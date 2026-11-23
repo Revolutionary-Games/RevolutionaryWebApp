@@ -1,0 +1,80 @@
+@using RevolutionaryWebApp.Shared
+@inject HttpClient Http
+@using RevolutionaryWebApp.Shared.Models
+
+<BootstrapModal OnCancel="@Cancel">
+    <div class="modal-body">
+        <p>Report @TargetName for moderator review.</p>
+        <label for="report-reason" class="form-label">Reason</label>
+        <select id="report-reason" class="form-select" @bind="reason" disabled="@processing">
+            <option value="@UserReportReason.Spam">Spam</option>
+            <option value="@UserReportReason.InappropriateBehaviour">Inappropriate behaviour</option>
+            <option value="@UserReportReason.Other">Other</option>
+        </select>
+        <label for="report-details" class="form-label mt-2">Details</label>
+        <textarea id="report-details" class="form-control" maxlength="4000" rows="4"
+                  @bind="details" disabled="@processing"></textarea>
+        <StatusMessageShower Message="@error" Type="SiteNoticeType.Danger"/>
+    </div>
+    <div class="modal-footer">
+        <Button ButtonStyle="secondary" Enabled="@(!processing)" OnPressed="@Cancel">Cancel</Button>
+        <Button ButtonStyle="danger" Enabled="@(!processing && (reason != UserReportReason.Other ||
+                                                               !string.IsNullOrWhiteSpace(details)))"
+                Spinner="@processing" OnPressed="@Submit">Submit report</Button>
+    </div>
+</BootstrapModal>
+
+@code {
+    private UserReportReason reason;
+    private string details = string.Empty;
+    private string? error;
+    private bool processing;
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; } = null!;
+
+    [Parameter]
+    public UserReportTarget Target { get; set; }
+
+    [Parameter]
+    public long TargetId { get; set; }
+
+    [Parameter]
+    public string TargetName { get; set; } = "content";
+
+    private async Task Submit()
+    {
+        processing = true;
+        error = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/v1/UserReports", new CreateUserReportRequest
+            {
+                Target = Target, TargetId = TargetId, Reason = reason, Details = details,
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                error = $"Could not submit report: {await response.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            await ModalInstance.CloseAsync(ModalResult.Ok(true));
+        }
+        catch (Exception exception)
+        {
+            error = $"Could not submit report: {exception.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task Cancel()
+    {
+        return ModalInstance.CancelAsync();
+    }
+}
