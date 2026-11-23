@@ -113,7 +113,7 @@ public class UserReportsControllerTests
     [InlineData(GroupType.ContentModerator, 71, false, true)]
     [InlineData(GroupType.ContentModerator, 73, false, false)]
     [InlineData(GroupType.ContentModerator, 1, true, false)]
-    [InlineData(GroupType.Admin, 1000, true, true)]
+    [InlineData(GroupType.Admin, 1000, false, true)]
     public async Task PurgePermissionsUseFirstContributionRatherThanAccountAge(GroupType group, int hours,
         bool allTime, bool allowed)
     {
@@ -151,6 +151,32 @@ public class UserReportsControllerTests
             Assert.Null(report.ResolvedAt);
             Assert.Empty(await database.AdminActions.ToListAsync());
         }
+    }
+
+    [Theory]
+    [InlineData(49, false)]
+    [InlineData(48, true)]
+    public async Task ExtendedPurgeRequiresSudoBeforeChangingTheReport(int hours, bool allTime)
+    {
+        await using var database = CreateDatabase();
+        var actor = AddUser(database, 1, GroupType.Admin);
+        var target = AddUser(database, 2);
+        var report = new UserReport { TargetUserId = target.Id, TargetUserName = target.UserName };
+        await database.UserReports.AddAsync(report);
+        await database.SaveChangesAsync();
+
+        var response = await CreateController(database, actor).Resolve(report.Id, new ResolveUserReportRequest
+        {
+            Resolution = UserReportResolution.Approved, Action = ModerationAction.PurgeAndBan,
+            PurgeHours = hours, AllTime = allTime, Note = "Serious spammer",
+        });
+
+        var forbidden = Assert.IsType<ObjectResult>(response);
+        Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+        Assert.Equal(AppInfo.SudoModeWebsiteOnlyMessage, forbidden.Value);
+        Assert.Null(report.ResolvedAt);
+        Assert.False(target.ModerationPending);
+        Assert.Empty(await database.PendingUserModeration.ToListAsync());
     }
 
     [Fact]
