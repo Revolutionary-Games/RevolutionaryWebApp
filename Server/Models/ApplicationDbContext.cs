@@ -351,8 +351,13 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<RegistrationBlock>().HasOne(block => block.TargetUser).WithMany()
-            .HasForeignKey(block => block.TargetUserId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<RegistrationBlock>(entity =>
+        {
+            entity.HasOne(block => block.TargetUser).WithMany().HasForeignKey(block => block.TargetUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(block => block.ModerationAction).WithMany().HasForeignKey(block => block.ModerationActionId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
 
         modelBuilder.Entity<UserContributionCount>(entity =>
         {

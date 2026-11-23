@@ -1,0 +1,121 @@
+@page "/moderation"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ComponentUrlHelper URLHelper
+@inject NotificationHandler NotificationHandler
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using System.Threading
+@inherits PaginatedPage<UserReportDTO>
+@implements INotificationHandler<UserReportListUpdated>
+
+<AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator"
+               ShowDefaultNoAccess="true">
+    <h3>Moderation queue</h3>
+    <p>Review reports in chronological order. Open a report to review the content, attach notes, and take action.</p>
+    <label for="moderation-solved" class="form-check-label mb-3">
+        <input id="moderation-solved" class="form-check-input" type="checkbox"
+               @bind="IncludeSolved" @bind:after="@FilterChanged"/> Include solved reports
+    </label>
+    <StatusMessageShower Message="@Error" Type="SiteNoticeType.Danger"/>
+    <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage" PageCount="@Data?.PageCount"
+                    OnPageChanged="@(async page => await ChangePage(page))"
+                    OnSortChanged="@(async column => await ChangeSort(column))" GetSortClass="@SortClass"
+                    ShowContentSpinner="@VisibleFetchInProgress" Columns="@columns" ShowNoContent="@NoItemsFound">
+        @if (Data != null)
+        {
+            @foreach (var report in Data.Results)
+            {
+                <tr @key="report.Id">
+                    <th scope="row"><NavLink href="@($"moderation/{report.Id}")">@report.Id</NavLink></th>
+                    <td><RecentTimeShortener Time="@report.CreatedAt"/></td>
+                    <td>@report.TargetUserName</td>
+                    <td>@report.Target</td>
+                    <td>@report.Reason</td>
+                    <td>@(report.Resolution?.ToString() ?? "Awaiting review")</td>
+                </tr>
+            }
+        }
+    </PaginatedTable>
+</AccessLimited>
+<DevCenterTitle>Moderation queue</DevCenterTitle>
+
+@code {
+    private readonly List<TableColumn> columns = new()
+    {
+        new TableColumn("Id", true),
+        new TableColumn("CreatedAt", true),
+        new TableColumn("Reported user", false),
+        new TableColumn("Content", false),
+        new TableColumn("Reason", false),
+        new TableColumn("Status", false),
+    };
+
+    public ModerationQueue() : base(new SortHelper("CreatedAt", SortDirection.Ascending))
+    {
+    }
+
+    [QueryStringParameter]
+    public bool IncludeSolved { get; set; }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        this.SetParametersFromQueryString(Navigation);
+        return base.SetParametersAsync(parameters);
+    }
+
+    public Task Handle(UserReportListUpdated notification, CancellationToken cancellationToken)
+    {
+        // Resolution changes membership in the unsolved view.
+        WantsToFetchDataAgain = true;
+        return Task.CompletedTask;
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        if (currentUserGroups.HasGroup(GroupType.Admin) || currentUserGroups.HasGroup(GroupType.ContentModerator))
+            groups.Add(NotificationGroups.ModerationQueue);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await NotificationHandler.Unregister(this);
+        await base.DisposeAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+        await base.OnInitializedAsync();
+    }
+
+    protected override Dictionary<string, string?> CreatePageRequestParams()
+    {
+        var result = base.CreatePageRequestParams();
+        result["solved"] = IncludeSolved.ToString();
+        return result;
+    }
+
+    protected override Task<PagedResult<UserReportDTO>?> StartQuery(Dictionary<string, string?> requestParams)
+    {
+        return Http.GetFromJsonAsync<PagedResult<UserReportDTO>>(
+            QueryHelpers.AddQueryString("api/v1/UserReports", requestParams));
+    }
+
+    protected override async Task OnQuerySent(Dictionary<string, string?> requestParams)
+    {
+        requestParams.Remove("solved");
+        if (IncludeSolved)
+            requestParams["includeSolved"] = "true";
+        await URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private Task FilterChanged()
+    {
+        Page = 1;
+        return FetchData();
+    }
+}

@@ -21,36 +21,33 @@ public class RequireSudoModeAttribute : Attribute, IAsyncAuthorizationFilter, IO
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
-        if (context.Result != null)
-            return;
+        context.Result ??= await CheckSudoMode(context.HttpContext);
+    }
 
-        var http = context.HttpContext;
+    internal static async Task<IActionResult?> CheckSudoMode(HttpContext http)
+    {
         var user = http.AuthenticatedUser();
         if (user == null)
-        {
-            context.Result = new UnauthorizedResult();
-            return;
-        }
+            return new UnauthorizedResult();
 
         var session = http.AuthenticatedUserSession();
         if (session == null)
         {
-            context.Result = new ObjectResult(AppInfo.SudoModeWebsiteOnlyMessage)
+            return new ObjectResult(AppInfo.SudoModeWebsiteOnlyMessage)
             {
                 StatusCode = StatusCodes.Status403Forbidden,
             };
-            return;
         }
 
         var sudo = http.RequestServices.GetRequiredService<SudoModeService>();
         if (await sudo.IsActive(session, user.Id))
-            return;
+            return null;
 
         var twoFactor = http.RequestServices.GetRequiredService<TwoFactorService>();
         var enabled = (await twoFactor.GetStatus(user.Id)).Enabled;
         http.Response.Headers[AppInfo.SudoModeResponseHeader] = AppInfo.SudoModeRequiredHeaderValue;
         http.Response.Headers.CacheControl = "no-store";
-        context.Result = new ObjectResult(new SudoModeRequiredDTO
+        return new ObjectResult(new SudoModeRequiredDTO
         {
             TwoFactorEnabled = enabled,
             Message = enabled ?

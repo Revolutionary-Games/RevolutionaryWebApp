@@ -3964,7 +3964,6 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("created_at");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
@@ -3974,8 +3973,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(45)")
                         .HasColumnName("ip_address");
 
+                    b.Property<long?>("ModerationActionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("moderation_action_id");
+
                     b.Property<string>("NormalizedEmail")
-                        .IsRequired()
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
                         .HasColumnName("normalized_email");
@@ -3989,6 +3991,9 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.HasIndex("IPAddress")
                         .HasDatabaseName("ix_registration_blocks_ip_address");
+
+                    b.HasIndex("ModerationActionId")
+                        .HasDatabaseName("ix_registration_blocks_moderation_action_id");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("ix_registration_blocks_normalized_email");
@@ -7310,11 +7315,19 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.RegistrationBlock", b =>
                 {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.PendingUserModeration", "ModerationAction")
+                        .WithMany()
+                        .HasForeignKey("ModerationActionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_registration_blocks_pending_user_moderation_moderation_acti");
+
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "TargetUser")
                         .WithMany()
                         .HasForeignKey("TargetUserId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_registration_blocks_users_target_user_id");
+
+                    b.Navigation("ModerationAction");
 
                     b.Navigation("TargetUser");
                 });
