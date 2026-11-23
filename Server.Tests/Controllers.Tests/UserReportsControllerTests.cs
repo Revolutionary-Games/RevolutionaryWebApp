@@ -222,6 +222,7 @@ public class UserReportsControllerTests
         {
             UserId = target.Id, LastUsedFrom = IPAddress.Parse("::ffff:192.0.2.1"),
         });
+        target.LastKnownIPAddress = "192.0.2.3";
         var report = new UserReport { TargetUserId = target.Id, TargetUserName = target.UserName };
         await database.UserReports.AddAsync(report);
         await database.SaveChangesAsync();
@@ -243,6 +244,16 @@ public class UserReportsControllerTests
         Assert.True(await RegistrationBlocks.IsBlocked(database, target.Email, null));
         Assert.True(await RegistrationBlocks.IsBlocked(database, "another@example.org", IPAddress.Parse("192.0.2.1")));
         Assert.False(await RegistrationBlocks.IsBlocked(database, "another@example.org", IPAddress.Parse("192.0.2.2")));
+        var blocks = await database.RegistrationBlocks.ToListAsync();
+        Assert.All(blocks, block => Assert.Equal(pending.Id, block.ModerationActionId));
+        Assert.Equal(target.Email, Assert.Single(blocks, block => block.IPAddress == null).Email);
+        var ipBlocks = blocks.Where(block => block.IPAddress != null).ToList();
+        Assert.Equal(new[] { "192.0.2.1", "192.0.2.3" }, ipBlocks.Select(block => block.IPAddress).Order());
+        Assert.All(ipBlocks, block =>
+        {
+            Assert.Null(block.Email);
+            Assert.Null(block.NormalizedEmail);
+        });
         Assert.Empty(await database.Sessions.ToListAsync());
         Assert.Single(await database.TranslationChanges.Where(change =>
             change.Kind == TranslationChangeKind.ModerationRevert).ToListAsync());
@@ -273,6 +284,10 @@ public class UserReportsControllerTests
         Assert.Equal(originalCutoff, pending.PurgeCutoff);
         Assert.NotNull(pending.CleanedUpAt);
         Assert.Empty(await database.Sessions.ToListAsync());
+        blocks = await database.RegistrationBlocks.ToListAsync();
+        Assert.Equal(4, blocks.Count);
+        Assert.All(blocks, block => Assert.Equal(pending.Id, block.ModerationActionId));
+        Assert.Single(blocks, block => block.IPAddress == IPAddress.Loopback.ToString());
         var logs = await database.AdminActions.CountAsync();
         await moderation.ProcessPendingAction(pending.Id, true, CancellationToken.None);
         Assert.Equal(logs, await database.AdminActions.CountAsync());
