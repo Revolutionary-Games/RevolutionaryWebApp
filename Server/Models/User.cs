@@ -92,6 +92,8 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
 
     public DateTime? MutedUntil { get; set; }
 
+    public bool ModerationPending { get; set; }
+
     public string? SuspendedReason { get; set; }
     public bool SuspendedManually { get; set; }
 
@@ -363,6 +365,11 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
 
     public CachedUserGroups AccessCachedGroupsOrThrow()
     {
+        // Authentication already loads the user. Restrict pending bans and mutes using that data,
+        // without a request-wide filter, extra query, or contribution lock.
+        if (ModerationPending || MutedUntil > DateTime.UtcNow)
+            return new CachedUserGroups(GroupType.RestrictedUser);
+
         if (ResolvedGroups != null)
             return ResolvedGroups;
 

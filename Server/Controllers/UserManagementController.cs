@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using Services;
 using Shared;
 using Shared.Forms;
 using Shared.Models;
@@ -32,13 +33,16 @@ public class UserManagementController : Controller
     private readonly ILogger<UserManagementController> logger;
     private readonly NotificationsEnabledDb database;
     private readonly IHubContext<NotificationsHub, INotifications> notifications;
+    private readonly ModerationService moderation;
 
     public UserManagementController(ILogger<UserManagementController> logger,
-        NotificationsEnabledDb database, IHubContext<NotificationsHub, INotifications> notifications)
+        NotificationsEnabledDb database, IHubContext<NotificationsHub, INotifications> notifications,
+        ModerationService moderation)
     {
         this.logger = logger;
         this.database = database;
         this.notifications = notifications;
+        this.moderation = moderation;
     }
 
     [HttpGet("profile/{username}")]
@@ -456,9 +460,7 @@ public class UserManagementController : Controller
         if (request.SuspendedUntil < earliestUnsuspendTime)
             return BadRequest("Suspended until time is too early (user needs to be suspended for longer)");
 
-        user.SuspendedUntil = request.SuspendedUntil;
-        user.SuspendedManually = true;
-        user.SuspendedReason = request.Reason;
+        await moderation.StageBan(actingUser, user, request.SuspendedUntil, request.Reason);
 
         await database.AdminActions.AddAsync(new AdminAction(
             $"User {user.UserName} suspended manually for reason \"{request.Reason}\" " +
@@ -475,15 +477,14 @@ public class UserManagementController : Controller
 
         try
         {
-            await LogoutEverywhere(user, actingUser);
+            moderation.SchedulePendingActions();
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to logout user everywhere when suspending");
-            return Problem("Failed to logout user everywhere, but suspension was successful");
+            logger.LogError(e, "Could not schedule suspension; the recovery job will process the saved action");
         }
 
-        return Ok("User suspended");
+        return Ok("User restricted. Suspension and session revocation will run in five seconds.");
     }
 
     [HttpPost("{id:long}/unsuspend")]

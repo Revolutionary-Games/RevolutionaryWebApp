@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Blazored.Modal;
 using Blazored.Modal.Services;
 using Bunit;
+using Bunit.TestDoubles;
 using Client.Pages;
 using Client.Shared;
 using Client.Shared.Modals;
@@ -134,7 +135,31 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         return DisposeAsync().AsTask();
     }
 
-    private IRenderedComponent<TranslationEditor> PrepareEditor(IModalService modal, bool saveSucceeds = true)
+    [Fact]
+    public async Task ReportedCommentsAreCollapsedUntilExpanded()
+    {
+        ComponentFactories.AddStub<MarkdownRenderer>();
+        ComponentFactories.AddStub<UsernameDisplayer>();
+        var page = PrepareEditor(Substitute.For<IModalService>(), comments: new[]
+        {
+            new TranslationCommentDTO
+            {
+                Id = 42, AuthorUserId = 2, LanguageCode = "en", RawMarkdown = "Reported content", Reported = true,
+            },
+        });
+        await page.InvokeAsync(() => page.FindAll("button").Single(button =>
+            button.TextContent.Contains("Comments (")).Click());
+        await page.WaitForAssertionAsync(() => Assert.Contains("awaiting moderation", page.Markup));
+        Assert.Empty(page.FindComponents<Stub<MarkdownRenderer>>());
+        await page.InvokeAsync(() => page.FindAll("button").Single(button =>
+            button.TextContent.Contains("Show reported comment")).Click());
+        await page.WaitForAssertionAsync(() => Assert.Single(page.FindComponents<Stub<MarkdownRenderer>>()));
+        Assert.Contains("border-danger", page.Markup);
+        Assert.Single(page.FindComponents<ReportButton>());
+    }
+
+    private IRenderedComponent<TranslationEditor> PrepareEditor(IModalService modal, bool saveSucceeds = true,
+        TranslationCommentDTO[]? comments = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var userInfo = new CurrentUserInfo();
@@ -163,7 +188,9 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         http.When(HttpMethod.Get, "/api/v1/translationEditor").WithQueryString("key", "KEY").RespondJson(data);
         http.When(HttpMethod.Get, "/api/v1/translationEditor/neighbor").RespondJson("NEXT");
         http.When(HttpMethod.Get, "/api/v1/translationDiscussion/comments")
-            .RespondJson(Array.Empty<TranslationCommentDTO>());
+            .RespondJson(comments ?? Array.Empty<TranslationCommentDTO>());
+        http.When(HttpMethod.Get, "/api/v1/translationSubscriptions")
+            .RespondJson(new TranslationSubscriptionDTO { ProjectId = 1, LanguageCode = "en" });
         http.When(HttpMethod.Get, "/api/v1/translationSuggestions")
             .RespondJson(Array.Empty<TranslationSuggestionDTO>());
         http.When(HttpMethod.Get, "/api/v1/translationDictionaries/matching")
