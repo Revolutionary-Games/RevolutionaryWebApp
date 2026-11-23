@@ -4,6 +4,8 @@
 @using System.Threading
 @implements IDisposable
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@inject Services.CurrentUserInfo UserInfo
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
@@ -57,7 +59,8 @@
         {
             @foreach (var item in data.Results)
             {
-                <tr @key="@($"{item.Description}:{item.Id}:{item.Key}:{item.LanguageCode}")">
+                <tr @key="@($"{item.Description}:{item.Id}:{item.Key}:{item.LanguageCode}")"
+                    class="@(item.Reported ? "border border-danger text-danger" : string.Empty)">
                     <td>
                         <RecentTimeShortener Time="@item.CreatedAt"/>
                     </td>
@@ -72,7 +75,15 @@
                         }
                     </td>
                     <td>
-                        @if (item.PreviousText != null && item.PreviousText != item.Text)
+                        @if (item.Reported && !expandedComments.Contains(item.Id) &&
+                             !(UserInfo.InfoReady && (UserInfo.IsAdmin ||
+                                 UserInfo.HasGroup(GroupType.ContentModerator))))
+                        {
+                            <p>This comment has been reported and is awaiting moderation.</p>
+                            <Button Small="true" ButtonStyle="outline-secondary"
+                                    OnPressed="@(() => ExpandComment(item.Id))">Show reported comment</Button>
+                        }
+                        else if (item.PreviousText != null && item.PreviousText != item.Text)
                         {
                             <CharacterDiffView OldText="@item.PreviousText" NewText="@item.Text"/>
                         }
@@ -95,6 +106,7 @@
 
 @code {
 
+    private readonly HashSet<long> expandedComments = new();
     private readonly List<TableColumn> columns =
     [
         new("When", false),
@@ -175,6 +187,11 @@
             TranslationActivityView.Edits => "Edits",
             _ => throw new ArgumentException("Invalid activity view"),
         };
+    }
+
+    private void ExpandComment(long id)
+    {
+        expandedComments.Add(id);
     }
 
     private async Task Load()

@@ -270,6 +270,12 @@ else
                                 <RecentTimeShortener Time="@change.CreatedAt" IncludeSeconds="@false"
                                                      ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
                             </small>
+                            @if (change.ActorUserId != null && UserInfo.InfoReady &&
+                                 change.ActorUserId != UserInfo.Info?.Id)
+                            {
+                                <ReportButton Target="UserReportTarget.TranslationChange" TargetId="@change.Id"
+                                              TargetName="translation edit"/>
+                            }
                             <div>@change.OldState → @change.NewState</div>
                             @if (change.OldText != change.NewText)
                             {
@@ -282,10 +288,17 @@ else
                 {
                     @foreach (var comment in comments)
                     {
-                        <div class="border-bottom pb-2 mb-2 @(comment.LanguageCode == project?.SourceLanguage ?
+                        <div @key="comment.Id" class="border-bottom pb-2 mb-2
+                             @(comment.Reported ? "border border-danger bg-danger-subtle rounded p-2" : string.Empty)
+                             @(comment.LanguageCode == project?.SourceLanguage ?
                                                                 "border border-primary bg-light rounded p-2" :
                                                                 string.Empty)">
                             <div class="clearfix">
+                                @if (UserInfo.InfoReady && UserInfo.Info?.Id != comment.AuthorUserId)
+                                {
+                                    <ReportButton Target="UserReportTarget.TranslationComment" TargetId="@comment.Id"
+                                                  TargetName="translation comment"/>
+                                }
                                 @if (CanDeleteComment(comment))
                                 {
                                     <Button ButtonStyle="outline-danger" Small="true" class="float-end ms-2"
@@ -307,7 +320,27 @@ else
                                                          ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
                                 </small>
                             </div>
-                            <MarkdownRenderer MarkdownText="@comment.RawMarkdown"/>
+                            @if (comment.Reported)
+                            {
+                                <p class="text-danger mb-1">This comment has been reported and is awaiting moderation.</p>
+                                @if (!expandedReportedComments.Contains(comment.Id) &&
+                                     !(UserInfo.InfoReady && (UserInfo.IsAdmin ||
+                                         UserInfo.HasGroup(GroupType.ContentModerator))))
+                                {
+                                    <Button Small="true" ButtonStyle="outline-secondary"
+                                            OnPressed="@(() => ExpandReportedComment(comment.Id))">
+                                        Show reported comment
+                                    </Button>
+                                }
+                                else
+                                {
+                                    <MarkdownRenderer MarkdownText="@comment.RawMarkdown"/>
+                                }
+                            }
+                            else
+                            {
+                                <MarkdownRenderer MarkdownText="@comment.RawMarkdown"/>
+                            }
                         </div>
                     }
 
@@ -547,6 +580,8 @@ else
 <DevCenterTitle>Translate @Key</DevCenterTitle>
 
 @code {
+    private readonly HashSet<long> expandedReportedComments = new();
+
     private readonly Dictionary<string, (string Text, TranslationState State, string? Explanation)> drafts = new();
 
     private ElementReference translationInput;
@@ -1576,6 +1611,11 @@ else
     private void UserInfoChanged(object? sender, UserDTO? newInfo)
     {
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ExpandReportedComment(long commentId)
+    {
+        expandedReportedComments.Add(commentId);
     }
 
 }
