@@ -2836,6 +2836,93 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("meeting_poll_voting_records", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ModerationRevision", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AfterJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("after_json");
+
+                    b.Property<string>("BeforeJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("before_json");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("KeyJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("key_json");
+
+                    b.Property<DateTime?>("RevertedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reverted_at");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_moderation_revisions");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_moderation_revisions_user_id_created_at");
+
+                    b.ToTable("moderation_revisions", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ModerationUploadDeletion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("DeleteAfter")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delete_after");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("path");
+
+                    b.Property<int>("Storage")
+                        .HasColumnType("integer")
+                        .HasColumnName("storage");
+
+                    b.HasKey("Id")
+                        .HasName("pk_moderation_upload_deletions");
+
+                    b.HasIndex("CompletedAt", "DeleteAfter")
+                        .HasDatabaseName("ix_moderation_upload_deletions_completed_at_delete_after");
+
+                    b.ToTable("moderation_upload_deletions", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Pages.MediaFile", b =>
                 {
                     b.Property<long>("Id")
@@ -3554,6 +3641,74 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("patrons", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PendingUserModeration", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("ActorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTime?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<DateTime>("BanUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ban_until");
+
+                    b.Property<DateTime?>("CleanedUpAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cleaned_up_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("PurgeCutoff")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("purge_cutoff");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("reason");
+
+                    b.Property<long?>("ReportId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("report_id");
+
+                    b.Property<long?>("TargetUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("target_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pending_user_moderation");
+
+                    b.HasIndex("ActorUserId")
+                        .HasDatabaseName("ix_pending_user_moderation_actor_user_id");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("ix_pending_user_moderation_report_id");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("ix_pending_user_moderation_target_user_id");
+
+                    b.HasIndex("AppliedAt", "CreatedAt")
+                        .HasDatabaseName("ix_pending_user_moderation_applied_at_created_at");
+
+                    b.HasIndex("CleanedUpAt", "CreatedAt")
+                        .HasDatabaseName("ix_pending_user_moderation_cleaned_up_at_created_at");
+
+                    b.ToTable("pending_user_moderation", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PendingUserSignup", b =>
                 {
                     b.Property<long>("Id")
@@ -3793,6 +3948,55 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasDatabaseName("ix_redeemable_codes_hashed_id");
 
                     b.ToTable("redeemable_codes", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.RegistrationBlock", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("IPAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("normalized_email");
+
+                    b.Property<long?>("TargetUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("target_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_registration_blocks");
+
+                    b.HasIndex("IPAddress")
+                        .HasDatabaseName("ix_registration_blocks_ip_address");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("ix_registration_blocks_normalized_email");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("ix_registration_blocks_target_user_id");
+
+                    b.ToTable("registration_blocks", (string)null);
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.RemoteRunner", b =>
@@ -4696,6 +4900,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("character varying(35)")
                         .HasColumnName("language_code");
 
+                    b.Property<string>("NewExplanation")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("new_explanation");
+
                     b.Property<int>("NewState")
                         .HasColumnType("integer")
                         .HasColumnName("new_state");
@@ -4705,6 +4914,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(20000)
                         .HasColumnType("character varying(20000)")
                         .HasColumnName("new_text");
+
+                    b.Property<string>("OldExplanation")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("old_explanation");
 
                     b.Property<int>("OldState")
                         .HasColumnType("integer")
@@ -4723,6 +4937,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<long>("ProjectRevision")
                         .HasColumnType("bigint")
                         .HasColumnName("project_revision");
+
+                    b.Property<DateTime?>("RevertedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reverted_at");
 
                     b.Property<long>("SourceRevision")
                         .HasColumnType("bigint")
@@ -4789,6 +5007,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasMaxLength(10000)
                         .HasColumnType("character varying(10000)")
                         .HasColumnName("raw_markdown");
+
+                    b.Property<bool>("Reported")
+                        .HasColumnType("boolean")
+                        .HasColumnName("reported");
 
                     b.HasKey("Id")
                         .HasName("pk_translation_comments");
@@ -5289,6 +5511,12 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("user_id");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValue(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc))
+                        .HasColumnName("created_at");
+
                     b.Property<int>("Value")
                         .HasColumnType("integer")
                         .HasColumnName("value");
@@ -5383,6 +5611,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("timezone('utc', now())");
 
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by_user_id");
+
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
@@ -5429,6 +5661,9 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     b.HasKey("ProjectId", "Key")
                         .HasName("pk_translation_units");
+
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("ix_translation_units_created_by_user_id");
 
                     b.HasIndex("ProjectId", "Active")
                         .HasDatabaseName("ix_translation_units_project_id_active");
@@ -5637,6 +5872,11 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("text")
                         .HasColumnName("hashed_lfs_token");
 
+                    b.Property<string>("LastKnownIPAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("last_known_ip_address");
+
                     b.Property<DateTime?>("LauncherCodeExpires")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("launcher_code_expires");
@@ -5652,6 +5892,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<bool>("Local")
                         .HasColumnType("boolean")
                         .HasColumnName("local");
+
+                    b.Property<bool>("ModerationPending")
+                        .HasColumnType("boolean")
+                        .HasColumnName("moderation_pending");
+
+                    b.Property<DateTime?>("MutedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("muted_until");
 
                     b.Property<string>("NormalizedEmail")
                         .HasColumnType("text")
@@ -6097,6 +6345,140 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasDatabaseName("ix_user_notifications_user_id_read_at_created_at");
 
                     b.ToTable("user_notifications", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserReport", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ContentPath")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("content_path");
+
+                    b.Property<string>("ContentSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(50000)
+                        .HasColumnType("character varying(50000)")
+                        .HasColumnName("content_snapshot");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("details");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("integer")
+                        .HasColumnName("reason");
+
+                    b.Property<long?>("ReporterUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reporter_user_id");
+
+                    b.Property<int?>("Resolution")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolution");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<long?>("ResolvedByUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<int>("Target")
+                        .HasColumnType("integer")
+                        .HasColumnName("target");
+
+                    b.Property<long>("TargetId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("target_id");
+
+                    b.Property<long?>("TargetUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("target_user_id");
+
+                    b.Property<string>("TargetUserName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("target_user_name");
+
+                    b.Property<uint>("Xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_reports");
+
+                    b.HasIndex("ReporterUserId")
+                        .HasDatabaseName("ix_user_reports_reporter_user_id");
+
+                    b.HasIndex("ResolvedByUserId")
+                        .HasDatabaseName("ix_user_reports_resolved_by_user_id");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("ix_user_reports_target_user_id");
+
+                    b.HasIndex("ResolvedAt", "CreatedAt")
+                        .HasDatabaseName("ix_user_reports_resolved_at_created_at");
+
+                    b.HasIndex("Target", "TargetId", "ResolvedAt")
+                        .HasDatabaseName("ix_user_reports_target_target_id_resolved_at");
+
+                    b.ToTable("user_reports", (string)null);
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserReportNote", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long?>("AuthorUserId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("ReportId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("report_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_report_notes");
+
+                    b.HasIndex("AuthorUserId")
+                        .HasDatabaseName("ix_user_report_notes_author_user_id");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("ix_user_report_notes_report_id");
+
+                    b.ToTable("user_report_notes", (string)null);
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.WatchedKeyword", b =>
@@ -6708,6 +7090,17 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.ModerationRevision", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_moderation_revisions_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Pages.MediaFile", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.Pages.MediaFolder", "Folder")
@@ -6847,6 +7240,33 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("LastEditor");
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PendingUserModeration", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_pending_user_moderation_users_actor_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.UserReport", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_pending_user_moderation_user_reports_report_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_pending_user_moderation_users_target_user_id");
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("Report");
+
+                    b.Navigation("TargetUser");
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.PrecompiledObjectVersion", b =>
                 {
                     b.HasOne("RevolutionaryWebApp.Server.Models.User", "CreatedBy")
@@ -6886,6 +7306,17 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasConstraintName("fk_project_git_files_lfs_projects_lfs_project_id");
 
                     b.Navigation("LfsProject");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.RegistrationBlock", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_registration_blocks_users_target_user_id");
+
+                    b.Navigation("TargetUser");
                 });
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.SeenFeedItem", b =>
@@ -7310,12 +7741,20 @@ namespace RevolutionaryWebApp.Server.Migrations
 
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.Translations.TranslationUnit", b =>
                 {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_translation_units_users_created_by_user_id");
+
                     b.HasOne("RevolutionaryWebApp.Server.Models.Translations.TranslationProject", "Project")
                         .WithMany("Units")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_translation_units_translation_projects_project_id");
+
+                    b.Navigation("CreatedByUser");
 
                     b.Navigation("Project");
                 });
@@ -7403,6 +7842,53 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Navigation("CombinedInto");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserReport", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "ReporterUser")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_user_reports_users_reporter_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_user_reports_users_resolved_by_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_user_reports_users_target_user_id");
+
+                    b.Navigation("ReporterUser");
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("TargetUser");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserReportNote", b =>
+                {
+                    b.HasOne("RevolutionaryWebApp.Server.Models.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_user_report_notes_users_author_user_id");
+
+                    b.HasOne("RevolutionaryWebApp.Server.Models.UserReport", "Report")
+                        .WithMany("Notes")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_report_notes_user_reports_report_id");
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Report");
                 });
 
             modelBuilder.Entity("UserUserGroup", b =>
@@ -7737,6 +8223,11 @@ namespace RevolutionaryWebApp.Server.Migrations
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserGroup", b =>
                 {
                     b.Navigation("ExtraData");
+                });
+
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.UserReport", b =>
+                {
+                    b.Navigation("Notes");
                 });
 #pragma warning restore 612, 618
         }

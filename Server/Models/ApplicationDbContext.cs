@@ -122,6 +122,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TranslationSubscription> TranslationSubscriptions { get; set; } = null!;
     public DbSet<ModerationUploadDeletion> ModerationUploadDeletions { get; set; } = null!;
     public DbSet<ModerationRevision> ModerationRevisions { get; set; } = null!;
+    public DbSet<PendingUserModeration> PendingUserModeration { get; set; } = null!;
 
     public DbSet<UserReport> UserReports { get; set; } = null!;
     public DbSet<UserReportNote> UserReportNotes { get; set; } = null!;
@@ -137,8 +138,12 @@ public class ApplicationDbContext : DbContext
     /// </summary>
     public IModelUpdateNotificationSender? AutoSendNotifications { get; set; }
 
+    public bool SuppressModerationJournal { get; set; }
+
     public override int SaveChanges()
     {
+        ModerationRevisionJournal.Record(this).GetAwaiter().GetResult();
+
         var notificationsToSend = RunPreSaveChecks();
 
         var result = base.SaveChanges();
@@ -150,6 +155,8 @@ public class ApplicationDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        await ModerationRevisionJournal.Record(this);
+
         // Run pre-save validations and build notifications before saving
         var notificationsToSend = RunPreSaveChecks();
 
@@ -330,8 +337,20 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(note => note.AuthorUser).WithMany().HasForeignKey(note => note.AuthorUserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
         modelBuilder.Entity<ModerationRevision>().HasOne(revision => revision.User).WithMany()
             .HasForeignKey(revision => revision.UserId).OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<PendingUserModeration>(entity =>
+        {
+            entity.HasOne(action => action.TargetUser).WithMany().HasForeignKey(action => action.TargetUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(action => action.ActorUser).WithMany().HasForeignKey(action => action.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(action => action.Report).WithMany().HasForeignKey(action => action.ReportId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<RegistrationBlock>().HasOne(block => block.TargetUser).WithMany()
             .HasForeignKey(block => block.TargetUserId).OnDelete(DeleteBehavior.SetNull);
 
