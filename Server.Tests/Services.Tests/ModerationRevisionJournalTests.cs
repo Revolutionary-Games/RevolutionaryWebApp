@@ -12,6 +12,65 @@ using Xunit;
 
 public class ModerationRevisionJournalTests
 {
+    [Theory]
+    [InlineData("Original page body", true, false)]
+    [InlineData("Original page body", true, true)]
+    [InlineData("", true, false)]
+    [InlineData("", false, false)]
+    public async Task PageRollbackUsesNativeHistoryWhenAvailable(string originalContent, bool hasPreviousVersion,
+        bool laterEdit)
+    {
+        await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        var actor = new User("spam@example.org", "Spammer");
+        var good = new User("good@example.org", "Contributor");
+        actor.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
+        good.ForceResolveGroupsForTesting(new CachedUserGroups(GroupType.User));
+        database.Users.AddRange(actor, good);
+        var page = new VersionedPage("Original title") { LatestContent = originalContent, LastEditorId = good.Id };
+        database.VersionedPages.Add(page);
+        await database.SaveChangesAsync();
+
+        var spamContent = hasPreviousVersion ? "Spam page body" : new string('x', 1024 * 1024);
+        page.Title = "Spam title";
+        page.LatestContent = spamContent;
+        page.LastEditorId = actor.Id;
+        if (hasPreviousVersion)
+            database.PageVersions.Add(page.CreatePreviousVersion(1, originalContent));
+        await database.SaveChangesAsync();
+
+        var revision = await database.ModerationRevisions.SingleAsync();
+        using var before = JsonDocument.Parse(revision.BeforeJson);
+        using var after = JsonDocument.Parse(revision.AfterJson);
+        if (hasPreviousVersion)
+        {
+            Assert.Equal(1, before.RootElement.GetProperty(nameof(VersionedPage.LatestContent)).GetInt32());
+            Assert.NotEqual(spamContent, after.RootElement.GetProperty(nameof(VersionedPage.LatestContent)).GetString());
+        }
+        else
+        {
+            Assert.False(before.RootElement.TryGetProperty(nameof(VersionedPage.LatestContent), out _));
+            Assert.False(after.RootElement.TryGetProperty(nameof(VersionedPage.LatestContent), out _));
+        }
+
+        database.SuppressModerationJournal = true;
+        if (laterEdit)
+        {
+            // Keep the journaled metadata the same so only the content check can prevent the rollback.
+            page.LatestContent = "Later valid content";
+            database.PageVersions.Add(page.CreatePreviousVersion(2, spamContent));
+            await database.SaveChangesAsync();
+        }
+
+        var skipped = await ModerationRevisionJournal.Revert(database, actor.Id, revision.CreatedAt);
+        await database.SaveChangesAsync();
+        Assert.Equal(laterEdit ? 1 : 0, skipped);
+        Assert.Equal(laterEdit ? "Later valid content" : hasPreviousVersion ? originalContent : spamContent,
+            page.LatestContent);
+        Assert.Equal(laterEdit ? "Spam title" : "Original title", page.Title);
+        Assert.Equal(laterEdit ? actor.Id : good.Id, page.LastEditorId);
+    }
+
     [Fact]
     public async Task SecondPassRemovesLateEditsThatRestoreAlreadyRevertedSpam()
     {
