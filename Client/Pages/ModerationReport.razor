@@ -53,10 +53,10 @@
             <p>Status: @(report.Resolution?.ToString() ?? "Awaiting review")</p>
             @if (report.ResolvedAt != null)
             {
-                <p>Resolved
+                <p>Resolved at
                     <RecentTimeShortener Time="@report.ResolvedAt.Value"/>
                     by
-                    <UsernameDisplayer UserId="@report.ResolvedByUserId"/>
+                    <UsernameDisplayer UserId="@report.ResolvedByUserId" ShowPublicProfileLink="@true"/>
                 </p>
             }
 
