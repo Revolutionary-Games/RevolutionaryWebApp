@@ -181,25 +181,10 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         var page = await database.Database.VersionedPages.FindAsync(1L);
         Assert.NotNull(page);
 
-        // Page is now created, edit it next (this doesn't create a version yet as the initial content is empty)
+        // The first edit archives the blank draft.
 
         dto.LatestContent = "This is the page's content";
         dto.LastEditComment = "Comment";
-        dto.VersionNumber = 1;
-
-        result = await controller.UpdatePage(page.Id, dto);
-        Assert.Equal("1", Assert.IsType<OkObjectResult>(result).Value);
-
-        versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).ToListAsync();
-
-        Assert.Empty(versions);
-        Assert.Equal(dto.LastEditComment, page.LastEditComment);
-        Assert.Equal(dto.LatestContent, page.LatestContent);
-
-        // Second edit, now should create a version
-
-        dto.LatestContent = "This is the page's content\nWith a bit more content now";
-        dto.LastEditComment = "Update comment";
         dto.VersionNumber = 1;
 
         result = await controller.UpdatePage(page.Id, dto);
@@ -207,11 +192,25 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
 
         versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).ToListAsync();
 
-        Assert.Single(versions);
+        Assert.Equal(1, Assert.Single(versions).Version);
+        await CheckRetrievedContentMatches(controller, page.Id, 1, string.Empty);
+        Assert.Equal(dto.LastEditComment, page.LastEditComment);
+        Assert.Equal(dto.LatestContent, page.LatestContent);
 
-        var version = versions.First();
+        // Second edit
 
-        Assert.Equal(1, version.Version);
+        dto.LatestContent = "This is the page's content\nWith a bit more content now";
+        dto.LastEditComment = "Update comment";
+        dto.VersionNumber = 2;
+
+        result = await controller.UpdatePage(page.Id, dto);
+        Assert.Equal("3", Assert.IsType<OkObjectResult>(result).Value);
+
+        versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).ToListAsync();
+
+        Assert.Equal(2, versions.Count);
+        var version = Assert.Single(versions, item => item.Version == 2);
+
         Assert.Equal(page.Id, version.PageId);
         Assert.False(version.Deleted);
         Assert.Equal("Comment", version.EditComment);
@@ -222,19 +221,19 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
 
         dto.LatestContent = "This is the page's content\nWith a bit more content now and even more content";
         dto.LastEditComment = "Another comment";
-        dto.VersionNumber = 2;
+        dto.VersionNumber = 3;
 
         result = await controller.UpdatePage(page.Id, dto);
-        Assert.Equal("3", Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal("4", Assert.IsType<OkObjectResult>(result).Value);
 
         versions = await database.Database.PageVersions.Where(v => v.PageId == page.Id).OrderBy(v => v.Version)
             .ToListAsync();
 
-        Assert.Equal(2, versions.Count);
+        Assert.Equal(3, versions.Count);
 
-        version = versions.First();
+        version = versions[1];
 
-        Assert.Equal(1, version.Version);
+        Assert.Equal(2, version.Version);
         Assert.Equal(page.Id, version.PageId);
         Assert.False(version.Deleted);
         Assert.Equal("Comment", version.EditComment);
@@ -243,7 +242,7 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
 
         version = versions.Last();
 
-        Assert.Equal(2, version.Version);
+        Assert.Equal(3, version.Version);
         Assert.Equal(page.Id, version.PageId);
         Assert.False(version.Deleted);
         Assert.Equal("Update comment", version.EditComment);
@@ -334,12 +333,12 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         dto.VersionNumber = 1;
 
         var result = await controller.UpdatePage(page.Id, dto);
-        Assert.Equal("1", Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal("2", Assert.IsType<OkObjectResult>(result).Value);
         Assert.Equal(dto.LatestContent, page.LatestContent);
 
         dto.LatestContent = content2;
         dto.LastEditComment = "Comment 2";
-        dto.VersionNumber = 1;
+        dto.VersionNumber = 2;
 
         Assert.NotEqual(dto.LatestContent, page.LatestContent);
         result = await controller.UpdatePage(page.Id, dto);
@@ -348,7 +347,7 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
 
         dto.LatestContent = content3;
         dto.LastEditComment = "Comment 3";
-        dto.VersionNumber = 2;
+        dto.VersionNumber = 3;
 
         result = await controller.UpdatePage(page.Id, dto);
         Assert.IsType<OkObjectResult>(result);
@@ -356,7 +355,7 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
 
         dto.LatestContent = content4;
         dto.LastEditComment = "Comment 4";
-        dto.VersionNumber = 3;
+        dto.VersionNumber = 4;
 
         result = await controller.UpdatePage(page.Id, dto);
         Assert.IsType<OkObjectResult>(result);
@@ -370,19 +369,20 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         var history = Assert.IsType<ActionResult<PagedResult<PageVersionInfo>>>(historyResult).Value;
 
         Assert.NotNull(history);
-        Assert.Equal(3, history.RowCount);
+        Assert.Equal(4, history.RowCount);
 
         // Check that the history entries are correct
         Assert.Equal(1, history.Results[0].Version);
-        Assert.Equal("Comment 1", history.Results[0].EditComment);
+        Assert.Equal("Initial version", history.Results[0].EditComment);
 
         Assert.Equal(2, history.Results[1].Version);
-        Assert.Equal("Comment 2", history.Results[1].EditComment);
+        Assert.Equal("Comment 1", history.Results[1].EditComment);
 
         Assert.Equal(3, history.Results[2].Version);
-        Assert.Equal("Comment 3", history.Results[2].EditComment);
+        Assert.Equal("Comment 2", history.Results[2].EditComment);
 
-        // The 4th version is the current version, so it doesn't exist in the history yet
+        Assert.Equal(4, history.Results[3].Version);
+        Assert.Equal("Comment 3", history.Results[3].EditComment);
 
         // Check constant stuff that is the same for each item
         foreach (var item in history.Results)
@@ -393,27 +393,28 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         }
 
         // Check that original contents match
-        await CheckRetrievedContentMatches(controller, page.Id, 1, content1);
-        await CheckRetrievedContentMatches(controller, page.Id, 2, content2);
-        await CheckRetrievedContentMatches(controller, page.Id, 3, content3);
+        await CheckRetrievedContentMatches(controller, page.Id, 1, string.Empty);
+        await CheckRetrievedContentMatches(controller, page.Id, 2, content1);
+        await CheckRetrievedContentMatches(controller, page.Id, 3, content2);
+        await CheckRetrievedContentMatches(controller, page.Id, 4, content3);
         Assert.IsType<NotFoundResult>(Assert
-            .IsType<ActionResult<PageVersionDTO>>(await controller.GetResourceHistoricalVersion(page.Id, 4)).Result);
+            .IsType<ActionResult<PageVersionDTO>>(await controller.GetResourceHistoricalVersion(page.Id, 5)).Result);
 
         // Try reverting to a few versions
         Assert.NotEqual(content2, page.LatestContent);
-        var revertResult = await controller.RevertResourceVersion(page.Id, 2);
+        var revertResult = await controller.RevertResourceVersion(page.Id, 3);
         Assert.IsType<OkResult>(revertResult);
 
         Assert.Equal(content2, page.LatestContent);
-        Assert.Equal("Reverted to version 2", page.LastEditComment);
+        Assert.Equal("Reverted to version 3", page.LastEditComment);
 
         // Second revert
         Assert.NotEqual(content4, page.LatestContent);
-        revertResult = await controller.RevertResourceVersion(page.Id, 4);
+        revertResult = await controller.RevertResourceVersion(page.Id, 5);
         Assert.IsType<OkResult>(revertResult);
 
         Assert.Equal(content4, page.LatestContent);
-        Assert.Equal("Reverted to version 4", page.LastEditComment);
+        Assert.Equal("Reverted to version 5", page.LastEditComment);
 
         // Check that reverts caused new history entries
         var oldVersionCount = history.RowCount;
@@ -426,8 +427,8 @@ public sealed class PagesControllerTests : IClassFixture<SimpleFewUsersDatabaseW
         Assert.NotNull(history);
         Assert.Equal(oldVersionCount + 2, history.RowCount);
 
-        Assert.Equal("Reverted to version 2", history.Results.Last().EditComment);
-        Assert.Equal("Reverted to version 4", page.LastEditComment);
+        Assert.Equal("Reverted to version 3", history.Results.Last().EditComment);
+        Assert.Equal("Reverted to version 5", page.LastEditComment);
     }
 
     public void Dispose()

@@ -184,7 +184,7 @@ public abstract class BasePageController : Controller
     }
 
     /// <summary>
-    ///   Edits a page by user. Note that the first edit for an empty page doesn't create a version history entry.
+    ///   Edits a page and preserves its previous content in the version history.
     /// </summary>
     /// <param name="id">Page to edit</param>
     /// <param name="pageDTO">Updated data</param>
@@ -284,36 +284,17 @@ public abstract class BasePageController : Controller
             page.LastEditComment = pageDTO.LastEditComment;
             page.BumpUpdatedAt();
 
-            // Added a new version, create a version from the old one
-            if (!string.IsNullOrWhiteSpace(previousContent))
+            var previousVersion = page.CreatePreviousVersion(version, previousContent);
+            previousVersion.EditedById = previousAuthor;
+            previousVersion.EditComment = previousComment;
+            await Database.PageVersions.AddAsync(previousVersion);
+
+            ++version;
+            await Database.ActionLogEntries.AddAsync(new ActionLogEntry(
+                $"Page {page.Id} (\"{page.Title.Truncate()}\") edited, version is now: {version}", description)
             {
-                // Create edit history from the previous version to preserve the old content in case it needs to be
-                // reverted to
-                var previousVersion = page.CreatePreviousVersion(version, previousContent);
-                previousVersion.EditedById = previousAuthor;
-                previousVersion.EditComment = previousComment;
-
-                await Database.PageVersions.AddAsync(previousVersion);
-
-                ++version;
-
-                await Database.ActionLogEntries.AddAsync(new ActionLogEntry(
-                    $"Page {page.Id} (\"{page.Title.Truncate()}\") edited, version is now: {version}",
-                    description)
-                {
-                    PerformedById = user.Id,
-                });
-            }
-            else
-            {
-                // This is the initial version / replaces the previous version as it was empty
-                await Database.ActionLogEntries.AddAsync(new ActionLogEntry(
-                    $"Page {page.Id} (\"{page.Title.Truncate()}\") edited, last version was blank, " +
-                    $"version is now: {version}", description)
-                {
-                    PerformedById = user.Id,
-                });
-            }
+                PerformedById = user.Id,
+            });
 
             await EditNotificationsController.SendEditNotice(Notifications, user, page.Id, true);
         }
