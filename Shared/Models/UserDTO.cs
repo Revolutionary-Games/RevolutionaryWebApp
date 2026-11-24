@@ -23,6 +23,8 @@ public class UserDTO : ClientSideTimedModel
     public bool Local { get; set; }
     public string? SsoSource { get; set; }
 
+    public string? LastKnownIPAddress { get; set; }
+
     [Required]
     public CachedUserGroups Groups { get; set; } = null!;
 

@@ -471,6 +471,7 @@ public class User : UpdateableModel, IIdentity, IContainsHashedLookUps, IUpdateN
                 break;
             case RecordAccessLevel.Admin:
             {
+                info.LastKnownIPAddress = LastKnownIPAddress;
                 info.SuspendedUntil = SuspendedUntil;
                 info.SuspendedReason = SuspendedReason;
                 info.SuspendedManually = SuspendedManually;
