@@ -9,7 +9,9 @@
 <h3>Your Profile</h3>
 
 <AccessLimited RequiredAccess="GroupType.User" OrHasOverride="GroupType.RestrictedUser">
-    <UserInfoPageContent User="@(CurrentUserInfo.Info!)"/>
+    <SingleResourceDisplayer Error="@profileError" Loading="@loadingProfile" HasData="@true">
+        <UserInfoPageContent User="@(CurrentUserInfo.Info!)"/>
+    </SingleResourceDisplayer>
 
     <br/>
     <hr/>
@@ -61,6 +63,9 @@
 <DevCenterTitle>My Profile</DevCenterTitle>
 
 @code {
+    private bool loadingProfile;
+    private string? profileError;
+
     private bool processing;
     private string? errorMessage;
     private string? statusMessage;
@@ -68,6 +73,27 @@
     private string? codeRedeem;
 
     private bool CodeEntered => !string.IsNullOrEmpty(codeRedeem) && codeRedeem.Length >= AppInfo.MinimumRedeemableCodeLength;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!CurrentUserInfo.InfoReady || CurrentUserInfo.Info is not { } user)
+            return;
+
+        loadingProfile = true;
+        try
+        {
+            var profile = await Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{user.Id}");
+            CurrentUserInfo.OnReceivedAnUsersInfo(profile);
+        }
+        catch (Exception e)
+        {
+            profileError = $"Could not refresh your profile: {e.Message}";
+        }
+        finally
+        {
+            loadingProfile = false;
+        }
+    }
 
     private async void Submit()
     {
