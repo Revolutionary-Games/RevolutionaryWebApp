@@ -1,10 +1,13 @@
 @page "/translations/dictionaries/{DictionaryId:long}"
+@using RevolutionaryWebApp.Client.Models
 @using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
 @using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
+@using SharedBase.Utilities
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject ComponentUrlHelper URLHelper
@@ -47,14 +50,38 @@ else
         {
             @foreach (var term in Data.Results)
             {
-                <tr @key="term.Id">
-                    <td>
-                        <DictionaryTermEditor Term="@term" LanguageCode="@Language"
-                                              OnDirtyChanged="@EditorDirtyChanged"
-                                              OnSavingChanged="@EditorSavingChanged"
-                                              ResetVersion="@editorResetVersion"/>
-                    </td>
+                var termKey = (term.DictionaryId, term.SourceLanguageCode, term.Word, term.Context);
+                var status = rowStatuses.GetStatus((Language, termKey));
+                var (statusLabel, badgeStyle) = GetTermStatus(term);
+                <tr @key="termKey">
+                    <th scope="row">
+                        <Button ButtonStyle="link" class="p-0 text-start text-break text-decoration-none"
+                                aria-expanded="@(status.Expanded ? "true" : "false")"
+                                OnPressed="@(() => status.Expanded = !status.Expanded)">
+                            <span aria-hidden="true"><ItemExpander Expanded="@status.Expanded"/></span>
+                            <span class="ms-1 fw-semibold">@term.Word</span>
+                            @if (!string.IsNullOrWhiteSpace(term.Context))
+                            {
+                                <small class="text-muted fw-normal">(@term.Context)</small>
+                            }
+                        </Button>
+                    </th>
+                    <td>@(term.SourceExplanation?.Truncate(48) ?? "—")</td>
+                    <td>@(Language == "en" || string.IsNullOrWhiteSpace(term.TargetText) ? "—" : term.TargetText)</td>
+                    <td><span class="badge @badgeStyle">@statusLabel</span></td>
                 </tr>
+                @if (status.Expanded || dirtyEditors.Contains((term.Word, term.Context)) ||
+                    savingEditors.Contains((term.Word, term.Context)))
+                {
+                    <tr @key="(Language, termKey)" hidden="@(!status.Expanded)">
+                        <td colspan="@columns.Count">
+                            <DictionaryTermEditor Term="@term" LanguageCode="@Language"
+                                                  OnDirtyChanged="@EditorDirtyChanged"
+                                                  OnSavingChanged="@EditorSavingChanged"
+                                                  ResetVersion="@editorResetVersion"/>
+                        </td>
+                    </tr>
+                }
             }
         }
     </PaginatedTable>
@@ -170,7 +197,13 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     private readonly List<TableColumn> columns =
     [
         new("Term", true, nameof(DictionaryTermDTO.Word)),
+        new("Explanation", false),
+        new("Translation", false),
+        new("Status", false),
     ];
+
+    private readonly ClientSideResourceStatus<ExpandableResourceStatus,
+        (string Language, (long DictionaryId, string SourceLanguage, string Word, string Context) Term)> rowStatuses = new();
 
     private string[] languages = [];
     private long? loadedDictionaryId;
@@ -298,6 +331,22 @@ else if (UserInfo.InfoReady && !UserInfo.LoggedIn)
     protected override Task OnQuerySent(Dictionary<string, string?> requestParams)
     {
         return URLHelper.UpdateUrlHistoryIfChanged(requestParams);
+    }
+
+    private (string Label, string BadgeStyle) GetTermStatus(DictionaryTermDTO term)
+    {
+        if (term.Untranslatable)
+            return ("Terminology", "bg-info text-dark");
+
+        if (Language == "en")
+            return ("Source term", "bg-secondary");
+
+        if (string.IsNullOrWhiteSpace(term.TargetText))
+            return ("Untranslated", "bg-warning text-dark");
+
+        return term.State == TranslationState.NeedsTranslation ?
+            ("Needs changes", "bg-danger") :
+            ("Translated", "bg-success");
     }
 
     private void TriggerSearchDebounce()

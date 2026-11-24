@@ -38,7 +38,10 @@ public class DictionaryTermEditorTests : BunitContext
     {
         Services.AddMockHttpClient();
         var userInfo = new CurrentUserInfo();
-        userInfo.OnReceivedOurInfo(null);
+        userInfo.OnReceivedOurInfo(new UserDTO
+        {
+            Id = 1, Groups = new CachedUserGroups(GroupType.User), AcceptedTranslator = true,
+        });
         Services.AddSingleton(userInfo);
         var notifications = new List<(string Word, string Context, bool IsDirty)>();
         var term = new DictionaryTermDTO { Word = "Cat", Context = "animal" };
@@ -50,7 +53,7 @@ public class DictionaryTermEditorTests : BunitContext
         cut.Render(parameters => parameters.Add(p => p.Term, term));
         Assert.Equal(new[] { ("Cat", "animal", false) }, notifications);
 
-        cut.Find("input").Change("Kissa");
+        cut.Find("input").Input("Kissa");
         cut.Render(parameters => parameters.Add(p => p.Term, term));
         Assert.Equal(new[] { ("Cat", "animal", false), ("Cat", "animal", true) }, notifications);
         Assert.Equal("Kissa", cut.Find("input").GetAttribute("value"));
