@@ -206,7 +206,7 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
     {
         ComponentFactories.AddStub<MarkdownRenderer>();
         ComponentFactories.AddStub<UsernameDisplayer>();
-        var page = PrepareEditor(Substitute.For<IModalService>(), comments: new[]
+        var page = await PrepareEditor(Substitute.For<IModalService>(), comments: new[]
         {
             new TranslationCommentDTO
             {
@@ -225,8 +225,9 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
     }
 
     private async Task<IRenderedComponent<TranslationEditor>> PrepareEditor(IModalService modal,
-        bool saveSucceeds = true, TranslationCommentDTO[]? comments = null,
-        TranslationProblemDTO[]? savedProblems = null, TranslationProblemDTO[]? initialProblems = null)
+        bool saveSucceeds = true,
+        TranslationProblemDTO[]? savedProblems = null, TranslationProblemDTO[]? initialProblems = null,
+        TranslationCommentDTO[]? comments = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var userInfo = new CurrentUserInfo();

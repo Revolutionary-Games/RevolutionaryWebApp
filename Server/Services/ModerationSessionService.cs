@@ -29,7 +29,8 @@ public class ModerationSessionService
 
     public async Task RevokeSessions(long userId)
     {
-        var sessions = await database.Sessions.Where(session => session.UserId == userId).ToListAsync();
+        var sessions = await database.Sessions.Where(session =>
+            session.UserId == userId || session.PendingTwoFactorUserId == userId).ToListAsync();
         database.Sessions.RemoveRange(sessions);
         revokedSessions.AddRange(sessions.Select(session => session.Id));
         revokedUsers.Add(userId);

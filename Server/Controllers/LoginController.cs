@@ -530,6 +530,7 @@ public class LoginController : SSOLoginController
             throw new InvalidOperationException("Cannot begin a session for a suspended user");
 
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
+        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(remoteAddress);
 
         // Re-use existing session if there is one
         var session = await HttpContext.Request.Cookies.GetSession(Database);
@@ -1123,8 +1124,8 @@ public class LoginController : SSOLoginController
         if (user.TwoFactorAuthentication?.Enabled == true)
             return await BeginTwoFactorLogin(user, session, session.SsoReturnUrl);
 
-        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(HttpContext.Connection.RemoteIpAddress);
         var remoteAddress = HttpContext.Connection.RemoteIpAddress;
+        user.LastKnownIPAddress = RegistrationBlocks.NormalizeAddress(remoteAddress);
 
         string? returnUrl = session.SsoReturnUrl;
 

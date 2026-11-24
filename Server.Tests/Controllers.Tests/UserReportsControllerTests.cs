@@ -193,13 +193,17 @@ public class UserReportsControllerTests
         };
         await database.TranslationComments.AddAsync(oldComment);
         var value = database.TranslationValues.Local.Single();
+        var project = database.TranslationProjects.Local.Single();
+        project.QualityChecks = TranslationQualityCheck.CSharpFormatting;
+        value.Unit.SourceText = "Source {0}";
         value.Text = "Spam";
         value.State = TranslationState.Translated;
         value.LastEditedByUserId = target.Id;
+        TranslationQualityChecks.UpdateProblems(database, project, value);
         await database.TranslationChanges.AddAsync(new TranslationChange
         {
             ProjectId = 1, Key = "key", LanguageCode = "fi", ActorUserId = target.Id,
-            OldText = "Good", NewText = "Spam", OldState = TranslationState.Verified,
+            OldText = "Good {0}", NewText = "Spam", OldState = TranslationState.Verified,
             NewState = TranslationState.Translated,
         });
         var laterValue = new TranslationValue
@@ -238,8 +242,9 @@ public class UserReportsControllerTests
         await moderation.ProcessPendingAction(pending.Id, false, CancellationToken.None);
         Assert.True(comment.Deleted);
         Assert.False(oldComment.Deleted);
-        Assert.Equal("Good", value.Text);
+        Assert.Equal("Good {0}", value.Text);
         Assert.Equal(TranslationState.Verified, value.State);
+        Assert.Empty(await database.TranslationProblems.ToListAsync());
         Assert.Equal("Later useful edit", laterValue.Text);
         Assert.True(await RegistrationBlocks.IsBlocked(database, target.Email, null));
         Assert.True(await RegistrationBlocks.IsBlocked(database, "another@example.org", IPAddress.Parse("192.0.2.1")));
@@ -279,7 +284,7 @@ public class UserReportsControllerTests
         Assert.Empty(await database.ModerationRevisions.ToListAsync());
         await moderation.ProcessPendingAction(pending.Id, true, CancellationToken.None);
         Assert.True(lateComment.Deleted);
-        Assert.Equal("Good", value.Text);
+        Assert.Equal("Good {0}", value.Text);
         Assert.Equal(TranslationState.Verified, value.State);
         Assert.False(oldComment.Deleted);
         Assert.Equal(originalCutoff, pending.PurgeCutoff);
