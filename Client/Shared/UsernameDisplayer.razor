@@ -3,7 +3,11 @@
 
 @if (username != null)
 {
-    @if (ShowNavLink && UserId != null)
+    @if (ShowPublicProfileLink && UserId != null)
+    {
+        <NavLink href="@($"profiles/{Uri.EscapeDataString(username)}")">@username</NavLink>
+    }
+    else if (ShowNavLink && UserId != null)
     {
         <NavLink href="@($"users/{UserId}")">@username</NavLink>
     }
@@ -30,6 +34,9 @@ else
 
     [Parameter]
     public bool ShowNavLink { get; set; }
+
+    [Parameter]
+    public bool ShowPublicProfileLink { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

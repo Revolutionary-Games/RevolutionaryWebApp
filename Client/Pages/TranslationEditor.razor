@@ -336,32 +336,36 @@ else
                              @(comment.LanguageCode == project?.SourceLanguage ?
                                                                 "border border-primary bg-light rounded p-2" :
                                                                 string.Empty)">
-                            <div class="clearfix">
-                                @if (UserInfo.InfoReady && UserInfo.Info?.Id != comment.AuthorUserId)
-                                {
-                                    <ReportButton Target="UserReportTarget.TranslationComment" TargetId="@comment.Id"
-                                                  TargetName="translation comment"/>
-                                }
-                                @if (CanDeleteComment(comment))
-                                {
-                                    <Button ButtonStyle="outline-danger" Small="true" class="float-end ms-2"
-                                            title="Delete comment" aria-label="Delete comment"
-                                            Enabled="@(processingAction == null)"
-                                            OnPressed="@(() => DeleteComment(comment))">
-                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
-                                    </Button>
-                                }
-                                @if (comment.LanguageCode == project?.SourceLanguage)
-                                {
-                                    <span class="badge bg-primary text-white float-end">
-                                        Source language · @project?.SourceLanguage
-                                    </span>
-                                }
-                                <UsernameDisplayer UserId="@comment.AuthorUserId"/>
-                                <small class="text-muted ms-2">
-                                    <RecentTimeShortener Time="@comment.CreatedAt" IncludeSeconds="@false"
-                                                         ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
-                                </small>
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <div>
+                                    <UsernameDisplayer UserId="@comment.AuthorUserId" ShowPublicProfileLink="true"/>
+                                    <small class="text-muted ms-2">
+                                        <RecentTimeShortener Time="@comment.CreatedAt" IncludeSeconds="@false"
+                                                             ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
+                                    </small>
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 ms-auto">
+                                    @if (comment.LanguageCode == project?.SourceLanguage)
+                                    {
+                                        <span class="badge bg-primary text-white">
+                                            Source language · @project?.SourceLanguage
+                                        </span>
+                                    }
+                                    @if (UserInfo.InfoReady && UserInfo.Info?.Id != comment.AuthorUserId)
+                                    {
+                                        <ReportButton Target="UserReportTarget.TranslationComment"
+                                                      TargetId="@comment.Id" TargetName="translation comment"/>
+                                    }
+                                    @if (CanDeleteComment(comment))
+                                    {
+                                        <Button ButtonStyle="outline-danger" Small="true"
+                                                title="Delete comment" aria-label="Delete comment"
+                                                Enabled="@(processingAction == null)"
+                                                OnPressed="@(() => DeleteComment(comment))">
+                                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                                        </Button>
+                                    }
+                                </div>
                             </div>
                             @if (comment.Reported)
                             {

@@ -71,7 +71,7 @@
                         <small class="d-block">@item.LanguageCode · @item.Description</small>
                         @if (item.UserId != null)
                         {
-                            <UsernameDisplayer UserId="@item.UserId"/>
+                            <UsernameDisplayer UserId="@item.UserId" ShowPublicProfileLink="@(item.Description == "Comment")"/>
                         }
                     </td>
                     <td>
