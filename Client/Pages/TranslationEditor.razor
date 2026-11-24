@@ -1499,11 +1499,17 @@ else
 
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
-                message = navigationState.HasValue ?
-                    (direction < 0 ?
+                if (navigationState.HasValue)
+                {
+                    message = direction < 0 ?
                         "No previous string matches the current filter." :
-                        "No next string matches the current filter.") :
-                    (direction < 0 ? "Already at the first key." : "Already at the last key.");
+                        "No next string matches the current filter.";
+                }
+                else
+                {
+                    message = direction < 0 ? "Already at the first key." : "Already at the last key.";
+                }
+
                 messageType = SiteNoticeType.Info;
                 return;
             }
