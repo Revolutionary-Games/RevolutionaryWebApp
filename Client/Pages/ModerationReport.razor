@@ -1,0 +1,356 @@
+@using RevolutionaryWebApp.Shared
+@page "/moderation/{Id:long}"
+@inject HttpClient Http
+@inject CurrentUserInfo UserInfo
+@inject NotificationHandler NotificationHandler
+@using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Shared.Models.Enums
+@using RevolutionaryWebApp.Shared.Notifications
+@using System.Threading
+@implements INotificationHandler<UserReportListUpdated>
+@implements IAsyncDisposable
+
+<AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator"
+               ShowDefaultNoAccess="true">
+    <h3>Report @Id</h3>
+    <p>
+        <NavLink href="moderation">Back to moderation queue</NavLink>
+    </p>
+    <StatusMessageShower Message="@message" Type="@messageType"/>
+    <SingleResourceDisplayer Loading="@loading" Error="@error" HasData="@(report != null)">
+        @if (report != null)
+        {
+            <p>Reported user: <strong>@report.TargetUserName</strong> (username when reported)
+                @if (report.TargetUserId != null)
+                {
+                    <UsernameDisplayer UserId="@report.TargetUserId.Value" ShowNavLink="true"/>
+                }
+                else
+                {
+                    <span>Account deleted</span>
+                }
+            </p>
+            <p>Reported at
+                <RecentTimeShortener Time="@report.CreatedAt"/>
+                for @report.Reason (@report.Target).
+            </p>
+            <p>Reporter:
+                <UsernameDisplayer UserId="@report.ReporterUserId" ShowNavLink="@true"/>
+            </p>
+            <p>@report.Details</p>
+            @if (report.ContentPath != null)
+            {
+                <p><a href="@report.ContentPath">Open reported content</a></p>
+            }
+
+            @if (!string.IsNullOrEmpty(report.ContentSnapshot))
+            {
+                <h4>Content at the time of reporting</h4>
+                <pre class="border rounded p-2 text-wrap">@report.ContentSnapshot</pre>
+            }
+
+            <p>Status: @(report.Resolution?.ToString() ?? "Awaiting review")</p>
+            @if (report.ResolvedAt != null)
+            {
+                <p>Resolved
+                    <RecentTimeShortener Time="@report.ResolvedAt.Value"/>
+                    by
+                    <UsernameDisplayer UserId="@report.ResolvedByUserId"/>
+                </p>
+            }
+
+            <h4>Moderator notes</h4>
+            @foreach (var note in report.Notes)
+            {
+                <div class="border-bottom mb-2" @key="note">
+                    <UsernameDisplayer UserId="@note.AuthorUserId" ShowPublicProfileLink="@true" />
+                    <RecentTimeShortener Time="@note.CreatedAt"/>
+                    <p class="text-break" style="white-space: pre-wrap">@note.Text</p>
+                </div>
+            }
+
+            <label class="form-label" for="moderation-note">Note (required for an action)</label>
+            <textarea id="moderation-note" class="form-control mb-2" maxlength="4000" rows="3"
+                      disabled="@processing" @bind="noteText" @bind:event="oninput"></textarea>
+            <Button ButtonStyle="secondary" Enabled="@CanAct" Spinner="@processing" OnPressed="@AddNote">
+                Attach note
+            </Button>
+            @if (report.ResolvedAt == null)
+            {
+                <h4 class="mt-3">Resolve report</h4>
+                <p>Approving content rejects the report as inaccurate and restores its normal visibility once
+                    no other reports remain. Approving the report confirms the issue.</p>
+                <label class="form-label" for="moderation-action">Action when approving the report</label>
+                <select id="moderation-action" class="form-select" disabled="@processing" @bind="action">
+                    <option value="@ModerationAction.Resolve">Approve report without further action</option>
+                    @if (report.Target != UserReportTarget.User)
+                    {
+                        <option value="@ModerationAction.DeleteContent">Delete comment / revert translation edit
+                        </option>
+                    }
+                    <option value="@ModerationAction.Mute">Mute / restrict contributions</option>
+                    <option value="@ModerationAction.Ban">Ban user</option>
+                    @if (report.CanPurge)
+                    {
+                        <option value="@ModerationAction.PurgeAndBan">Purge activity and permanently ban user</option>
+                    }
+                </select>
+                @if (action is ModerationAction.Mute or ModerationAction.Ban)
+                {
+                    <label for="moderation-days" class="form-label mt-2">Duration in days</label>
+                    <input id="moderation-days" type="number" class="form-control" min="1" max="3650"
+                           @bind="days" disabled="@(processing || (action == ModerationAction.Ban && permanent))"/>
+                    @if (action == ModerationAction.Ban)
+                    {
+                        <label for="moderation-permanent" class="form-check-label mt-2">
+                            <input id="moderation-permanent" type="checkbox" class="form-check-input"
+                                   @bind="permanent" disabled="@processing"/> Permanent ban
+                        </label>
+                    }
+                }
+
+                @if (action is ModerationAction.Mute or ModerationAction.Ban && report.Target != UserReportTarget.User)
+                {
+                    <label for="moderation-delete-content" class="form-check-label d-block mt-2">
+                        <input id="moderation-delete-content" type="checkbox" class="form-check-input"
+                               @bind="deleteContent" disabled="@processing"/> Also delete / revert reported content
+                    </label>
+                }
+
+                @if (action == ModerationAction.PurgeAndBan)
+                {
+                    <p class="text-danger mt-2">For serious spammers only. Permanently bans the account, removes
+                        its comments and uploads, reverts edits where possible, and blocks registration with its
+                        email and known IP addresses. Later edits by other contributors are preserved.</p>
+                    @if (UserInfo.IsAdmin)
+                    {
+                        <p class="text-danger">Warning: purging an established user may remove valuable contributions.
+                            Review their activity before continuing.</p>
+                        <label for="moderation-all-time" class="form-check-label">
+                            <input id="moderation-all-time" type="checkbox" class="form-check-input"
+                                   @bind="allTime" disabled="@processing"/> All time
+                        </label>
+                    }
+                    else
+                    {
+                        <p>Available only within 72 hours of the user's first contribution.</p>
+                    }
+
+                    <label for="moderation-hours" class="form-label d-block mt-2">Activity window in hours</label>
+                    <input id="moderation-hours" type="number" class="form-control" min="1"
+                           max="@(UserInfo.IsAdmin ? 128 : report.DefaultPurgeHours)" @bind="purgeHours"
+                           disabled="@(processing || allTime)"/>
+                }
+
+                <div class="mt-3">
+                    <Button ButtonStyle="success" Enabled="@CanAct" OnPressed="@(() => Resolve(false))">
+                        Approve content / reject report
+                    </Button>
+                    <Button class="ms-2" ButtonStyle="danger" Enabled="@CanAct" Spinner="@processing"
+                            OnPressed="@(() => Resolve(true))">Approve report and apply action
+                    </Button>
+                </div>
+            }
+
+            @if (report.TargetUserId != null)
+            {
+                <br/>
+                <p class="mt-3 mb-1">Following is the recent activity of the <strong>reported</strong> user</p>
+                <UserRecentActivity UserId="@report.TargetUserId.Value"/>
+            }
+        }
+    </SingleResourceDisplayer>
+</AccessLimited>
+<DevCenterTitle>Moderation report @Id</DevCenterTitle>
+
+@code {
+    private UserReportDTO? report;
+    private string? error;
+    private string? message;
+    private SiteNoticeType messageType;
+    private string noteText = string.Empty;
+    private ModerationAction action;
+    private int days = 7;
+    private int purgeHours = 24;
+    private bool permanent;
+    private bool allTime;
+    private bool deleteContent;
+    private bool processing;
+    private bool loading;
+    private long loadedId;
+    private int requestVersion;
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; } = null!;
+
+    [Parameter]
+    public long Id { get; set; }
+
+    private bool CanAct => !processing && !string.IsNullOrWhiteSpace(noteText);
+
+    public async Task Handle(UserReportListUpdated notification, CancellationToken cancellationToken)
+    {
+        if (notification.Item.Id == Id && !processing)
+            await Load();
+    }
+
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    {
+        if (currentUserGroups.HasGroup(GroupType.Admin) || currentUserGroups.HasGroup(GroupType.ContentModerator))
+            groups.Add(NotificationGroups.ModerationQueue);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        ++requestVersion;
+        await NotificationHandler.Unregister(this);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await NotificationHandler.Register(this);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedId == Id)
+            return;
+
+        loadedId = Id;
+        noteText = string.Empty;
+        action = ModerationAction.Resolve;
+        permanent = false;
+        allTime = false;
+        deleteContent = false;
+        message = null;
+        await Load(true);
+    }
+
+    private async Task Load(bool initialize = false)
+    {
+        var version = ++requestVersion;
+        loading = true;
+        error = null;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<UserReportDTO>($"api/v1/UserReports/{Id}");
+            if (version != requestVersion)
+                return;
+
+            report = result;
+            if (initialize && report != null)
+                purgeHours = report.DefaultPurgeHours;
+        }
+        catch (Exception exception)
+        {
+            if (version == requestVersion)
+                error = $"Could not load report: {exception.Message}";
+        }
+        finally
+        {
+            if (version == requestVersion)
+                loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task AddNote()
+    {
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsJsonAsync($"api/v1/UserReports/{Id}/notes",
+                new UserReportNoteRequest { Note = noteText });
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not attach note: {await response.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            noteText = string.Empty;
+            message = "Note attached.";
+            messageType = SiteNoticeType.Success;
+            await Load();
+        }
+        catch (Exception exception)
+        {
+            message = $"Could not attach note: {exception.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task Resolve(bool approve)
+    {
+        var selected = approve ? action : ModerationAction.Resolve;
+        var alsoDelete = approve && deleteContent &&
+            selected is ModerationAction.Mute or ModerationAction.Ban;
+
+        if (selected != ModerationAction.Resolve || alsoDelete)
+        {
+            var parameters = new ModalParameters
+            {
+                { nameof(ConfirmAction.Name), report!.TargetUserName },
+                { nameof(ConfirmAction.ActionVerb), $"apply {selected} to" },
+                {
+                    nameof(ConfirmAction.ExtraInfo), "Review the selected duration and activity window. " +
+                    "Purging permanently bans the user and removes their contributions in that window."
+                },
+            };
+
+            var confirmation = await Modal.Show<ConfirmAction>("Confirm moderation action", parameters).Result;
+            if (confirmation.Cancelled)
+                return;
+        }
+
+        processing = true;
+        message = null;
+        messageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            using var response = await Http.PostAsJsonAsync($"api/v1/UserReports/{Id}/resolve",
+                new ResolveUserReportRequest
+                {
+                    Resolution = approve ? UserReportResolution.Approved : UserReportResolution.Dismissed,
+                    Action = selected,
+                    Days = selected is ModerationAction.Mute or ModerationAction.Ban ? days : 7,
+                    Permanent = selected == ModerationAction.Ban && permanent,
+                    PurgeHours = selected == ModerationAction.PurgeAndBan ? purgeHours : null,
+                    AllTime = selected == ModerationAction.PurgeAndBan && allTime,
+                    DeleteContent = alsoDelete, Note = noteText,
+                });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                message = $"Could not resolve report: {await response.Content.ReadAsStringAsync()}";
+                return;
+            }
+
+            message = await response.Content.ReadAsStringAsync();
+            messageType = SiteNoticeType.Success;
+            noteText = string.Empty;
+            await Load();
+        }
+        catch (Exception exception)
+        {
+            message = $"Could not resolve report: {exception.Message}";
+        }
+        finally
+        {
+            processing = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+}
