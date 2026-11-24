@@ -8,8 +8,14 @@ using Microsoft.EntityFrameworkCore;
 ///   Scalar before/after images for contributions that otherwise have no reversible history.
 /// </summary>
 [Index(nameof(UserId), nameof(CreatedAt))]
+[Index(nameof(CreatedAt))]
 public class ModerationRevision
 {
+    /// <summary>
+    ///   How long to keep all model changes so that moderation can undo them. This is not permanent to save on DB size
+    /// </summary>
+    public const int RetentionMonths = 12;
+
     public long Id { get; set; }
     public long? UserId { get; set; }
     public User? User { get; set; }

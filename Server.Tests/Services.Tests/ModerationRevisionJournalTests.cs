@@ -1,9 +1,11 @@
 namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
+using Server.Models.Pages;
 using Server.Models.Translations;
 using Server.Services;
 using Shared.Models;
@@ -113,9 +115,10 @@ public class ModerationRevisionJournalTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task DictionaryRollbackRestoresPreviousTextAndPreservesLaterEditors(bool laterEdit)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task DictionaryRollbackRespectsLaterEditorsAndRetention(bool laterEdit, bool expiredRevision)
     {
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
@@ -134,7 +137,13 @@ public class ModerationRevisionJournalTests
         term.Text = "Spam";
         term.LastEditedByUserId = actor.Id;
         await database.SaveChangesAsync();
-        Assert.Single(await database.ModerationRevisions.ToListAsync());
+        var revision = await database.ModerationRevisions.SingleAsync();
+        if (expiredRevision)
+        {
+            revision.CreatedAt = DateTime.UtcNow.AddMonths(-13);
+            await database.SaveChangesAsync();
+        }
+
         if (laterEdit)
         {
             term.Text = "Corrected translation";
@@ -143,11 +152,11 @@ public class ModerationRevisionJournalTests
         }
 
         database.SuppressModerationJournal = true;
-        var skipped = await ModerationRevisionJournal.Revert(database, actor.Id, DateTime.UtcNow.AddHours(-24));
+        var skipped = await ModerationRevisionJournal.Revert(database, actor.Id, DateTime.MinValue);
         await database.SaveChangesAsync();
         Assert.Equal(laterEdit ? 1 : 0, skipped);
-        Assert.Equal(laterEdit ? "Corrected translation" : "Solu", term.Text);
-        Assert.Equal(good.Id, term.LastEditedByUserId);
+        Assert.Equal(laterEdit ? "Corrected translation" : expiredRevision ? "Spam" : "Solu", term.Text);
+        Assert.Equal(expiredRevision ? actor.Id : good.Id, term.LastEditedByUserId);
         Assert.Equal(laterEdit ? 2 : 1, await database.ModerationRevisions.CountAsync());
     }
 }
