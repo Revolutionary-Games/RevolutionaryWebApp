@@ -40,12 +40,13 @@
         <li><strong>Admin</strong>: @User.Groups.HasAccessLevel(GroupType.Admin)</li>
         <li><strong>Developer</strong>: @User.Groups.HasAccessLevel(GroupType.Developer)</li>
         <li><strong>Restricted</strong>: @User.Groups.HasGroup(GroupType.RestrictedUser)</li>
-        <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G")</li>
-        <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Created At</strong>: @User.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+        <li><strong>Updated At</strong>: @User.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
         @if (User.SuspendedUntil != null && User.SuspendedUntil > DateTime.UtcNow)
         {
             <li><strong>Suspended</strong>: <strong>YES</strong> until:
-                @User.SuspendedUntil.Value.ToLocalTime().ToString("G")</li>
+                @User.SuspendedUntil.Value.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)
+            </li>
             <li><strong>Suspended manually</strong>: @User.SuspendedManually</li>
             <li><strong>Suspension reason</strong>: @User.SuspendedReason</li>
         }
@@ -197,7 +198,9 @@ else
 <p>If the information in this section is incorrect, please contact us.</p>
 
 <AccessLimited RequiredAccess="GroupType.Admin">
-    Association membership can be edited <NavLink href="/association/members">here</NavLink>.
+    Association membership can be edited
+    <NavLink href="/association/members">here</NavLink>
+    .
     <br/>
     <br/>
 </AccessLimited>

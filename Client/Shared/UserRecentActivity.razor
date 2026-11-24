@@ -1,7 +1,7 @@
 @inject HttpClient Http
 @using RevolutionaryWebApp.Shared.Models
 
-<h4 class="mt-3">Recent activity</h4>
+<h4 class="mt-3">Recent Activity</h4>
 <SingleResourceDisplayer Loading="@loading" Error="@error" HasData="@(activity != null)">
     <p class="text-muted">Up to 100 recent contributions. This list may take 30 seconds to update.</p>
     @if (activity?.Length == 0)
