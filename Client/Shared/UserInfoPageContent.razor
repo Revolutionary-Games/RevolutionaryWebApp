@@ -27,10 +27,7 @@
     <li><strong>Primary group</strong>: @User.Groups.ComputePrimaryGroup()</li>
     <li><strong>Last SSO</strong>: @User.SsoSource</li>
     <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator">
-        @if (ShowSelfIdentification)
-        {
-            <li><strong>Last known IP address</strong>: @(User.LastKnownIPAddress ?? "Unknown")</li>
-        }
+        <li><strong>Last known IP address</strong>: @(User.LastKnownIPAddress ?? "Unknown")</li>
     </AccessLimited>
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
     <li><strong>Upload quota used today</strong>: @User.UploadQuotaUsed.BytesToMiB()</li>
