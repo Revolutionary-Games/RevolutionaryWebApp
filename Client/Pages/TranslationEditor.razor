@@ -339,11 +339,11 @@ else
                 {
                     @foreach (var comment in comments)
                     {
+                        var isSourceComment = comment.LanguageCode == project?.SourceLanguage;
+
                         <div @key="comment.Id" class="border-bottom pb-2 mb-2
                              @(comment.Reported ? "border border-danger bg-danger-subtle rounded p-2" : string.Empty)
-                             @(comment.LanguageCode == project?.SourceLanguage ?
-                                                                                                                                                                                                            "border border-primary bg-light rounded p-2" :
-                                                                                                                                                                                                            string.Empty)">
+                             @(isSourceComment ? "border border-primary bg-light rounded p-2" : string.Empty)">
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <div>
                                     <UsernameDisplayer UserId="@comment.AuthorUserId" ShowPublicProfileLink="true"/>
@@ -353,7 +353,7 @@ else
                                     </small>
                                 </div>
                                 <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 ms-auto">
-                                    @if (comment.LanguageCode == project?.SourceLanguage)
+                                    @if (isSourceComment)
                                     {
                                         <span class="badge bg-primary text-white">
                                             Source language · @project?.SourceLanguage

@@ -88,14 +88,16 @@ public class TranslationQualityContributionTests : IClassFixture<RealUnitTestDat
         {
             await app.StartAsync();
             using var client = app.GetTestClient();
-            client.DefaultRequestHeaders.Add(HeaderNames.Cookie, $"{AppInfo.SessionCookieName}={session.Id}:{admin.Id}");
+            client.DefaultRequestHeaders.Add(HeaderNames.Cookie,
+                $"{AppInfo.SessionCookieName}={session.Id}:{admin.Id}");
             client.DefaultRequestHeaders.Add("X-CSRF-Token", "test-token");
             var profileUrl = $"/api/v1/UserManagement/{admin.Id}";
             var before = await client.GetFromJsonAsync<UserDTO>(profileUrl);
             Assert.NotNull(before);
             Assert.Equal(0, before.CurrentContribution);
 
-            using var response = await client.PostAsync("/api/v1/admin/translationProjects/qualityChecks/recheck", null);
+            using var response = await client.PostAsync(
+                "/api/v1/admin/translationProjects/qualityChecks/recheck", null);
             response.EnsureSuccessStatusCode();
             jobs.Received(1).Create(Arg.Is<Job>(job => job.Type == typeof(CheckTranslationQualityJob) &&
                 (long)job.Args[0] == project.Id && (bool)job.Args[1]), Arg.Any<IState>());

@@ -215,7 +215,8 @@ public sealed class TranslationEditorTests : BunitContext, IAsyncLifetime
         });
         await page.InvokeAsync(() => page.FindAll("button").Single(button =>
             button.TextContent.Contains("Comments (")).Click());
-        await page.WaitForAssertionAsync(() => Assert.Contains("awaiting moderation", page.Markup));
+        await page.WaitForAssertionAsync(() =>
+            Assert.Matches(@"awaiting\s+moderation", page.Find("p.text-danger").TextContent));
         Assert.Empty(page.FindComponents<Stub<MarkdownRenderer>>());
         await page.InvokeAsync(() => page.FindAll("button").Single(button =>
             button.TextContent.Contains("Show reported comment")).Click());

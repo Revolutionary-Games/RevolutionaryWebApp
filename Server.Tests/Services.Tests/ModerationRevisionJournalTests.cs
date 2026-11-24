@@ -47,7 +47,8 @@ public class ModerationRevisionJournalTests
         if (hasPreviousVersion)
         {
             Assert.Equal(1, before.RootElement.GetProperty(nameof(VersionedPage.LatestContent)).GetInt32());
-            Assert.NotEqual(spamContent, after.RootElement.GetProperty(nameof(VersionedPage.LatestContent)).GetString());
+            Assert.NotEqual(spamContent,
+                after.RootElement.GetProperty(nameof(VersionedPage.LatestContent)).GetString());
         }
         else
         {
