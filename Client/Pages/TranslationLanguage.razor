@@ -90,14 +90,20 @@ else
         </Button>
     </div>
 
-    <div class="input-group mb-3">
-        <label class="visually-hidden" for="translation-search">Search source, key, or translated text</label>
-        <input id="translation-search" class="form-control" placeholder="Search source, key, or translated text"
-               @bind="query" @bind:event="oninput" @bind:after="TriggerSearchDebounce"
-               @onkeydown="HandleSearchKeyDown"/>
-        <Button ButtonStyle="secondary" Enabled="@(!searching)" Spinner="@searching"
-                OnPressed="Search">Search
-        </Button>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="input-group flex-grow-1 w-auto">
+            <label class="visually-hidden" for="translation-search">Search source, key, or translated text</label>
+            <input id="translation-search" class="form-control" placeholder="Search source, key, or translated text"
+                   @bind="query" @bind:event="oninput" @bind:after="TriggerSearchDebounce"
+                   @onkeydown="HandleSearchKeyDown"/>
+            <Button ButtonStyle="secondary" Enabled="@(!searching)" Spinner="@searching"
+                    OnPressed="Search">Search
+            </Button>
+        </div>
+        <div>
+            <TranslationStateFilter Label="Filter listed strings by translation state"
+                                    @bind-Value="stateFilter" @bind-Value:after="Search"/>
+        </div>
     </div>
 
     @if (items == null && message == null)
@@ -119,8 +125,8 @@ else
         <ul class="list-group">
             @foreach (var item in items)
             {
-                <li class="list-group-item">
-                    <NavLink href="@(EditorUrl(item.Key))">@item.Key</NavLink>
+                <li class="list-group-item" @key="item.Key">
+                    <NavLink href="@(EditorUrl(item.Key, stateFilter))">@item.Key</NavLink>
                     <span class="badge bg-secondary ms-2">@item.State</span>
                     <div class="small text-muted">@item.SourceText</div>
                     @if (!string.IsNullOrEmpty(item.Text))
@@ -130,7 +136,7 @@ else
                 </li>
             }
         </ul>
-        @if (items.Length >= 50)
+        @if (hasMore)
         {
             <Button ButtonStyle="outline-secondary" class="mt-3" Enabled="@(!loadingMore)"
                     Spinner="@loadingMore" OnPressed="LoadMore">Load more
@@ -157,6 +163,8 @@ else
 <DevCenterTitle>@LanguageCode translations</DevCenterTitle>
 
 @code {
+    private const int ListPageSize = 50;
+
     private TranslationProjectDTO? project;
     private TranslationSubscriptionDTO? subscription;
     private bool subscribeAnnouncements;
@@ -167,6 +175,8 @@ else
     private bool subscribeUpdates;
     private TranslationListItemDTO[]? items;
     private string query = string.Empty;
+    private TranslationState? stateFilter;
+    private string? listRequest;
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
     private long? registeredProjectId;
@@ -174,6 +184,7 @@ else
     private bool searching;
     private bool searchPending;
     private bool loadingMore;
+    private bool hasMore;
     private bool jumping;
     private CancellationTokenSource? searchDebounceToken;
 
@@ -279,21 +290,13 @@ else
         if (project == null)
             return;
 
-        if (searching)
+        if (searching || loadingMore)
         {
             searchPending = true;
             return;
         }
 
-        // Wait until conflicting operation is done
-        while (loadingMore)
-        {
-            await Task.Delay(100);
-        }
-
-        if (project == null)
-            return;
-
+        searchPending = false;
         searching = true;
         message = null;
         items = null;
@@ -301,10 +304,16 @@ else
 
         try
         {
-            var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>("api/v1/translationEditor/list?" +
-                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&query={Uri.EscapeDataString(query)}&offset=0");
-            if (result != null)
-                items = result;
+            var stateParam = stateFilter.HasValue ? $"&state={stateFilter.Value}" : string.Empty;
+            listRequest = "api/v1/translationEditor/list?" +
+                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}" +
+                $"&query={Uri.EscapeDataString(query)}{stateParam}";
+            var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"{listRequest}&offset=0");
+            if (!searchPending)
+            {
+                items = result ?? [];
+                hasMore = items.Length == ListPageSize;
+            }
         }
         catch (Exception e)
         {
@@ -317,10 +326,7 @@ else
             await InvokeAsync(StateHasChanged);
 
             if (searchPending)
-            {
-                searchPending = false;
                 await Search();
-            }
         }
     }
 
@@ -359,26 +365,20 @@ else
 
     private async Task LoadMore()
     {
-        if (project == null || items == null || loadingMore)
+        if (items == null || listRequest == null || !hasMore || searching || loadingMore)
             return;
 
         loadingMore = true;
         message = null;
         await InvokeAsync(StateHasChanged);
 
-        // Wait until conflicting operation is done
-        while (searching)
-        {
-            await Task.Delay(100);
-        }
-
         try
         {
-            var next = await Http.GetFromJsonAsync<TranslationListItemDTO[]>("api/v1/translationEditor/list?" +
-                $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}&query={Uri.EscapeDataString(query)}" +
-                $"&offset={items.Length}");
+            var next = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"{listRequest}&offset={items.Length}");
             if (next != null)
                 items = [.. items, .. next];
+
+            hasMore = next?.Length == ListPageSize;
         }
         catch (Exception e)
         {
@@ -389,10 +389,13 @@ else
         {
             loadingMore = false;
             await InvokeAsync(StateHasChanged);
+
+            if (searchPending)
+                await Search();
         }
     }
 
-    private async Task Jump(string? state, bool problemsOnly = false)
+    private async Task Jump(TranslationState? state, bool problemsOnly = false)
     {
         if (project == null || jumping)
             return;
@@ -408,19 +411,19 @@ else
                 $"&offset=0{stateParam}&problemsOnly={problemsOnly}");
             if (result is { Length: > 0 })
             {
-                Navigation.NavigateTo(EditorUrl(result[0].Key));
+                Navigation.NavigateTo(EditorUrl(result[0].Key, state));
             }
             else if (problemsOnly)
             {
                 message = "No active translation warnings found.";
                 messageType = SiteNoticeType.Info;
             }
-            else if (state == "NeedsTranslation")
+            else if (state == TranslationState.NeedsTranslation)
             {
                 message = "Nothing found, everything is already translated!";
                 messageType = SiteNoticeType.Info;
             }
-            else if (state == "Translated")
+            else if (state == TranslationState.Translated)
             {
                 message = "Everything is verified already!";
                 messageType = SiteNoticeType.Info;
@@ -445,17 +448,18 @@ else
 
     private Task JumpNeedsTranslation()
     {
-        return Jump("NeedsTranslation");
+        return Jump(TranslationState.NeedsTranslation);
     }
 
     private Task JumpUnverified()
     {
-        return Jump("Translated");
+        return Jump(TranslationState.Translated);
     }
 
-    private string EditorUrl(string key)
+    private string EditorUrl(string key, TranslationState? state)
     {
-        return $"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(key)}";
+        return $"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(key)}" +
+            (state.HasValue ? $"&state={state.Value}" : string.Empty);
     }
 
     private async Task SaveSubscription()

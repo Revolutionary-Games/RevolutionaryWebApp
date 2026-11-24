@@ -13,12 +13,13 @@ using Server.Controllers;
 using Server.Models;
 using Server.Models.Translations;
 using Server.Services;
+using Shared.Models;
 using Xunit;
 
 public class TranslationEditorControllerTests
 {
     [Fact]
-    public async Task ListsAndNeighborsFollowFileOrderAndInactiveEntriesRemainViewable()
+    public async Task ListsAndNeighborsFollowFileOrderWithAndWithoutStateFiltering()
     {
         await using var database = CreateDatabase();
         database.TranslationProjects.Add(new TranslationProject { Id = 1, Slug = "test", Name = "Test" });
@@ -33,6 +34,7 @@ public class TranslationEditorControllerTests
             database.TranslationValues.Add(new TranslationValue
             {
                 ProjectId = 1, Key = keys[index], LanguageCode = "fi",
+                State = index == 1 ? TranslationState.Translated : TranslationState.NeedsTranslation,
             });
         }
 
@@ -58,6 +60,23 @@ public class TranslationEditorControllerTests
             Assert.Equal(index + 1, item.Value!.TextIndex);
             Assert.Equal(3, item.Value.TotalTexts);
         }
+
+        const TranslationState filter = TranslationState.NeedsTranslation;
+        var filteredList = await controller.List(1, "fi", state: filter.ToString());
+        Assert.Equal(new[] { "Z", "M" }, filteredList.Value!.Select(item => item.Key));
+        var filteredNext = await controller.Neighbor(1, "fi", "Z", 1, filter);
+        Assert.Equal("M", Assert.IsType<JsonResult>(filteredNext.Result).Value);
+        var filteredPrevious = await controller.Neighbor(1, "fi", "A", -1, filter);
+        Assert.Equal("Z", Assert.IsType<JsonResult>(filteredPrevious.Result).Value);
+        var last = await controller.Neighbor(1, "fi", "M", 1, filter);
+        Assert.IsType<NoContentResult>(last.Result);
+
+        var matching = await controller.Get(1, "M", "fi", CancellationToken.None, filter);
+        Assert.Equal(2, matching.Value!.TextIndex);
+        Assert.Equal(2, matching.Value.TotalTexts);
+        var outsideFilter = await controller.Get(1, "A", "fi", CancellationToken.None, filter);
+        Assert.Null(outsideFilter.Value!.TextIndex);
+        Assert.Equal(2, outsideFilter.Value.TotalTexts);
     }
 
     [Fact]

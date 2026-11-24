@@ -46,20 +46,25 @@ else
 {
     <div class="row">
         <div class="col-lg-9">
-            <div class="d-flex justify-content-between mb-2">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                 <NavLink href="@($"translations/{Slug}/{LanguageCode}")">← Language overview</NavLink>
-                <div class="d-flex align-items-center">
-                    <Button Small="true" ButtonStyle="outline-secondary" class="me-1"
-                            Enabled="@(!saving && processingAction == null)" Spinner="@(processingAction == "move")"
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <Button Small="true" ButtonStyle="outline-secondary"
+                            Enabled="@CanNavigate" Spinner="@(processingAction == "move")"
                             OnPressed="Previous">
                         ← Previous
                     </Button>
-                    <span class="text-muted text-nowrap mx-2" role="status">@TextProgress</span>
+                    <span class="text-muted text-nowrap" role="status">@TextProgress</span>
                     <Button Small="true" ButtonStyle="outline-secondary"
-                            Enabled="@(!saving && processingAction == null)" Spinner="@(processingAction == "move")"
+                            Enabled="@CanNavigate" Spinner="@(processingAction == "move")"
                             OnPressed="Next">
                         Next →
                     </Button>
+                    <div>
+                        <TranslationStateFilter Label="Filter previous and next strings by translation state"
+                                                Value="@navigationState" ValueChanged="ChangeNavigationFilter"
+                                                Disabled="@(!CanNavigate)"/>
+                    </div>
                 </div>
             </div>
 
@@ -87,7 +92,9 @@ else
             }
             @if (HasLocalChanges && data.Problems.Any(problem => !problem.Ignored))
             {
-                <small class="text-muted d-block">Save your changes to update these warnings before ignoring them.</small>
+                <small class="text-muted d-block">
+                    Save your changes to update these warnings before ignoring them.
+                </small>
             }
             @if (updateWarning)
             {
@@ -179,11 +186,11 @@ else
 
             @if (CanEditTranslation)
             {
-                <Button ButtonStyle="outline-primary" class="me-2 mb-1" Enabled="@(!saving)" Spinner="@saving"
+                <Button ButtonStyle="outline-primary" class="me-2 mb-1" Enabled="@CanNavigate" Spinner="@saving"
                         OnPressed="@Save">
                     Save
                 </Button>
-                <Button ButtonStyle="primary" class="mb-1" Enabled="@(!saving)" Spinner="@saving"
+                <Button ButtonStyle="primary" class="mb-1" Enabled="@CanNavigate" Spinner="@saving"
                         OnPressed="@SaveAndContinue">
                     Save &amp; Continue
                 </Button>
@@ -220,7 +227,8 @@ else
                             {
                                 <span>unknown user</span>
                             }
-                            · <RecentTimeShortener Time="@ignoredAt" IncludeSeconds="@false"/>
+                            ·
+                            <RecentTimeShortener Time="@ignoredAt" IncludeSeconds="@false"/>
                         </small>
                     }
                 </div>
@@ -314,7 +322,7 @@ else
                                                      ShortDisplayCutoff="@(TimeSpan.FromHours(8))"/>
                             </small>
                             @if (change.ActorUserId != null && UserInfo.InfoReady &&
-                                 change.ActorUserId != UserInfo.Info?.Id)
+                                     change.ActorUserId != UserInfo.Info?.Id)
                             {
                                 <ReportButton Target="UserReportTarget.TranslationChange" TargetId="@change.Id"
                                               TargetName="translation edit"/>
@@ -334,8 +342,8 @@ else
                         <div @key="comment.Id" class="border-bottom pb-2 mb-2
                              @(comment.Reported ? "border border-danger bg-danger-subtle rounded p-2" : string.Empty)
                              @(comment.LanguageCode == project?.SourceLanguage ?
-                                                                "border border-primary bg-light rounded p-2" :
-                                                                string.Empty)">
+                                                                                                                                                                                                            "border border-primary bg-light rounded p-2" :
+                                                                                                                                                                                                            string.Empty)">
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <div>
                                     <UsernameDisplayer UserId="@comment.AuthorUserId" ShowPublicProfileLink="true"/>
@@ -369,10 +377,11 @@ else
                             </div>
                             @if (comment.Reported)
                             {
-                                <p class="text-danger mb-1">This comment has been reported and is awaiting moderation.</p>
+                                <p class="text-danger mb-1">This comment has been reported and is awaiting
+                                    moderation.</p>
                                 @if (!expandedReportedComments.Contains(comment.Id) &&
-                                     !(UserInfo.InfoReady && (UserInfo.IsAdmin ||
-                                         UserInfo.HasGroup(GroupType.ContentModerator))))
+                                         !(UserInfo.InfoReady && (UserInfo.IsAdmin ||
+                                             UserInfo.HasGroup(GroupType.ContentModerator))))
                                 {
                                     <Button Small="true" ButtonStyle="outline-secondary"
                                             OnPressed="@(() => ExpandReportedComment(comment.Id))">
@@ -650,6 +659,7 @@ else
     private string editText = string.Empty;
     private string? editExplanation;
     private TranslationState editState = TranslationState.NeedsTranslation;
+    private TranslationState? navigationState;
     private string newComment = string.Empty;
     private string commentScope = "language";
     private TranslationCommentSubscription? commentSubscription;
@@ -675,6 +685,9 @@ else
     [SupplyParameterFromQuery(Name = "key")]
     public string Key { get; set; } = string.Empty;
 
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? NavigationStateQuery { get; set; }
+
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
 
@@ -684,7 +697,29 @@ else
 
     private bool HasUnsavedChanges => HasLocalChanges || drafts.Keys.Any(key => key != Key);
 
-    private string TextProgress => data?.TextIndex is { } index ? $"{index} of {data.TotalTexts}" : "Removed";
+    private bool CanNavigate => !saving && processingAction == null;
+
+    private string NavigationStateParam => navigationState.HasValue ? $"state={navigationState.Value}" : string.Empty;
+
+    private string TextProgress
+    {
+        get
+        {
+            if (processingAction == "navigation-filter")
+                return "Updating count…";
+
+            if (data == null)
+                return string.Empty;
+
+            if (navigationState == null)
+                return data.TextIndex is { } index ? $"{index} of {data.TotalTexts}" : "Removed";
+
+            if (data.TextIndex is { } filteredIndex)
+                return $"{filteredIndex} of {data.TotalTexts} matching";
+
+            return data.Active ? $"Outside filter · {data.TotalTexts} matching" : $"Removed · {data.TotalTexts} matching";
+        }
+    }
 
     private bool CanEditTranslation => UserInfo.AcceptedTranslator && data != null && data.Active &&
         UserInfo.HasAccessLevel(GroupType.User) &&
@@ -726,7 +761,8 @@ else
     public Task Handle(TranslationProblemsUpdated notification, CancellationToken cancellationToken)
     {
         return IsCurrent(notification.ProjectId, notification.Key, notification.LanguageCode) ?
-            RefreshProblems() : Task.CompletedTask;
+            RefreshProblems() :
+            Task.CompletedTask;
     }
 
     public Task Handle(TranslationUnitUpdated notification, CancellationToken cancellationToken)
@@ -839,6 +875,9 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        navigationState = Enum.TryParse<TranslationState>(NavigationStateQuery, true, out var state) && Enum.IsDefined(state) ?
+            state :
+            null;
         translationInputInitialized = false;
         explanationInputInitialized = false;
         focusTranslationInput = true;
@@ -953,8 +992,8 @@ else
         var currentData = data;
         try
         {
-            var problems = await Http.GetFromJsonAsync<TranslationProblemDTO[]>(
-                $"api/v1/translationProblems?{QuerySuffix()}");
+            var requestUri = $"api/v1/translationProblems?{QuerySuffix()}";
+            var problems = await Http.GetFromJsonAsync<TranslationProblemDTO[]>(requestUri);
             if (data == currentData && problems != null)
                 data.Problems = problems;
         }
@@ -1172,6 +1211,53 @@ else
             $"&language={Uri.EscapeDataString(LanguageCode)}";
     }
 
+    private string EditorRequestUrl(string suffix)
+    {
+        return $"api/v1/translationEditor?{suffix}" +
+            (navigationState.HasValue ? $"&{NavigationStateParam}" : string.Empty);
+    }
+
+    private async Task ChangeNavigationFilter(TranslationState? state)
+    {
+        if (project == null || data == null || !CanNavigate || state == navigationState)
+            return;
+
+        var previousState = navigationState;
+        var key = Key;
+        var projectId = project.Id;
+        var language = LanguageCode;
+        navigationState = state;
+        processingAction = "navigation-filter";
+        message = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Refresh the navigation counts without replacing the editor's draft or version.
+            var result = await Http.GetFromJsonAsync<TranslationEditorDTO>(EditorRequestUrl(QuerySuffix())) ??
+                throw new NullDecodedJsonException();
+            if (IsCurrent(projectId, key, language) && data != null)
+            {
+                data.TextIndex = result.TextIndex;
+                data.TotalTexts = result.TotalTexts;
+            }
+        }
+        catch (Exception e)
+        {
+            if (IsCurrent(projectId, key, language))
+            {
+                navigationState = previousState;
+                message = $"Could not update the translation filter: {e.Message}";
+                messageType = SiteNoticeType.Danger;
+            }
+        }
+        finally
+        {
+            processingAction = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task DiscardEditsAndReload()
     {
         drafts.Remove(Key);
@@ -1187,7 +1273,7 @@ else
         try
         {
             var suffix = QuerySuffix();
-            data = await Http.GetFromJsonAsync<TranslationEditorDTO>($"api/v1/translationEditor?{suffix}");
+            data = await Http.GetFromJsonAsync<TranslationEditorDTO>(EditorRequestUrl(suffix));
             if (data == null)
             {
                 message ??= "Could not load this translation.";
@@ -1302,7 +1388,7 @@ else
 
     private async Task Save()
     {
-        if (!CanEditTranslation || data == null || saving)
+        if (!CanEditTranslation || data == null || !CanNavigate)
             return;
 
         lastSaveSucceeded = false;
@@ -1312,7 +1398,10 @@ else
 
         try
         {
-            using var response = await Http.PutAsJsonAsync("api/v1/translationEditor",
+            var saveUrl = navigationState.HasValue ?
+                $"api/v1/translationEditor?{NavigationStateParam}" :
+                "api/v1/translationEditor";
+            using var response = await Http.PutAsJsonAsync(saveUrl,
                 new TranslationSaveRequest
                 {
                     ProjectId = data.ProjectId, Key = data.Key, LanguageCode = data.LanguageCode,
@@ -1356,7 +1445,7 @@ else
 
     private async Task SaveAndContinue()
     {
-        if (!CanEditTranslation)
+        if (!CanEditTranslation || !CanNavigate)
             return;
 
         await Save();
@@ -1386,7 +1475,7 @@ else
 
     private async Task Move(int direction)
     {
-        if (project == null || data == null)
+        if (project == null || data == null || !CanNavigate)
             return;
 
         if (HasLocalChanges)
@@ -1398,9 +1487,9 @@ else
             drafts.Remove(Key);
         }
 
-        var url = $"api/v1/translationEditor/neighbor?projectId={project.Id}" +
-            $"&language={Uri.EscapeDataString(LanguageCode)}&key={Uri.EscapeDataString(Key)}" +
-            $"&direction={direction.ToString(CultureInfo.InvariantCulture)}";
+        var stateParam = navigationState.HasValue ? $"&{NavigationStateParam}" : string.Empty;
+        var url = $"api/v1/translationEditor/neighbor?{QuerySuffix()}" +
+            $"&direction={direction.ToString(CultureInfo.InvariantCulture)}{stateParam}";
         processingAction = "move";
         message = null;
         await InvokeAsync(StateHasChanged);
@@ -1410,25 +1499,29 @@ else
 
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
-                message = direction < 0 ? "Already at the first key." : "Already at the last key.";
+                message = navigationState.HasValue ?
+                    (direction < 0 ?
+                        "No previous string matches the current filter." :
+                        "No next string matches the current filter.") :
+                    (direction < 0 ? "Already at the first key." : "Already at the last key.");
                 messageType = SiteNoticeType.Info;
                 return;
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                message = $"Could not find the next translation: {response.StatusCode}";
+                message = $"Could not find the requested translation: {response.StatusCode}";
                 messageType = SiteNoticeType.Danger;
                 return;
             }
 
             var next = await response.Content.ReadFromJsonAsync<string>();
             if (next != null)
-                Navigation.NavigateTo($"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(next)}");
+                Navigation.NavigateTo($"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(next)}{stateParam}");
         }
         catch (Exception e)
         {
-            message = $"Could not move to the next translation: {e.Message}";
+            message = $"Could not move to another translation: {e.Message}";
             messageType = SiteNoticeType.Danger;
         }
         finally
