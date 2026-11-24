@@ -32,7 +32,16 @@
                 <tr @key="report.Id">
                     <th scope="row"><NavLink href="@($"moderation/{report.Id}")">@report.Id</NavLink></th>
                     <td><RecentTimeShortener Time="@report.CreatedAt"/></td>
-                    <td>@report.TargetUserName</td>
+                    <td>
+                        @if (report.TargetUserId != null)
+                        {
+                            <UsernameDisplayer UserId="@report.TargetUserId" ShowNavLink="true"/>
+                        }
+                        else
+                        {
+                            @report.TargetUserName
+                        }
+                    </td>
                     <td>@report.Target</td>
                     <td>@report.Reason</td>
                     <td>@(report.Resolution?.ToString() ?? "Awaiting review")</td>
@@ -46,15 +55,15 @@
 @code {
     private readonly List<TableColumn> columns = new()
     {
-        new TableColumn("Id", true),
-        new TableColumn("CreatedAt", true),
+        new TableColumn("ID", true, nameof(UserReportDTO.Id)),
+        new TableColumn("Created", true, nameof(UserReportDTO.CreatedAt)),
         new TableColumn("Reported user", false),
         new TableColumn("Content", false),
         new TableColumn("Reason", false),
         new TableColumn("Status", false),
     };
 
-    public ModerationQueue() : base(new SortHelper("CreatedAt", SortDirection.Ascending))
+    public ModerationQueue() : base(new SortHelper(nameof(UserReportDTO.CreatedAt), SortDirection.Ascending))
     {
     }
 
@@ -64,6 +73,9 @@
     public override Task SetParametersAsync(ParameterView parameters)
     {
         this.SetParametersFromQueryString(Navigation);
+        SortColumn = columns.Find(column => column.IsSortable &&
+            string.Equals(column.SortName, SortColumn, StringComparison.OrdinalIgnoreCase))?.SortName
+            ?? DefaultSortColumn;
         return base.SetParametersAsync(parameters);
     }
 
