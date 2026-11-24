@@ -13,7 +13,7 @@
         </select>
         <label for="report-details" class="form-label mt-2">Details</label>
         <textarea id="report-details" class="form-control" maxlength="4000" rows="4"
-                  @bind="details" disabled="@processing"></textarea>
+                  @bind="details" @bind:event="oninput" disabled="@processing"></textarea>
         <StatusMessageShower Message="@error" Type="SiteNoticeType.Danger"/>
     </div>
     <div class="modal-footer">
