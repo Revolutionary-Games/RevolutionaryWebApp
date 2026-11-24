@@ -14,6 +14,7 @@ using Utilities;
 [Index(nameof(Target), nameof(TargetId), nameof(ResolvedAt))]
 public class UserReport : IUpdateNotifications
 {
+    [AllowSortingBy]
     public long Id { get; set; }
     public long? ReporterUserId { get; set; }
     public User? ReporterUser { get; set; }
