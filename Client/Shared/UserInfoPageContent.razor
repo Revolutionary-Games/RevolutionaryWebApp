@@ -71,7 +71,7 @@
 
 @if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
 {
-    <UserNameEditor @key="User.Id" User="@User"/>
+    <UserNameEditor @key="(typeof(UserNameEditor), User.Id)" User="@User"/>
 }
 
 @if (LookingAtSelf || CurrentUserInfo.HasAccessLevel(GroupType.Admin))
