@@ -19,20 +19,27 @@
         {
             <p><strong>Name:</strong> @profile.DisplayName</p>
         }
+
         @if (UserInfo.InfoReady && UserInfo.Info?.Id == profile.Id)
         {
-            <p><NavLink href="me">View my full profile</NavLink></p>
+            <p>
+                <NavLink href="me">View my full profile</NavLink>
+            </p>
         }
+
         @if (UserInfo.InfoReady && UserInfo.Info?.Id != profile.Id)
         {
             <ReportButton Target="UserReportTarget.User" TargetId="@profile.Id" TargetName="@profile.Name"/>
         }
+
         @if (UserInfo.InfoReady && (UserInfo.Info?.Id == profile.Id || UserInfo.IsAdmin ||
-                                   UserInfo.HasGroup(GroupType.ContentModerator)))
+                     UserInfo.HasGroup(GroupType.ContentModerator)))
         {
             <UserRecentActivity UserId="@profile.Id" @key="profile.Id"/>
         }
-        <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" AutoRedirectIfNotLoggedIn="@false">
+
+        <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator"
+                       AutoRedirectIfNotLoggedIn="@false">
             <NavLink href="@($"users/{profile.Id}")">Account details</NavLink>
         </AccessLimited>
     }
@@ -57,8 +64,7 @@
         profile = null;
         try
         {
-            var result = await Http.GetFromJsonAsync<PublicUserProfile>(
-                $"api/v1/UserManagement/profile/{Uri.EscapeDataString(Username)}");
+            var result = await Http.GetFromJsonAsync<PublicUserProfile>($"api/v1/UserManagement/profile/{Uri.EscapeDataString(Username)}");
             if (version == requestVersion)
                 profile = result;
         }
@@ -73,4 +79,5 @@
                 loading = false;
         }
     }
+
 }
