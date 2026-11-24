@@ -36,8 +36,8 @@
                 <li><strong>Downloads</strong>: @Data.Downloads</li>
                 <li><strong>Score</strong>: @Data.Score</li>
                 <li><strong>Related PR (not implemented yet)</strong>: </li>
-                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
-                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
             </ul>
 
             <h4>Description</h4>

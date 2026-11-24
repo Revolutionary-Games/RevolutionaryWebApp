@@ -36,7 +36,7 @@
                 {
                     <tr @key="item.Id">
                         <th scope="row"><NavLink href="@($"association/members/{item.Id}")">@item.Email</NavLink></th>
-                        <td>@item.JoinDate.ToString("d")</td>
+                        <td>@item.JoinDate.ToString("d", CultureInfo.CurrentCulture)</td>
                         <td>
                             @if(item.UserId != null)
                             {

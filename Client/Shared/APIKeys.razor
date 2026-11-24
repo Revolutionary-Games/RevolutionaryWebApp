@@ -50,7 +50,7 @@
                 </td>
                 <td>@(key.LastUsedIP ?? "Never")</td>
                 <td>@key.TotalUses</td>
-                <td>@(key.ExpiresAt?.ToLocalTime().ToString("g") ?? "Never")</td>
+                <td>@(key.ExpiresAt?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "Never")</td>
                 <td>
                     <Button ButtonStyle="danger" Small="@true" Enabled="@(!status.Processing)"
                             Spinner="@status.Processing" OnPressed="@(() => VerifyDelete(key))">Delete</Button>

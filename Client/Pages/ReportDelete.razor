@@ -23,14 +23,14 @@ else
     <ul>
         <li><strong>Id</strong>: <NavLink href="@($"/reports/{report.Id}")">@report.Id</NavLink></li>
         <li><strong>Public</strong>: @report.Public</li>
-        <li><strong>Crash Happened At</strong>: @report.HappenedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Crash Happened At</strong>: @report.HappenedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
         <li><strong>Crash Reason</strong>: @report.ExitCodeOrSignal</li>
         <li><strong>Version</strong>: @report.Version</li>
         <li><strong>Store Version</strong>: @report.Store</li>
         <li><strong>Platform</strong>: @report.Platform</li>
         <li><strong>State</strong>: @report.State</li>
-        <li><strong>Created At</strong>: @report.CreatedAt.ToLocalTime().ToString("G")</li>
-        <li><strong>Updated At</strong>: @report.UpdatedAt.ToLocalTime().ToString("G")</li>
+        <li><strong>Created At</strong>: @report.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+        <li><strong>Updated At</strong>: @report.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
     </ul>
 
     <p>

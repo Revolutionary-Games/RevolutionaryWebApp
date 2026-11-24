@@ -106,11 +106,12 @@ else
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <strong>Last Webhook:</strong> @(item.LastWebhook?.ToLocalTime().ToString("G") ?? "Never")
+                            <strong>Last Webhook:</strong>
+                            @(item.LastWebhook?.ToLocalTime().ToString("G", CultureInfo.CurrentCulture) ?? "Never")
                         </div>
                         <div class="col-md-6">
-                            <strong>Last
-                                Refreshed:</strong> @(item.LastRefreshed?.ToLocalTime().ToString("G") ?? "Never")
+                            <strong>Last Refreshed:</strong>
+                            @(item.LastRefreshed?.ToLocalTime().ToString("G", CultureInfo.CurrentCulture) ?? "Never")
                         </div>
                     </div>
 

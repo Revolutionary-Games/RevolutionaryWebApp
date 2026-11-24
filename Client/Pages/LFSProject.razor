@@ -23,8 +23,8 @@
             <li><strong>Git LFS URL</strong>: @ComputeLfsURL()</li>
             <li><strong>Clone URL</strong>: @Data.CloneUrl</li>
             <li><strong>File Tree Branch</strong>: @Data.BranchToBuildFileTreeFor</li>
-            <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
-            <li><strong>Settings Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+            <li><strong>Settings Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
 
             <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
                 <li><strong>Deleted</strong>: @Data.Deleted</li>

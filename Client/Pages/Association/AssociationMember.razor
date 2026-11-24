@@ -37,9 +37,9 @@
                         <span>No account</span>
                     }
                 </li>
-                <li><strong>Joined Date</strong>: @Data.JoinDate.ToString("D")</li>
-                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
-                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Joined Date</strong>: @Data.JoinDate.ToString("D", CultureInfo.CurrentCulture)</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
             </ul>
 
             <AdminResourceDeleteButtons Deleted="@false" UsesSoftDelete="@false" Name="@Data.Email" Id="@Data.Id"

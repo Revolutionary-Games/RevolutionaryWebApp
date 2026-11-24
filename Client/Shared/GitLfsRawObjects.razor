@@ -38,7 +38,7 @@ else
                         <tr @key="item.Id">
                             <td>@item.LfsOid</td>
                             <td>@item.Size.BytesToMiB(3)</td>
-                            <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                            <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                         </tr>
                     }
                 }

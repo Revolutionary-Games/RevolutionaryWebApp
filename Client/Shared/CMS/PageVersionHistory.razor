@@ -74,7 +74,7 @@
                                         <p>
                                             <strong>Edit Comment:</strong> @versionDTO.EditComment<br/>
                                             <strong>Created At:</strong>
-                                            @versionDTO.CreatedAt.ToLocalTime().ToString("G")<br/>
+                                            @versionDTO.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)<br/>
                                             <strong>By:</strong>
                                             <UsernameDisplayer UserId="@versionDTO.EditedById"/>
                                         </p>

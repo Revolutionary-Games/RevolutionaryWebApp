@@ -69,7 +69,7 @@ else
                     </div>
 
                     <p>
-                        Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G")).
+                        Results computed at: @(item.PollResultsCreatedAt?.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)).
                         Poll's tiebreak type: @item.TiebreakType
                     </p>
                 }
@@ -182,7 +182,7 @@ else
                 }
                 else
                 {
-                    <p>This poll closed at @item.ClosedAt.Value.ToLocalTime().ToString("G")</p>
+                    <p>This poll closed at @item.ClosedAt.Value.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</p>
 
                     @if (item.AutoCloseAt == null || item.ManuallyClosedById != null)
                     {

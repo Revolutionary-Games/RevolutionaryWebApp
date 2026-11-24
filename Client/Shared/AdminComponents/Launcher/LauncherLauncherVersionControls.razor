@@ -49,8 +49,8 @@ else
                             <span class="badge bg-success">Latest</span>
                         }
                     </td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                     <td>
                         <Button Enabled="@(!IsProcessing(item.Id) && !item.Latest)"
                                 OnPressed="@(async () => await MakeVersionLatest(item))"

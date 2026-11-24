@@ -154,7 +154,7 @@
                                 <p>
                                     <strong>Updated at:</strong>
                                     <RecentTimeShortener Time="@item.UpdatedAt" IncludeSeconds="@true"/>
-                                    <strong>Created at:</strong> @item.CreatedAt.ToLocalTime().ToString("G")
+                                    <strong>Created at:</strong> @item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)
                                     <br/>
                                     <strong>Jobs prevented:</strong> @item.DisallowJobs
                                     <strong>Active connection:</strong> @item.CurrentConnectionId

@@ -60,7 +60,7 @@
                         @* TODO: add back some basic group showing? *@
                         @*<td>@item.Developer</td>
                         <td>@item.Admin</td>*@
-                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                     </tr>
                 }
             }

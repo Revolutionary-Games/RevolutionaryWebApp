@@ -61,11 +61,11 @@ public sealed class ImageGenerator : IDisposable
         // Single name
         if (parts.Length == 1)
         {
-            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant();
         }
 
         // Use the first letter of the first two words
-        return (parts[0][0] + parts[1][0].ToString()).ToUpper();
+        return (parts[0][0] + parts[1][0].ToString()).ToUpperInvariant();
     }
 
     public async Task<byte[]> GenerateProgressUpdateBanner(DateTime date)

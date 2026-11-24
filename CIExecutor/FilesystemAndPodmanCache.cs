@@ -3,6 +3,7 @@ namespace CIExecutor;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -490,7 +491,7 @@ public sealed class FilesystemAndPodmanCache : IExecutorCache, IDisposable
             try
             {
                 // Fast path: ISO 8601 Z/offset
-                if (DateTimeOffset.TryParse(s, out var dto))
+                if (DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dto))
                 {
                     utc = dto.UtcDateTime;
                     return true;
@@ -512,7 +513,7 @@ public sealed class FilesystemAndPodmanCache : IExecutorCache, IDisposable
                     }
                 }
 
-                if (DateTimeOffset.TryParse(s, out dto))
+                if (DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out dto))
                 {
                     utc = dto.UtcDateTime;
                     return true;

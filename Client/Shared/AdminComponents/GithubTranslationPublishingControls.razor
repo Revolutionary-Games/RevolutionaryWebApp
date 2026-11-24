@@ -43,7 +43,7 @@ else
         {
             <tr @key="token.Id">
                 <td>@token.Purpose</td>
-                <td>@token.CreatedAt.ToLocalTime().ToString("G")</td>
+                <td>@token.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                 <td>
                     <Button Small="true" ButtonStyle="outline-danger" Enabled="@(!deleting)"
                             Spinner="@deleting" OnPressed="@(() => DeleteToken(token.Id))">

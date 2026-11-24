@@ -57,7 +57,7 @@ public class CSRFTokenReader : ICSRFTokenReader
         var timeStr = await jsRuntime.InvokeAsync<string>("getCSRFTokenExpiry");
         var configRead = jsRuntime.InvokeAsync<string>("getSiteConfig");
 
-        csrfTokenExpires = DateTime.Parse(timeStr, null, DateTimeStyles.RoundtripKind);
+        csrfTokenExpires = DateTime.Parse(timeStr, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
         // Send our initial user info through
         currentUserInfo.OnReceivedOurInfo(tokenAndUser.User);

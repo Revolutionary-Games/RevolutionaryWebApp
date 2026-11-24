@@ -15,7 +15,7 @@
                     <div>
                         <strong>@repoReleaseStats.Repository</strong> latest release:
                         @repoReleaseStats.LatestRelease published on
-                        @repoReleaseStats.LatestReleaseTime?.ToLocalTime().ToString("D") with
+                        @repoReleaseStats.LatestReleaseTime?.ToLocalTime().ToString("D", CultureInfo.CurrentCulture) with
                         @repoReleaseStats.LatestDownloads downloads, @repoReleaseStats.LatestDownloadsPerDay/day
                         (Linux/General: @repoReleaseStats.LatestLinuxDownloads,
                         Windows: @repoReleaseStats.LatestWindowsDownloads, Mac: @repoReleaseStats.LatestMacDownloads)

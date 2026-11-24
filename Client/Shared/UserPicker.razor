@@ -47,7 +47,7 @@
     {
         <div class="mt-2 mb-1 ms-1">Pick user:</div>
         <ul class="mb-2">
-            @foreach (var entry in usersToPickFrom.OrderBy(t => t.Value))
+            @foreach (var entry in usersToPickFrom.OrderBy(t => t.Value, StringComparer.CurrentCulture))
             {
                 <input type="radio" checked="@(Selected == entry.Key)" class="me-1"
                        @onchange="async e => await OnRadioButtonPressed(e, entry.Key)" />

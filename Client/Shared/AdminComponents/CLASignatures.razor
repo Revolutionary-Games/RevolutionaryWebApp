@@ -32,7 +32,7 @@ else
                     <td>@item.Email</td>
                     <td>@item.GithubAccount</td>
                     <td>@item.DeveloperUsername</td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                     <td>@item.ValidUntil</td>
                     <td>@item.ClaId</td>
                     <td>@item.UserId</td>

@@ -31,7 +31,7 @@
         foreach (var entry in data)
         {
             <p>
-                Signature at @entry.CreatedAt.ToString("G") made by @entry.Email
+                Signature at @entry.CreatedAt.ToString("G", CultureInfo.CurrentCulture) made by @entry.Email
                 @if(!string.IsNullOrEmpty(entry.GithubAccount))
                 {
                     @if (string.IsNullOrEmpty(entry.Email))

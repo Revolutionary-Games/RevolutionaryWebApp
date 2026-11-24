@@ -1,5 +1,6 @@
 namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using Bunit;
@@ -47,7 +48,7 @@ public class TranslationEngageTests : BunitContext
             Assert.Contains("Thrive", page.Find("h1").TextContent);
             Assert.Contains("Translate into", page.Find("a[href='translations/thrive/fi']").TextContent);
             Assert.Contains("View project languages", page.Find("a[href='translations/thrive']").TextContent);
-            Assert.Contains(0.5.ToString("P1"), page.Markup);
+            Assert.Contains(0.5.ToString("P1", CultureInfo.CurrentCulture), page.Markup);
         });
         http.VerifyNoOutstandingExpectation();
     }

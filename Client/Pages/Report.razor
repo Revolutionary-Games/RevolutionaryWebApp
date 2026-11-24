@@ -31,7 +31,7 @@
         </h3>
 
         <ul>
-            <li><strong>Crash Happened At</strong>: @Data.HappenedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Crash Happened At</strong>: @Data.HappenedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
             <li><strong>Crash Reason</strong>: @Data.ExitCodeOrSignal</li>
             <li><strong>Version</strong>: @Data.Version</li>
             <li><strong>Store Version</strong>: @Data.Store</li>
@@ -50,8 +50,8 @@
                 <li><strong>Anonymized reporter IP</strong>: @Data.AnonymizedReporterIp</li>
             }
 
-            <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
-            <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+            <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+            <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
         </ul>
 
         <StatusMessageShower Type="@topStatusType" Message="@topStatus" />
@@ -180,7 +180,7 @@
                         @if (Data.DescriptionLastEdited.HasValue)
                         {
                             <p>Description last edited at
-                                @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G") by
+                                @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G", CultureInfo.CurrentCulture) by
                                 <UsernameDisplayer UserId="@Data.DescriptionLastEditedById" /></p>
                         }
                     </AuthorizedContent>
@@ -189,7 +189,7 @@
                         {
                             <p>
                                 Description last edited at
-                                @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G")
+                                @Data.DescriptionLastEdited.Value.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)
                             </p>
                         }
                     </AccessMissingContent>

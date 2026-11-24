@@ -1,6 +1,7 @@
 namespace RevolutionaryWebApp.Shared.Tests.Notifications.Tests;
 
 using System;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Shared.Models;
@@ -22,8 +23,8 @@ public class NotificationsSerializationTests
                 Name = "something",
                 Slug = "smth",
                 Public = true,
-                CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
-                UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
+                CreatedAt = DateTime.Parse("2021-01-02T06:12:00", CultureInfo.InvariantCulture),
+                UpdatedAt = DateTime.Parse("2021-01-02T06:15:00", CultureInfo.InvariantCulture),
             },
         };
 
@@ -45,8 +46,8 @@ public class NotificationsSerializationTests
                 Name = "something",
                 Public = true,
                 Slug = "smth",
-                CreatedAt = DateTime.Parse("2021-01-02T06:12:00"),
-                UpdatedAt = DateTime.Parse("2021-01-02T06:15:00"),
+                CreatedAt = DateTime.Parse("2021-01-02T06:12:00", CultureInfo.InvariantCulture),
+                UpdatedAt = DateTime.Parse("2021-01-02T06:15:00", CultureInfo.InvariantCulture),
             },
         };
 

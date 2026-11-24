@@ -17,7 +17,7 @@
 
             <ul>
                 <li><strong>Active</strong>: @Data.Active</li>
-                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
             </ul>
 
             <StatusMessageShower Message="@statusMessage" Type="@statusMessageType" />

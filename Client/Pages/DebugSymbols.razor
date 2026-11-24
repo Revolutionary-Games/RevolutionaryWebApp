@@ -54,8 +54,8 @@
                             @item.StoredInItemId
                         </a></td>
                         <td><UsernameDisplayer UserId="@item.CreatedById" /></td>
-                        <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
-                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                         <td>
                             <Button Enabled="@CanEnableOrDisable(item)"
                                     OnPressed="@(async () => await PerformActiveToggle(item))"

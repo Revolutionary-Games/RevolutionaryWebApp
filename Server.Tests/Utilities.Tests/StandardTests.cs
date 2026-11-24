@@ -47,11 +47,11 @@ public class StandardTests
 
         Assert.Equal(new DateTime(2027, 09, 29, 12, 40, 49, DateTimeKind.Utc), parsed);
 
-        parsed = DateTime.Parse("2022-04-30T17:10:02Z").ToUniversalTime();
+        parsed = DateTime.Parse("2022-04-30T17:10:02Z", CultureInfo.InvariantCulture).ToUniversalTime();
 
         Assert.Equal(new DateTime(2022, 04, 30, 17, 10, 02, DateTimeKind.Utc), parsed);
 
-        var parsed2 = DateTime.Parse("2022-04-30 17:10:02+0").ToUniversalTime();
+        var parsed2 = DateTime.Parse("2022-04-30 17:10:02+0", CultureInfo.InvariantCulture).ToUniversalTime();
 
         Assert.Equal(parsed, parsed2);
     }

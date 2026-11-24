@@ -29,7 +29,7 @@ else if (project != null && loadError == null)
         {
             <div class="row text-center my-4">
                 <div class="col-sm-4 mb-3">
-                    <strong class="display-6">@languages[0].Total.ToString("N0")</strong>
+                    <strong class="display-6">@languages[0].Total.ToString("N0", CultureInfo.CurrentCulture)</strong>
                     <div>Strings to translate</div>
                 </div>
                 <div class="col-sm-4 mb-3">
@@ -37,7 +37,7 @@ else if (project != null && loadError == null)
                     <div>Languages</div>
                 </div>
                 <div class="col-sm-4 mb-3">
-                    <strong class="display-6">@Completion.ToString("P1")</strong>
+                    <strong class="display-6">@Completion.ToString("P1", CultureInfo.CurrentCulture)</strong>
                     <div>Translated</div>
                 </div>
             </div>

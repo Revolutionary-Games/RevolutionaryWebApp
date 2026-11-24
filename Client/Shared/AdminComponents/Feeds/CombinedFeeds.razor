@@ -67,8 +67,8 @@ else
                     </td>
                     <td>@item.CacheTime</td>
                     <td>@item.MaxItems</td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
-                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                 </tr>
 
                 @if (status.Expanded)

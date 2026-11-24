@@ -47,10 +47,11 @@ else
                     </td>
                     <td>@item.LastIp</td>
                     <td>@item.TotalApiCalls</td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                     <td>
                         <AdminResourceDeleteButtons Deleted="@false"
-                                                    Name="@item.CreatedAt.ToLocalTime().ToString("G")" Id="@item.Id"
+                                                    Name="@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)"
+                                                    Id="@item.Id"
                                                     ButtonClass="btn-sm" UsesSoftDelete="false"
                                                     DeleteURLBase="@($"api/v1/LauncherLinks/{UserId}")"
                                                     DeletePromptTitle="Delete this launcher link?"

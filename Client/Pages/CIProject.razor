@@ -21,8 +21,8 @@
                 <li><strong>Enabled</strong>: @Data.Enabled</li>
                 <li><strong>Clone URL</strong>: @Data.RepositoryCloneUrl</li>
                 <li><strong>Default Branch</strong>: @Data.DefaultBranch</li>
-                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
-                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G")</li>
+                <li><strong>Created At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+                <li><strong>Updated At</strong>: @Data.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
                 <AccessLimited RequiredAccess="GroupType.Admin" AutoRedirectIfNotLoggedIn="@false">
                     <li><strong>Deleted</strong>: @Data.Deleted</li>
                 </AccessLimited>

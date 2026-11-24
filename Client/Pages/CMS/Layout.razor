@@ -101,7 +101,7 @@
                                 @item.ImageId
                             </a>
                         </td>
-                        <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                         <td>
                             <AdminResourceDeleteButtons Deleted="@false"
                                                         Name="@($"Site Part {item.Id} {item.PartType}")" Id="@item.Id"

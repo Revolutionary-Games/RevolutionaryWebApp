@@ -45,7 +45,7 @@ else
                     <th scope="row"><NavLink href="@($"precompiled/{item.Name}")">@item.Name</NavLink></th>
                     <td>@item.TotalStorageSize.BytesToMiB()</td>
                     <td>@item.Public</td>
-                    <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                 </tr>
             }
         }

@@ -77,7 +77,7 @@
                 {
                     <tr @key="item.Id">
                         <td>@item.Name</td>
-                        <td>@item.CreatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                         <td>@item.Size.BytesToMiB()</td>
                         <td>
                             <Button Enabled="@CanDelete(item)"

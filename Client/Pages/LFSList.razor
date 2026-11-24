@@ -38,7 +38,7 @@ else
                     <th scope="row"><NavLink href="@($"lfs/{item.Id}")">@item.Name</NavLink></th>
                     <td>@item.Public</td>
                     <td>@item.TotalObjectSize.BytesToMiB()</td>
-                    <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                 </tr>
             }
         }

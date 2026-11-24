@@ -67,7 +67,7 @@ else
                     <td>@item.ExitCodeOrSignal</td>
                     <td>@item.Platform</td>
                     <td>@item.StoreOrVersion</td>
-                    <td>@item.HappenedAt.ToLocalTime().ToString("G")</td>
+                    <td>@item.HappenedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                     <td>@item.Public</td>
                 </tr>
             }

@@ -172,7 +172,7 @@
                         </li>
                     }
 
-                    <li><strong>Signing Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G")</li>
+                    <li><strong>Signing Started At</strong>: @Data.CreatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
                 </ul>
 
                 <p>Agreement you are about to sign:</p>

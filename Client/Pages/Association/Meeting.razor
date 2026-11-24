@@ -18,9 +18,8 @@
         <h3>Meeting: @Data.Name</h3>
 
         <ul>
-            <li><strong>Starts At</strong>: @Data.StartsAt.ToLocalTime().ToString("G")</li>
-            <li><strong>Ended At</strong>: @(Data.EndedAt.HasValue ? Data.EndedAt.Value.ToLocalTime().ToString("G")
-                                               : "Not ended")</li>
+            <li><strong>Starts At</strong>: @Data.StartsAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</li>
+            <li><strong>Ended At</strong>: @(Data.EndedAt?.ToLocalTime().ToString("G", CultureInfo.CurrentCulture) ?? "Not ended")</li>
             <li><strong>Expected Duration</strong>: @Data.ExpectedDuration</li>
             <li><strong>Joinable By</strong>: @Data.JoinAccess</li>
             <li><strong>Visible To</strong>: @Data.ReadAccess</li>

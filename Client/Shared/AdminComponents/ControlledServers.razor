@@ -41,7 +41,7 @@
                         <td>Not Reimplemented</td>
                         <td>@($"{item.UsedDiskSpace}%")</td>
                         <td>@(TimeSpan.FromSeconds(Math.Round(item.TotalRuntime)))</td>
-                        <td>@item.UpdatedAt.ToLocalTime().ToString("G")</td>
+                        <td>@item.UpdatedAt.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                         <td>@item.WantsMaintenance</td>
                         <td>
                             <Button Enabled="@CanStopOrStart(item)"

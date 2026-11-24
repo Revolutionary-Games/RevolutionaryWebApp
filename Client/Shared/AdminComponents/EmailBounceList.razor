@@ -22,8 +22,8 @@
                 <th scope="row">@item.Id</th>
                 <td>@item.Email.Truncate(40)</td>
                 <td>@item.OutstandingBounces</td>
-                <td>@item.FirstBounceUtc.ToLocalTime().ToString("G")</td>
-                <td>@item.LastBounceUtc.ToLocalTime().ToString("G")</td>
+                <td>@item.FirstBounceUtc.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
+                <td>@item.LastBounceUtc.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)</td>
                 <td>@(item.DisabledBySystem ? "Yes" : "No")</td>
                 <td>@item.BackoffWeeks</td>
                 <td>
