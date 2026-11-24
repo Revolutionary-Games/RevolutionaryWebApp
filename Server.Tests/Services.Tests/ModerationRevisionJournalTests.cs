@@ -118,7 +118,7 @@ public class ModerationRevisionJournalTests
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    public async Task DictionaryRollbackRespectsLaterEditorsAndRetention(bool laterEdit, bool expiredRevision)
+    public async Task DictionaryRollbackRespectsLaterEditorsAndUsesRetainedHistory(bool laterEdit, bool expiredRevision)
     {
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
@@ -155,8 +155,8 @@ public class ModerationRevisionJournalTests
         var skipped = await ModerationRevisionJournal.Revert(database, actor.Id, DateTime.MinValue);
         await database.SaveChangesAsync();
         Assert.Equal(laterEdit ? 1 : 0, skipped);
-        Assert.Equal(laterEdit ? "Corrected translation" : expiredRevision ? "Spam" : "Solu", term.Text);
-        Assert.Equal(expiredRevision ? actor.Id : good.Id, term.LastEditedByUserId);
+        Assert.Equal(laterEdit ? "Corrected translation" : "Solu", term.Text);
+        Assert.Equal(good.Id, term.LastEditedByUserId);
         Assert.Equal(laterEdit ? 2 : 1, await database.ModerationRevisions.CountAsync());
     }
 }
