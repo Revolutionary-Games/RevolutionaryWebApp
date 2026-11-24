@@ -219,16 +219,16 @@
             return;
 
         loadedId = Id;
+        report = null;
         noteText = string.Empty;
-        action = ModerationAction.Resolve;
         permanent = false;
         allTime = false;
         deleteContent = false;
         message = null;
-        await Load(true);
+        await Load();
     }
 
-    private async Task Load(bool initialize = false)
+    private async Task Load()
     {
         var version = ++requestVersion;
         loading = true;
@@ -240,9 +240,15 @@
             if (version != requestVersion)
                 return;
 
+            if (report == null && result != null)
+            {
+                action = result.Target == UserReportTarget.User
+                    ? ModerationAction.Resolve
+                    : ModerationAction.DeleteContent;
+                purgeHours = result.DefaultPurgeHours;
+            }
+
             report = result;
-            if (initialize && report != null)
-                purgeHours = report.DefaultPurgeHours;
         }
         catch (Exception exception)
         {
