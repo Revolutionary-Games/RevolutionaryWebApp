@@ -281,6 +281,7 @@ public class UserReportsControllerTests
         });
         await database.SaveChangesAsync();
         var originalCutoff = pending.PurgeCutoff;
+        Assert.Empty(await database.ModerationRevisions.ToListAsync());
         await moderation.ProcessPendingAction(pending.Id, true, CancellationToken.None);
         Assert.True(lateComment.Deleted);
         Assert.Equal("Good {0}", value.Text);

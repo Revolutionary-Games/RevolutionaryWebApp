@@ -2881,6 +2881,9 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.HasKey("Id")
                         .HasName("pk_moderation_revisions");
 
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_moderation_revisions_created_at");
+
                     b.HasIndex("UserId", "CreatedAt")
                         .HasDatabaseName("ix_moderation_revisions_user_id_created_at");
 
