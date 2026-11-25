@@ -18,9 +18,9 @@ public class LFSFileDownloadController : Controller
 {
     private readonly ApplicationDbContext database;
     private readonly LfsDownloadUrls downloadUrls;
-    private readonly DownloadQuota quota;
+    private readonly IDownloadQuota quota;
 
-    public LFSFileDownloadController(ApplicationDbContext database, LfsDownloadUrls downloadUrls, DownloadQuota quota)
+    public LFSFileDownloadController(ApplicationDbContext database, LfsDownloadUrls downloadUrls, IDownloadQuota quota)
     {
         this.database = database;
         this.downloadUrls = downloadUrls;
@@ -65,9 +65,9 @@ public class LFSFileDownloadController : Controller
         if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, lfsObject.Size))
         {
             if (user == null)
-                return Unauthorized(DownloadQuota.PublicLfsLimitReachedMessage);
+                return Unauthorized(IDownloadQuota.PublicLfsLimitReachedMessage);
 
-            return StatusCode(StatusCodes.Status429TooManyRequests, DownloadQuota.LimitReachedMessage);
+            return StatusCode(StatusCodes.Status429TooManyRequests, IDownloadQuota.LimitReachedMessage);
         }
 
         return Redirect(downloadUrl);

@@ -87,7 +87,7 @@ public class Startup
             });
         }
 
-        services.AddSingleton<DownloadQuota>();
+        services.AddSingleton<IDownloadQuota, DownloadQuota>();
 
         // This has to be always created when not needed to make EF tool work
         services.AddDbContextPool<ProtectionKeyContext>(opts =>
@@ -419,10 +419,28 @@ public class Startup
         if (!string.IsNullOrEmpty(SharedStateRedisConnectionString))
             logger.LogInformation("Shared state redis is configured");
 
-        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-        });
+        };
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+        forwardedHeadersOptions.KnownProxies.Add(IPAddress.Loopback);
+        forwardedHeadersOptions.KnownProxies.Add(IPAddress.IPv6Loopback);
+
+        foreach (var proxy in Configuration.GetSection("ForwardedHeaders:KnownProxies").GetChildren())
+        {
+            if (IPAddress.TryParse(proxy.Value, out var address))
+            {
+                forwardedHeadersOptions.KnownProxies.Add(address);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Invalid trusted proxy address in {proxy.Path}");
+            }
+        }
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
 
         app.Use(async (context, next) =>
         {

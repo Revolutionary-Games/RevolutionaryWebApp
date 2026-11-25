@@ -155,7 +155,8 @@ public class UserManagementController : Controller
 
     [HttpGet("{id:long}")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<ActionResult<UserDTO>> GetUser([Required] long id, [FromServices] DownloadQuota quota)
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<UserDTO>> GetUser([Required] long id, [FromServices] IDownloadQuota quota)
     {
         var user = await database.Users.AsNoTracking().Where(u => u.Id == id).Include(u => u.AssociationMember)
             .Include(u => u.ContributionCount).FirstOrDefaultAsync();
@@ -171,7 +172,7 @@ public class UserManagementController : Controller
         await user.ComputeUserGroups(database);
 
         var info = user.GetDTO(canViewDetails ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
-        info.DownloadQuotaLimit = DownloadQuota.GetLimit(user);
+        info.DownloadQuotaLimit = quota.GetLimit(user);
         info.DownloadQuotaUsed = await quota.GetUsageAsync(user.Id);
 
         return info;

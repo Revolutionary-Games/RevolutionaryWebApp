@@ -15,13 +15,8 @@ using Shared.Models.Enums;
 using SharedBase.Utilities;
 using StackExchange.Redis;
 
-public class DownloadQuota
+public class DownloadQuota : IDownloadQuota
 {
-    public const string LimitReachedMessage = "Weekly download quota reached. Wait for your quota to reset.";
-
-    public const string PublicLfsLimitReachedMessage =
-        "Login required: the public IP download quota was reached. Log in or wait a week to download more.";
-
     /// <summary>
     ///   Download limit configuration for non-logged in users.
     /// </summary>
@@ -70,7 +65,7 @@ public class DownloadQuota
         }
     }
 
-    public static long GetLimit(User? user)
+    public long GetLimit(User? user)
     {
         if (user == null)
             return PublicLimit;

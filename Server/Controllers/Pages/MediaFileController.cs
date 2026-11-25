@@ -13,6 +13,7 @@ using Filters;
 using Hangfire;
 using Jobs.Pages;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -107,7 +108,8 @@ public class MediaFileController : Controller
     }
 
     [HttpGet("view/{id:long}")]
-    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id)
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id, [FromServices] IDownloadQuota quota)
     {
         var mediaFile = await database.MediaFiles.FindAsync(id);
 
@@ -141,8 +143,13 @@ public class MediaFileController : Controller
         if (string.IsNullOrEmpty(path))
             return NotFound();
 
+        var downloadUrl = new Uri(new Uri(viewBaseUrl), path).ToString();
+
+        if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, mediaFile.OriginalFileSize))
+            return StatusCode(StatusCodes.Status429TooManyRequests, IDownloadQuota.LimitReachedMessage);
+
         Response.Headers["X-Content-Type-Options"] = "nosniff";
-        return Redirect(new Uri(new Uri(viewBaseUrl), path).ToString());
+        return Redirect(downloadUrl);
     }
 
     [HttpGet("redirectToFolder/{id}")]

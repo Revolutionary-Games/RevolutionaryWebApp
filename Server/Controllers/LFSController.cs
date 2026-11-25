@@ -92,7 +92,7 @@ public class LFSController : Controller
     [HttpPost("{slug}/objects/batch")]
     [EnableRateLimiting(RateLimitCategories.UploadLimit)]
     public async Task<ActionResult<LFSResponse>> BatchOperation([Required] string slug,
-        [Required] LFSRequest request, [FromServices] DownloadQuota quota)
+        [Required] LFSRequest request, [FromServices] IDownloadQuota quota)
     {
         SetContentType();
 
@@ -162,9 +162,9 @@ public class LFSController : Controller
             if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, bytes))
             {
                 if (user == null)
-                    return RequestAuthResult(DownloadQuota.PublicLfsLimitReachedMessage);
+                    return RequestAuthResult(IDownloadQuota.PublicLfsLimitReachedMessage);
 
-                return LfsErrorResult(StatusCodes.Status429TooManyRequests, DownloadQuota.LimitReachedMessage);
+                return LfsErrorResult(StatusCodes.Status429TooManyRequests, IDownloadQuota.LimitReachedMessage);
             }
         }
 

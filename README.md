@@ -21,6 +21,14 @@ KeyDB is recommended.
 The connection string to redis is configured in the app
 configuration. It's recommended to have a password on the redis.
 
+Weekly download quotas use the shared Redis connection. Set `DownloadQuota:ExemptIPs`
+(`DownloadQuota__ExemptIPs` as an environment variable) to a comma-separated list
+of IP addresses to exempt anonymous downloads, such as requests from CI. The
+default is `::1,127.0.0.1`. Authenticated downloads count toward the user's quota.
+The app trusts forwarded headers from `127.0.0.1` and `::1` by default, so a
+local Caddy reverse proxy needs no extra configuration. For a proxy that connects
+from another address, add its IP to the `ForwardedHeaders:KnownProxies` JSON array.
+
 ### Remote S3 Storage
 
 Various features require (but these features are optional so you can

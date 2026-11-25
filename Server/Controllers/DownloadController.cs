@@ -26,10 +26,10 @@ public class DownloadController : Controller
     private readonly ILogger<DownloadController> logger;
     private readonly ApplicationDbContext database;
     private readonly IGeneralRemoteDownloadUrls remoteDownload;
-    private readonly DownloadQuota quota;
+    private readonly IDownloadQuota quota;
 
     public DownloadController(ILogger<DownloadController> logger, ApplicationDbContext database,
-        IGeneralRemoteDownloadUrls remoteDownload, DownloadQuota quota)
+        IGeneralRemoteDownloadUrls remoteDownload, IDownloadQuota quota)
     {
         this.logger = logger;
         this.database = database;
@@ -133,7 +133,7 @@ public class DownloadController : Controller
         var size = file.Size ?? throw new InvalidOperationException("Storage file has no size for download");
 
         if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, size))
-            return StatusCode(StatusCodes.Status429TooManyRequests, DownloadQuota.LimitReachedMessage);
+            return StatusCode(StatusCodes.Status429TooManyRequests, IDownloadQuota.LimitReachedMessage);
 
         return Redirect(downloadUrl);
     }
