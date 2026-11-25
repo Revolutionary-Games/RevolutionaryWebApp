@@ -5,12 +5,13 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @inject CurrentUserInfo CurrentUserInfo
 @inject HttpClient Http
+@implements IDisposable
 
 <h3>Your Profile</h3>
 
 <AccessLimited RequiredAccess="GroupType.User" OrHasOverride="GroupType.RestrictedUser">
     <SingleResourceDisplayer Error="@profileError" Loading="@loadingProfile" HasData="@true">
-        <UserInfoPageContent User="@(CurrentUserInfo.Info!)"/>
+        <UserInfoPageContent User="@(profile ?? CurrentUserInfo.Info!)"/>
     </SingleResourceDisplayer>
 
     <br/>
@@ -66,8 +67,10 @@
 <DevCenterTitle>My Profile</DevCenterTitle>
 
 @code {
+    private UserDTO? profile;
     private bool loadingProfile;
     private string? profileError;
+    private int profileRequest;
 
     private bool processing;
     private string? errorMessage;
@@ -77,24 +80,54 @@
 
     private bool CodeEntered => !string.IsNullOrEmpty(codeRedeem) && codeRedeem.Length >= AppInfo.MinimumRedeemableCodeLength;
 
-    protected override async Task OnInitializedAsync()
+    public void Dispose()
     {
-        if (!CurrentUserInfo.InfoReady || CurrentUserInfo.Info is not { } user)
+        CurrentUserInfo.OnUserInfoChanged -= OnUserInfoChanged;
+        ++profileRequest;
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        CurrentUserInfo.OnUserInfoChanged += OnUserInfoChanged;
+        return CurrentUserInfo.InfoReady ? RefreshProfile(CurrentUserInfo.Info) : Task.CompletedTask;
+    }
+
+    private async void OnUserInfoChanged(object? sender, UserDTO? user)
+    {
+        await InvokeAsync(async () =>
+        {
+            await RefreshProfile(user);
+            StateHasChanged();
+        });
+    }
+
+    private async Task RefreshProfile(UserDTO? user)
+    {
+        var request = ++profileRequest;
+        profileError = null;
+
+        if (profile?.Id != user?.Id)
+            profile = null;
+
+        loadingProfile = user != null;
+        if (user == null)
             return;
 
-        loadingProfile = true;
         try
         {
-            var profile = await Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{user.Id}");
-            CurrentUserInfo.OnReceivedAnUsersInfo(profile);
+            var latest = await Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{user.Id}");
+            if (request == profileRequest)
+                profile = latest;
         }
         catch (Exception e)
         {
-            profileError = $"Could not refresh your profile: {e.Message}";
+            if (request == profileRequest)
+                profileError = $"Could not refresh your profile: {e.Message}";
         }
         finally
         {
-            loadingProfile = false;
+            if (request == profileRequest)
+                loadingProfile = false;
         }
     }
 

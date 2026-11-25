@@ -31,6 +31,12 @@
     <li><strong>Total launcher links</strong>: @User.TotalLauncherLinks</li>
     <li><strong>Upload quota used today</strong>: @User.UploadQuotaUsed.BytesToMiB()</li>
 
+    @if (User.DownloadQuotaLimit is { } downloadLimit)
+    {
+        <li><strong>Weekly download quota</strong>: @(User.DownloadQuotaUsed?.BytesToMiB() ?? "Usage unavailable") /
+            @downloadLimit.BytesToMiB()</li>
+    }
+
     <li><strong>Git LFS token</strong>: @User.HasLfsToken</li>
 
     @if (LookingAtSelf)

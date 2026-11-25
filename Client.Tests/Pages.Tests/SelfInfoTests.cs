@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Client.Tests.Pages.Tests;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Bunit;
 using Client.Pages;
 using Client.Shared;
@@ -16,13 +17,18 @@ using Xunit;
 
 public class SelfInfoTests : BunitContext
 {
-    [Fact]
-    public void AdminProfileDisplaysTheFreshContributionCountAndLastKnownIpAddress()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AdminProfileDisplaysFreshDetailsWhenAccountInfoArrives(bool accountReadyAtRender)
     {
         var http = Services.AddMockHttpClient();
         var userInfo = new CurrentUserInfo();
         var groups = new CachedUserGroups(GroupType.Admin);
-        userInfo.OnReceivedOurInfo(new UserDTO { Id = 1, Groups = groups, ContributionLimit = 100000 });
+        var initialInfo = new UserDTO { Id = 1, Groups = groups, ContributionLimit = 100000 };
+        if (accountReadyAtRender)
+            userInfo.OnReceivedOurInfo(initialInfo);
+
         Services.AddSingleton(userInfo);
 
         ComponentFactories.AddStub<UserRecentActivity>();
@@ -37,15 +43,21 @@ public class SelfInfoTests : BunitContext
         http.Expect(HttpMethod.Get, "/api/v1/UserManagement/1").RespondJson(new UserDTO
         {
             Id = 1, Groups = groups, CurrentContribution = 1000, ContributionLimit = 100000,
-            LastKnownIPAddress = "192.0.2.1",
+            LastKnownIPAddress = "192.0.2.1", DownloadQuotaUsed = 1024 * 1024, DownloadQuotaLimit = 2 * 1024 * 1024,
         });
 
         var page = Render<SelfInfo>();
+
+        if (!accountReadyAtRender)
+            await page.InvokeAsync(() => userInfo.OnReceivedOurInfo(initialInfo));
 
         page.WaitForAssertion(() => Assert.Equal("Contributions today: 1000 / 100000",
             page.FindAll("li").Single(item =>
                 item.TextContent.StartsWith("Contributions today", StringComparison.Ordinal)).TextContent));
         Assert.Contains(page.FindAll("li"), item => item.TextContent == "Last known IP address: 192.0.2.1");
+        Assert.Contains(page.FindAll("li"), item => item.TextContent.StartsWith("Weekly download quota",
+                StringComparison.Ordinal) && item.TextContent.Contains("1 MiB", StringComparison.Ordinal) &&
+            item.TextContent.Contains("2 MiB", StringComparison.Ordinal));
         http.VerifyNoOutstandingExpectation();
     }
 }

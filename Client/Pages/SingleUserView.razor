@@ -1,7 +1,10 @@
 @page "/users/{Id:long}"
 @inject HttpClient Http
 @inject NotificationHandler NotificationHandler
-@inherits SingleResourcePage<UserDTO, UserUpdated, long>
+@inherits SingleResourcePage<UserDTO, long>
+@implements INotificationHandler<UserUpdated>
+@implements IAsyncDisposable
+@using System.Threading
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
@@ -22,12 +25,13 @@
 
 @code {
 
-    protected override Task<UserDTO?> StartQuery()
+    public Task Handle(UserUpdated notification, CancellationToken cancellationToken)
     {
-        return Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{Id}");
+        // The notification does not include Redis quota data. Reload the full user details.
+        return InvokeAsync(() => notification.Item.Id == Id ? FetchData() : Task.CompletedTask);
     }
 
-    public override void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
+    public void GetWantedListenedGroups(IUserGroupData currentUserGroups, ISet<string> groups)
     {
         if (currentUserGroups.HasGroup(GroupType.Admin) || currentUserGroups.HasGroup(GroupType.ContentModerator))
         {
@@ -42,6 +46,11 @@
     public async ValueTask DisposeAsync()
     {
         await NotificationHandler.Unregister(this);
+    }
+
+    protected override Task<UserDTO?> StartQuery()
+    {
+        return Http.GetFromJsonAsync<UserDTO>($"api/v1/UserManagement/{Id}");
     }
 
     protected override Task OnFirstDataReceived()
