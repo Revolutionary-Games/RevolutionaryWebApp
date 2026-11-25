@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Common.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Server.Controllers;
 using Server.Models;
