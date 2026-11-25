@@ -30,24 +30,12 @@
         {
             <ReportButton Target="UserReportTarget.User" TargetId="@profile.Id" TargetName="@profile.Name"/>
         }
-        @if (UserInfo.InfoReady && UserInfo.Info?.Id != profile.Id)
-        {
-            <ReportButton Target="UserReportTarget.User" TargetId="@profile.Id" TargetName="@profile.Name"/>
-        }
+
         @if (UserInfo.InfoReady && (UserInfo.Info?.Id == profile.Id || UserInfo.IsAdmin ||
                                    UserInfo.HasGroup(GroupType.ContentModerator)))
         {
             <UserRecentActivity UserId="@profile.Id" @key="profile.Id"/>
         }
-
-        <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator" AutoRedirectIfNotLoggedIn="@false">
-
-            @if (UserInfo.InfoReady && (UserInfo.Info?.Id == profile.Id || UserInfo.IsAdmin ||
-                         UserInfo.HasGroup(GroupType.ContentModerator)))
-            {
-                <UserRecentActivity UserId="@profile.Id" @key="profile.Id"/>
-            }
-        </AccessLimited>
 
         <AccessLimited RequiredAccess="GroupType.Admin" OrHasOverride="GroupType.ContentModerator"
                        AutoRedirectIfNotLoggedIn="@false">
