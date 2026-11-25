@@ -49,6 +49,7 @@ public class TranslationQualityContributionTests : IClassFixture<RealUnitTestDat
         builder.Services.AddScoped<ModerationService>();
         builder.Services.AddScoped<ModerationSessionService>();
         builder.Services.AddSingleton<CustomMemoryCache>();
+        builder.Services.AddSingleton(Substitute.For<IDownloadQuota>());
         builder.Services.AddScoped<TokenOrCookieAuthenticationMiddleware>();
         builder.Services.AddScoped<CSRFCheckerMiddleware>();
         builder.Services.AddSingleton(Substitute.For<IModelUpdateNotificationSender>());
