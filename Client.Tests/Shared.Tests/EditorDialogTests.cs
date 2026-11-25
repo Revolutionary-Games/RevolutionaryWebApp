@@ -94,9 +94,9 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ImagePickerNavigatesWithoutChangingPageAndAcceptsSelectedImage(bool centered)
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task ImagePickerNavigatesWithoutChangingPageAndAcceptsSelectedImage(bool centered, bool allowFullSize)
     {
         var http = Services.AddMockHttpClient();
         Services.AddSingleton<CurrentUserInfo>();
@@ -183,13 +183,19 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
             invocation.Identifier == "putFormFile" && (string?)invocation.Arguments[0] == "uploaded.png"));
 
         await host.InvokeAsync(() => host.Find("tbody button").Click());
-        host.Find("input[type=checkbox]").Change(centered);
+        host.Find("input[id^=centerImage-]").Change(centered);
+        var fullSizeCheckbox = host.Find("input[id^=allowFullSize-]");
+        Assert.True(fullSizeCheckbox.HasAttribute("checked"));
+        if (!allowFullSize)
+            fullSizeCheckbox.Change(false);
+
         Assert.Contains("Selected image: photo.png", host.Markup);
         await host.InvokeAsync(() => host.FindAll("button")
             .Single(button => button.TextContent.Trim() == "Accept").Click());
 
         var result = await modal.Result;
-        var markdown = $"![photo.png](media:png:{imageId})";
+        var fullSizeSpecifier = allowFullSize ? string.Empty : ":f:n";
+        var markdown = $"![photo.png](media:png:{imageId}{fullSizeSpecifier})";
         Assert.Equal(centered ? $"[center]{markdown}[/center]" : markdown, result.Data);
         Assert.Equal(originalUri, navigation.Uri);
         await host.InvokeAsync(() => Assert.DoesNotContain(JSInterop.Invocations,

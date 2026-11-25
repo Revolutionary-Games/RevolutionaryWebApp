@@ -100,7 +100,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
     [JsonIgnore]
     public string IdWithFolder => Id + "-" + Folder;
 
-    public string GetMarkdown()
+    public string GetMarkdown(bool allowFullSize = true)
     {
         // For now only implemented for image-type entries
         var sanitizedName = Name.Replace(']', '_').Replace('[', '_');
@@ -111,6 +111,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
         if (extension.StartsWith('.'))
             extension = extension.Substring(1);
 
-        return $"![{sanitizedName}](media:{extension}:{GlobalId})";
+        var fullSizeSpecifier = allowFullSize ? string.Empty : ":f:n";
+        return $"![{sanitizedName}](media:{extension}:{GlobalId}{fullSizeSpecifier})";
     }
 }
