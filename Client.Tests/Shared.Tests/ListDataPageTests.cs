@@ -15,6 +15,21 @@ using Xunit;
 public class ListDataPageTests : BunitContext
 {
     [Fact]
+    public async Task InitializationResumingAfterDisposalSkipsDataFetch()
+    {
+        var registration = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var state = new ListState { Registration = registration.Task };
+        Services.AddSingleton(state);
+        Render<StringKeyList>();
+
+        await DisposeComponentsAsync();
+        registration.SetResult();
+        await state.Initialization;
+
+        Assert.Empty(state.Queries);
+    }
+
+    [Fact]
     public async Task StringIdsUseSharedFetchingSortingAndNotificationHandling()
     {
         Services.AddSingleton<ListState>();
@@ -54,6 +69,8 @@ public class ListDataPageTests : BunitContext
     public class ListState
     {
         public StringKeyList Page { get; set; } = null!;
+        public Task Registration { get; init; } = Task.CompletedTask;
+        public Task Initialization { get; set; } = Task.CompletedTask;
         public List<Dictionary<string, string?>> Queries { get; } = new();
     }
 
@@ -64,10 +81,11 @@ public class ListDataPageTests : BunitContext
         [Inject]
         public ListState State { get; set; } = null!;
 
-        protected override async Task OnInitializedAsync()
+        protected override Task OnInitializedAsync()
         {
             State.Page = this;
-            await base.OnInitializedAsync();
+            State.Initialization = InitializeAsync();
+            return State.Initialization;
         }
 
         protected override string GetItemId(APIKeyDTO item)
@@ -82,6 +100,12 @@ public class ListDataPageTests : BunitContext
             {
                 new() { Id = "first" }, new() { Id = "second" },
             });
+        }
+
+        private async Task InitializeAsync()
+        {
+            await State.Registration;
+            await base.OnInitializedAsync();
         }
     }
 }

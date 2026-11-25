@@ -21,6 +21,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 {
     private readonly Timer fetchStartTimer;
     private readonly Timer fetchCountDecrementTimer;
+    private bool disposed;
     private bool wantsToFetchDataAgain;
 
     protected DataPage(SortHelper sort)
@@ -93,7 +94,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         get => wantsToFetchDataAgain;
         set
         {
-            if (wantsToFetchDataAgain == value)
+            if (disposed || wantsToFetchDataAgain == value)
                 return;
 
             wantsToFetchDataAgain = value;
@@ -153,6 +154,9 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
     /// <param name="notification">The update notification received from the server</param>
     public virtual async Task HandleItemNotification(ListUpdated<T> notification)
     {
+        if (disposed)
+            return;
+
         switch (notification.Type)
         {
             case ListItemChangeType.ItemUpdated:
@@ -234,6 +238,7 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
     public virtual ValueTask DisposeAsync()
     {
+        disposed = true;
         fetchStartTimer.Dispose();
         fetchCountDecrementTimer.Dispose();
         return ValueTask.CompletedTask;
@@ -249,6 +254,10 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
     protected async Task FetchData(bool hidden = false)
     {
+        // Async initialization or parameter updates can resume after Blazor has disposed this component.
+        if (disposed)
+            return;
+
         if (FetchInProgress)
         {
             // Queue a separate fetch if already fetching
@@ -281,17 +290,23 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
         await OnQuerySent(requestParams);
 
-        await InvokeAsync(StateHasChanged);
+        if (!disposed)
+            await InvokeAsync(StateHasChanged);
 
         try
         {
-            Data = await query;
+            var result = await query;
+            if (disposed)
+                return;
 
-            // Clear error on successful data retrieve
+            Data = result;
             Error = null;
         }
         catch (Exception e)
         {
+            if (disposed)
+                return;
+
             // Error write is not used here as we don't want to cause the blazor standard uncaught error popup
             Console.WriteLine($"Error getting query results for a PaginatedPage: {e}");
             Error = $"Error fetching data: {e.Message}";
@@ -304,7 +319,9 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
         VisibleFetchInProgress = false;
 
         await OnDataReceived();
-        await InvokeAsync(StateHasChanged);
+
+        if (!disposed)
+            await InvokeAsync(StateHasChanged);
     }
 
     protected virtual Dictionary<string, string?> CreatePageRequestParams()
@@ -368,19 +385,14 @@ public abstract class DataPage<T, TData> : ComponentBase, IAsyncDisposable
 
     private async void OnFetchTimer(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
-        if (FetchInProgress)
-            return;
-
-        // Can now start a new fetch
-
-        // First, disable this timer
-        fetchStartTimer.Enabled = false;
-
-        // Then start the fetch
-        if (WantsToFetchDataAgain)
+        await InvokeAsync(() =>
         {
-            await FetchData(true);
-        }
+            if (disposed || FetchInProgress)
+                return Task.CompletedTask;
+
+            fetchStartTimer.Stop();
+            return WantsToFetchDataAgain ? FetchData(true) : Task.CompletedTask;
+        });
     }
 
     private void OnDecrementFetchTimer(object? sender, ElapsedEventArgs elapsedEventArgs)
