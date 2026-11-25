@@ -181,6 +181,7 @@ public class LiveController : Controller
         var viewBaseUrl = GetViewMetadataBaseUrl();
 
         var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, timer);
+        rendered.RenderedHtml = await pageRenderer.PrepareImageViewer(rendered.RenderedHtml, database);
 
         SetCanonicalUrl(permalink, rendered);
 

@@ -72,6 +72,26 @@ public class MarkdownBbCodeServiceTests
     }
 
     [Theory]
+    [InlineData("", "")]
+    [InlineData(":f:y", "")]
+    [InlineData(":f:n", "#no-full-view")]
+    public void BbCode_ImageFullViewFlagPreservesImageTitleAndOuterLink(string flag, string expectedFragment)
+    {
+        const string imageId = "c815f12d-604c-4e2d-a8ce-6b03992d0046";
+        const string imageUrl = "https://media.example.com/page-fit.png";
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+        linkConverter.TranslateImageLink(".png", imageId, MediaFileSize.FitPage).Returns(imageUrl);
+
+        var markdown = new MarkdownService(new HtmlSanitizerService(), new MarkdownBbCodeService(linkConverter));
+        var html = markdown.MarkdownToHtmlLimited(
+            $"[![alt](media:png:{imageId}{flag} 'Image title')](https://example.com)");
+
+        Assert.Contains("<a href=\"https://example.com\"><img ", html);
+        Assert.Contains($"src=\"{imageUrl}{expectedFragment}\"", html);
+        Assert.Contains("title=\"Image title\"", html);
+    }
+
+    [Theory]
     [InlineData("![alt](https://img.example.com/stuff.jpg)")]
     [InlineData("![](https://img.example.com/stuff.jpg)")]
     [InlineData("![](https://img.example.com/stuff.png)")]

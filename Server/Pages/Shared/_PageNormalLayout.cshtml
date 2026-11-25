@@ -1,6 +1,8 @@
 @using System.Globalization
 @using RevolutionaryWebApp.Server.Models.Pages
+@using RevolutionaryWebApp.Shared
 @using RevolutionaryWebApp.Shared.Models.Pages
+@using RevolutionaryWebApp.Shared.Services
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,6 +53,9 @@
 <body>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        if (typeof enablePageImageViewer === 'function')
+            enablePageImageViewer(document.getElementById('main-outlet'));
+
         detectYouTubeVideos(document.body);
         enableAllCookieForms();
         enableMobileNavigation();
@@ -304,6 +309,17 @@
         </article>
     </main>
 </div>
+
+<dialog id="page-image-viewer" aria-label="Full-size image"
+        data-large-limit="@AppInfo.MediaResolutionLarge"
+        data-disabled-fragment="@MarkdownBbCodeService.DisabledImageViewerFragment">
+    <button type="button" class="page-image-close" aria-label="Close image" autofocus>Close</button>
+    <div class="page-image-stage"></div>
+    <footer class="page-image-info">
+        <span aria-live="polite"></span>
+        <a download target="_blank" rel="noopener">Download original</a>
+    </footer>
+</dialog>
 </body>
 
 </html>

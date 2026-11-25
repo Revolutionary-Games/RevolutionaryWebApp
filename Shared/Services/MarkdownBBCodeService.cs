@@ -7,12 +7,14 @@ using Models.Pages;
 
 public class MarkdownBbCodeService : IMarkdownBbCodeService
 {
+    public const string DisabledImageViewerFragment = "#no-full-view";
+
     private readonly Regex likelyNeedToDoSomething =
         new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])|(\]\(page:)|iframe", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
     // Note that there are similar regexes in BasePageController which must be updated if necessary
     private readonly Regex mediaLinkToConvertRegex = new(
-        @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(\s*'[^']*')?\)",
+        @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(?::f:([yn]))?(\s*'[^']*')?\)",
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(500));
 
     // This could sometimes remove a trailing </p> if a forward <p> didn't exist, but hopefully that's rare enough
@@ -98,7 +100,8 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                     var altText = match.Groups[1].Value;
                     var imageId = match.Groups[3].Value;
                     var imageType = match.Groups[2].Value;
-                    var comment = match.Groups[4].Value;
+                    var fullView = match.Groups[4].Value != "n";
+                    var comment = match.Groups[5].Value;
 
                     if (comment.Length < 1)
                         comment = null;
@@ -109,9 +112,11 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                     if (imageType[0] != '.')
                         imageType = "." + imageType;
 
-                    InsertImage(result,
-                        mediaLinkConverter.TranslateImageLink(imageType, imageId, MediaFileSize.FitPage), altText,
-                        comment);
+                    var url = mediaLinkConverter.TranslateImageLink(imageType, imageId, MediaFileSize.FitPage);
+                    if (!fullView)
+                        url += DisabledImageViewerFragment;
+
+                    InsertImage(result, url, altText, comment);
 
                     // Skip input until the end of the replaced image
                     i += match.Length - 1;
