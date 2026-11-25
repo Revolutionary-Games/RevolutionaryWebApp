@@ -347,7 +347,13 @@ public class LiveController : Controller
 
         var (sidebar, top, socials) = pageRenderer.ProcessLayoutParts(realPageParts, "news");
 
-        var rendered = new RenderedPage(page > 1 ? $"News Feed (page {page})" : "News Feed", newsPageHtml.ToString(),
+        var feedHtml = newsPageHtml.ToString();
+
+        // It is probably overkill to allow RSS readers to get the full link handling, so we skip it.
+
+        // feedHtml = await pageRenderer.PrepareImageViewer(newsPageHtml.ToString(), database);
+
+        var rendered = new RenderedPage(page > 1 ? $"News Feed (page {page})" : "News Feed", feedHtml,
             pages[0].PublishedAt ?? DateTime.UtcNow, timer.Elapsed)
         {
             OpenGraphPageType = "website",
