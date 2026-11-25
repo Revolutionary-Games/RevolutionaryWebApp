@@ -989,12 +989,32 @@ else
             return;
 
         var currentData = data;
+        var filter = navigationFilter;
         try
         {
-            var requestUri = $"api/v1/translationProblems?{QuerySuffix()}";
-            var problems = await Http.GetFromJsonAsync<TranslationProblemDTO[]>(requestUri);
-            if (data == currentData && problems != null)
-                data.Problems = problems;
+            if (filter.ProblemsOnly)
+            {
+                // Due to problems potentially going away when we are looking at just problems, we want to use a
+                // different request URI.
+                var result = await Http.GetFromJsonAsync<TranslationEditorDTO>(EditorRequestUrl(QuerySuffix())) ??
+                    throw new NullDecodedJsonException();
+                if (data == currentData)
+                {
+                    data.Problems = result.Problems;
+                    if (filter == navigationFilter)
+                    {
+                        data.TextIndex = result.TextIndex;
+                        data.TotalTexts = result.TotalTexts;
+                    }
+                }
+            }
+            else
+            {
+                var requestUri = $"api/v1/translationProblems?{QuerySuffix()}";
+                var problems = await Http.GetFromJsonAsync<TranslationProblemDTO[]>(requestUri);
+                if (data == currentData && problems != null)
+                    data.Problems = problems;
+            }
         }
         catch (Exception e)
         {
