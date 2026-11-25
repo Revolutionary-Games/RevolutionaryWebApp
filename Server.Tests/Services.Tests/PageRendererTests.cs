@@ -70,7 +70,7 @@ public class PageRendererTests
         };
 
         var result = await
-            renderer.RenderPage(page, "https://example.com/", [], false, new Stopwatch());
+            renderer.RenderPage(page, "https://example.com/", [], false, null, new Stopwatch());
 
         Assert.DoesNotContain(notExpected, result.RenderedHtml);
     }
@@ -106,7 +106,7 @@ public class PageRendererTests
         {
             LatestContent = $"A screenshot.\n\n![Cover](cover.png)\n\n![Screenshot](media:png:{imageId})",
         };
-        var result = await renderer.RenderPage(page, serverBase, [], true, new Stopwatch(), database);
+        var result = await renderer.RenderPage(page, serverBase, [], true, database, new Stopwatch());
         var rendered = result.RenderedHtml;
 
         Assert.Equal("A screenshot.", result.OpenGraphMetaDescription);

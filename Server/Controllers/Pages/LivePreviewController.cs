@@ -61,8 +61,8 @@ public class LivePreviewController : Controller
 
         // Extra image etc. resources go to the "live" endpoint that are linked in metadata
         var rendered =
-            await pageRenderer.RenderPage(page, $"{Request.Scheme}://{Request.Host}/live/", parts, false, timer,
-                database);
+            await pageRenderer.RenderPage(page, $"{Request.Scheme}://{Request.Host}/live/", parts, false, database,
+                timer);
 
         return View("Pages/_PagePreview", rendered);
     }

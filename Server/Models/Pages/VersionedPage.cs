@@ -198,7 +198,7 @@ public class VersionedPage : UpdateableModel, ISoftDeletable, IUpdateNotificatio
     {
         var stopWatch = new Stopwatch();
         var rendered =
-            await pageRenderer.RenderPage(this, $"{pageLink.Scheme}://{pageLink.Host}", [], false, stopWatch);
+            await pageRenderer.RenderPage(this, $"{pageLink.Scheme}://{pageLink.Host}", [], false, null, stopWatch);
 
         var preview = new TextSyndicationContent(rendered.RenderedHtml, TextSyndicationContentKind.Html);
 

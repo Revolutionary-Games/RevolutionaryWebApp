@@ -26,8 +26,8 @@ public interface IPageRenderer
     internal const string NotFoundPageText = "<p>No page exists at this address, please double check the link</p>";
 
     public ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
-        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer,
-        ApplicationDbContext? imageDatabase = null);
+        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, ApplicationDbContext? imageDatabase,
+        Stopwatch totalTimer);
 
     public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer);
 
@@ -72,8 +72,8 @@ public class PageRenderer : IPageRenderer
     }
 
     public async ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
-        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer,
-        ApplicationDbContext? imageDatabase = null)
+        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, ApplicationDbContext? imageDatabase,
+        Stopwatch totalTimer)
     {
         var rendered = markdownService.MarkdownToHtmlLimited(page.LatestContent);
         var htmlContext = new PageHtmlContext(renderOpenGraphMeta, imageDatabase);

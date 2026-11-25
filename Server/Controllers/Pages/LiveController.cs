@@ -180,7 +180,7 @@ public class LiveController : Controller
 
         var viewBaseUrl = GetViewMetadataBaseUrl();
 
-        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, timer, database);
+        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, database, timer);
 
         SetCanonicalUrl(permalink, rendered);
 
@@ -264,7 +264,7 @@ public class LiveController : Controller
                 Visibility = PageVisibility.Public,
                 Permalink = permalink,
                 LatestContent = "No news found / page number is too high",
-            }, baseUrl, realPageParts, false, timer, null);
+            }, baseUrl, realPageParts, false, null, timer);
 
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(3))
