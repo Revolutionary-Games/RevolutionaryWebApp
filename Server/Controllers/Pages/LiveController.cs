@@ -180,8 +180,7 @@ public class LiveController : Controller
 
         var viewBaseUrl = GetViewMetadataBaseUrl();
 
-        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, timer);
-        rendered.RenderedHtml = await pageRenderer.PrepareImageViewer(rendered.RenderedHtml, database);
+        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, timer, database);
 
         SetCanonicalUrl(permalink, rendered);
 
@@ -265,7 +264,7 @@ public class LiveController : Controller
                 Visibility = PageVisibility.Public,
                 Permalink = permalink,
                 LatestContent = "No news found / page number is too high",
-            }, baseUrl, realPageParts, false, timer);
+            }, baseUrl, realPageParts, false, timer, null);
 
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(3))
@@ -347,13 +346,7 @@ public class LiveController : Controller
 
         var (sidebar, top, socials) = pageRenderer.ProcessLayoutParts(realPageParts, "news");
 
-        var feedHtml = newsPageHtml.ToString();
-
-        // It is probably overkill to allow RSS readers to get the full link handling, so we skip it.
-
-        // feedHtml = await pageRenderer.PrepareImageViewer(newsPageHtml.ToString(), database);
-
-        var rendered = new RenderedPage(page > 1 ? $"News Feed (page {page})" : "News Feed", feedHtml,
+        var rendered = new RenderedPage(page > 1 ? $"News Feed (page {page})" : "News Feed", newsPageHtml.ToString(),
             pages[0].PublishedAt ?? DateTime.UtcNow, timer.Elapsed)
         {
             OpenGraphPageType = "website",

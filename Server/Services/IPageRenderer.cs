@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 using AngleSharp.Dom;
 using AngleSharp.Html;
 using AngleSharp.Html.Dom;
-using AngleSharp.Html.Parser;
 using Controllers.Pages;
 using Microsoft.Extensions.Configuration;
+using Models;
 using Models.Pages;
 using Shared;
 using Shared.Models.Pages;
@@ -26,7 +26,8 @@ public interface IPageRenderer
     internal const string NotFoundPageText = "<p>No page exists at this address, please double check the link</p>";
 
     public ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
-        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer);
+        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer,
+        ApplicationDbContext? imageDatabase = null);
 
     public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer);
 
@@ -57,7 +58,7 @@ public class PageRenderer : IPageRenderer
     private readonly IMediaLinkConverter linkConverter;
     private readonly string? serverName;
 
-    private readonly HtmlParser htmlParser = new();
+    private readonly PageHtmlPipeline htmlPipeline;
     private readonly HtmlMarkupFormatter fragmentFormatter = new();
 
     public PageRenderer(IConfiguration configuration, MarkdownService markdownService,
@@ -66,25 +67,17 @@ public class PageRenderer : IPageRenderer
         this.markdownService = markdownService;
         this.linkConverter = linkConverter;
         serverName = configuration["ServerName"];
+        htmlPipeline = new PageHtmlPipeline(new OpenGraphHtmlFilter(),
+            new FullSizeImageHtmlFilter(configuration, linkConverter));
     }
 
-    public ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
-        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer)
+    public async ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
+        List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, Stopwatch totalTimer,
+        ApplicationDbContext? imageDatabase = null)
     {
-        // TODO: handle storage access links etc. this will need async
-
         var rendered = markdownService.MarkdownToHtmlLimited(page.LatestContent);
-
-        // TODO: Youtube? and other special bbcode stuff
-
-        // TODO: post processing? (stuff like rel no follow for normal user-specified content)
-
-        string? description = null;
-        string? image = null;
-        if (renderOpenGraphMeta)
-        {
-            (description, image) = RenderOpenGraphMetaDescription(rendered, metadataBaseUrl);
-        }
+        var htmlContext = new PageHtmlContext(renderOpenGraphMeta, imageDatabase);
+        rendered = await htmlPipeline.Process(rendered, metadataBaseUrl, htmlContext);
 
         // Fallback to the title here should only happen when previewing
         var (sidebar, topNav, socials) = ProcessLayoutParts(layoutParts, page.Permalink ?? page.Title);
@@ -107,13 +100,10 @@ public class PageRenderer : IPageRenderer
             result.ByServer = serverName;
         }
 
-        if (renderOpenGraphMeta)
-        {
-            result.OpenGraphMetaDescription = description;
-            result.PreviewImage = image;
-        }
+        result.OpenGraphMetaDescription = htmlContext.OpenGraphDescription;
+        result.PreviewImage = htmlContext.PreviewImage;
 
-        return ValueTask.FromResult(result);
+        return result;
     }
 
     public (string Rendered, string? PreviewImage) RenderPreview(VersionedPage page, string parsedUrlBase,
@@ -129,15 +119,7 @@ public class PageRenderer : IPageRenderer
         if (string.IsNullOrWhiteSpace(rendered))
             return ("(blank page)", null);
 
-        // Need to use this very convoluted way to get base URL to work correctly
-        var wrapper = $@"<!DOCTYPE html><html><head><base href=""{parsedUrlBase}""></head>
-        <body>{rendered}</body></html>";
-
-        var document = htmlParser.ParseDocument(wrapper);
-
-        // Grab up to max length data from the rendered HTML (and remove unwanted elements)
-        // TODO: is there a way to do this *without* needing to parse the data?
-        var fragment = document.Body!.ChildNodes;
+        var fragment = htmlPipeline.ParseBody(rendered, parsedUrlBase).ChildNodes;
 
         string? previewImage = null;
 
@@ -150,7 +132,7 @@ public class PageRenderer : IPageRenderer
         foreach (var node in fragment)
         {
             if (previewImage == null)
-                LookForPreviewImage(node, ref previewImage);
+                OpenGraphHtmlFilter.LookForPreviewImage(node, ref previewImage);
 
             if (HandleContentForPreview(node, ref limitLeft))
             {
@@ -223,69 +205,6 @@ public class PageRenderer : IPageRenderer
         }
 
         return (side, top, socials);
-    }
-
-    private static bool LookForPreviewImage(INode node, ref string? previewImage)
-    {
-        switch (node)
-        {
-            case IHtmlImageElement imgImageElement:
-            {
-                if (!string.IsNullOrEmpty(imgImageElement.Source))
-                {
-                    previewImage = imgImageElement.Source;
-                    return true;
-                }
-
-                break;
-            }
-        }
-
-        foreach (var childNode in node.ChildNodes)
-        {
-            if (LookForPreviewImage(childNode, ref previewImage))
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    ///   Creates an opengraph meta-tag description for a page (the page needs to be rendered first)
-    /// </summary>
-    /// <returns>Opengraph meta-information</returns>
-    private (string Description, string? PreviewImage) RenderOpenGraphMetaDescription(string rendered,
-        string imageBaseUrl, int maxLength = 250)
-    {
-        if (string.IsNullOrWhiteSpace(rendered))
-            return ("(blank page)", null);
-
-        // TODO: skipping bigger elements would be really nice to skip text from them leaking into the summary
-        // YouTube content is already skipped
-
-        // TODO: maybe there's another sensible approach (like extracting text from the raw markdown for opengraph)
-        var wrapper = $@"<!DOCTYPE html><html><head><base href=""{imageBaseUrl}""></head>
-        <body>{rendered}</body></html>";
-
-        var document = htmlParser.ParseDocument(wrapper);
-
-        var fragment = document.Body!.ChildNodes;
-
-        string? previewImage = null;
-
-        var stringBuilder = new StringBuilder();
-
-        // Process the fragment nodes to extract preview text from them
-        foreach (var node in fragment)
-        {
-            if (previewImage == null)
-                LookForPreviewImage(node, ref previewImage);
-
-            if (!HandleContentForOpenGraph(node, maxLength, stringBuilder))
-                break;
-        }
-
-        return (stringBuilder.ToString(), previewImage);
     }
 
     private bool HandleContentForPreview(INode node, ref int limitLeft)
@@ -398,123 +317,6 @@ public class PageRenderer : IPageRenderer
                 // Delete the child if there's no text left in it
                 if (string.IsNullOrWhiteSpace(node.TextContent))
                     node.RemoveChild(childNode);
-            }
-        }
-
-        return true;
-    }
-
-    private bool HandleContentForOpenGraph(INode node, int maxLength, StringBuilder stringBuilder)
-    {
-        // Reach end if text length is too much when reaching this node
-        if (stringBuilder.Length >= maxLength)
-            return false;
-
-        switch (node)
-        {
-            // Elements that we don't want to extract text from
-            // TODO: some of the following should probably end the snippet if there's more than half text already
-            case IHtmlImageElement:
-            case IHtmlScriptElement:
-            case IComment:
-            case IHtmlAudioElement:
-            case IHtmlAreaElement:
-            case IHtmlButtonElement:
-            case IHtmlCanvasElement:
-            case IHtmlEmbedElement:
-            case IHtmlFormElement:
-            case IHtmlHeadElement:
-            case IHtmlFieldSetElement:
-            case IHtmlInlineFrameElement:
-            case IHtmlInputElement:
-            case IHtmlMarqueeElement:
-            case IHtmlMediaElement:
-            case IHtmlMenuElement:
-            case IHtmlMenuItemElement:
-            case IHtmlMetaElement:
-            case IHtmlModElement:
-            case IHtmlObjectElement:
-            case IHtmlOptionElement:
-            case IHtmlOptionsGroupElement:
-            case IHtmlOutputElement:
-            case IHtmlParamElement:
-            case IHtmlPictureElement:
-            case IHtmlProgressElement:
-            case IHtmlSelectElement:
-            case IHtmlSlotElement:
-            case IHtmlSourceElement:
-            case IHtmlStyleElement:
-            case IHtmlTemplateElement:
-            case IHtmlTextAreaElement:
-            case IHtmlTimeElement:
-            case IHtmlTitleElement:
-            case IHtmlTrackElement:
-            case IHtmlHrElement:
-            {
-                return true;
-            }
-
-            // Elements that have text parts extracted
-            case IText text:
-            {
-                if (string.IsNullOrWhiteSpace(text.Data))
-                    break;
-
-                int remainingLength = maxLength - stringBuilder.Length;
-
-                // Add whitespace between text parts
-                if (stringBuilder.Length > 0 && !char.IsWhiteSpace(stringBuilder[^1]))
-                {
-                    stringBuilder.Append(' ');
-                    --remainingLength;
-                }
-
-                // Stop processing if there wasn't any text left to extract
-                if (remainingLength <= 0)
-                    break;
-
-                stringBuilder.Append(text.Data.Trim().Truncate(remainingLength));
-
-                break;
-            }
-
-            case IHtmlHeadingElement headingElement:
-            {
-                // End if there's already a good amount of text
-                if (stringBuilder.Length > 0.3f * maxLength)
-                    return false;
-
-                if (string.IsNullOrWhiteSpace(headingElement.Title))
-                    break;
-
-                int remainingLength = maxLength - stringBuilder.Length;
-
-                if (stringBuilder.Length > 0 && !char.IsWhiteSpace(stringBuilder[^1]))
-                {
-                    stringBuilder.Append(' ');
-                    --remainingLength;
-                }
-
-                stringBuilder.Append(headingElement.Title.ToUpperInvariant().Trim().Truncate(remainingLength));
-
-                break;
-            }
-
-            case IHtmlDivElement divElement:
-            {
-                // Skip YouTube videos
-                if (divElement.ClassList.Contains("youtube-placeholder"))
-                    return true;
-
-                break;
-            }
-        }
-
-        foreach (var childNode in node.ChildNodes.ToList())
-        {
-            if (!HandleContentForOpenGraph(childNode, maxLength, stringBuilder))
-            {
-                return false;
             }
         }
 

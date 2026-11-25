@@ -76,12 +76,11 @@ public class PageRendererTests
     }
 
     [Fact]
-    public async Task PageRenderer_OriginalImageLinkUsesServerBaseUrlAndMediaId()
+    public async Task PageRenderer_RendersOpenGraphAndFullSizeImageMetadata()
     {
         const string mediaBase = "https://media.example/";
         const string serverBase = "https://server.example/site/";
         var imageId = Guid.NewGuid();
-        var pageFitUrl = $"{mediaBase}{imageId}/page-fit.png";
         var largeUrl = $"{mediaBase}{imageId}/large.png";
         var configuration = new ConfigurationManager
         {
@@ -103,8 +102,15 @@ public class PageRendererTests
         });
         await database.SaveChangesAsync();
 
-        var rendered = await renderer.PrepareImageViewer($"<img src=\"{pageFitUrl}\">", database);
+        var page = new VersionedPage("Screenshot")
+        {
+            LatestContent = $"A screenshot.\n\n![Cover](cover.png)\n\n![Screenshot](media:png:{imageId})",
+        };
+        var result = await renderer.RenderPage(page, serverBase, [], true, new Stopwatch(), database);
+        var rendered = result.RenderedHtml;
 
+        Assert.Equal("A screenshot.", result.OpenGraphMetaDescription);
+        Assert.Equal($"{serverBase}cover.png", result.PreviewImage);
         Assert.Contains($"data-original-src=\"{serverBase}api/v1/MediaFile/view/42?name=screenshot%20%231.png\"",
             rendered);
         Assert.Contains($"data-large-src=\"{largeUrl}\"", rendered);
