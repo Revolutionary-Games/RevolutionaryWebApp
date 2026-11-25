@@ -248,6 +248,7 @@ public class ProcessUploadedImageJob
 
         if (success)
         {
+            mediaFile.OriginalFileSize = imageDataStream.Length;
             mediaFile.Processed = true;
             mediaFile.BumpUpdatedAt();
             logger.LogInformation("Processed media file: {Id}", mediaFile.Id);

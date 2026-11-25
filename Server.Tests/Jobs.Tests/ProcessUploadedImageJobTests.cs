@@ -136,6 +136,10 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
         var pageBytes = uploadedFiles[pagePath];
         var originalSavedBytes = uploadedFiles[originalPath];
 
+        database.ChangeTracker.Clear();
+        var savedFile = await database.MediaFiles.SingleAsync();
+        Assert.Equal(originalSavedBytes.LongLength, savedFile.OriginalFileSize);
+
         Assert.True(pageBytes.Length <= originalSavedBytes.Length,
             $"Downsized page image size ({pageBytes.Length} bytes) should be less than or equal to original " +
             $"image size ({originalSavedBytes.Length} bytes)");

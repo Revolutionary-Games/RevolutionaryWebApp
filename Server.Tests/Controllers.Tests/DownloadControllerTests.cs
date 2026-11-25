@@ -47,7 +47,7 @@ public sealed class DownloadControllerTests(ITestOutputHelper output)
         };
         context.Items[AppInfo.CurrentUserMiddlewareKey] = new User("admin@example.com", "admin");
         var controller = new DownloadController(new XunitLogger<DownloadController>(output), database,
-            Substitute.For<IGeneralRemoteDownloadUrls>())
+            Substitute.For<IGeneralRemoteDownloadUrls>(), Substitute.For<IDownloadQuota>())
         {
             ControllerContext = new ControllerContext { HttpContext = context },
         };

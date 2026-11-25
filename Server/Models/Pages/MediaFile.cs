@@ -51,7 +51,8 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
     public MediaFolder Folder { get; set; } = null!;
 
     /// <summary>
-    ///   Size of the original file uploaded by the user (that is then processed to get the other size variants)
+    ///   Size of the original upload before processing and of the re-encoded original after processing.
+    ///   Older processed uploads may still contain the upload size, so their download size is approximate.
     /// </summary>
     public long OriginalFileSize { get; set; }
 

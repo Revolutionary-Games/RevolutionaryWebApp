@@ -57,8 +57,8 @@ public static class ImageHelpers
     public static async Task SaveImageToMemoryStream(Image image, MemoryStream stream, ImageEncoder encoder,
         CancellationToken cancellationToken)
     {
-        // Rewind the stream
-        stream.Position = 0;
+        // Clear bytes left over from encoding the previous image.
+        stream.SetLength(0);
 
         await image.SaveAsync(stream, encoder, cancellationToken: cancellationToken);
 
