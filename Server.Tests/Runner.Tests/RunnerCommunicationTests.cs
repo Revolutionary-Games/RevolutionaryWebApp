@@ -978,55 +978,20 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             Output = "A second section message\n",
         });
 
-        // Send a heartbeat last to ensure the server has processed all of our earlier output
-        listenerMockSetup.QueueMessage(new RealTimeBuildMessage
-        {
-            Type = BuildSectionMessageType.HeartBeat,
-        });
-        await listenerMockSetup.WaitUntilQueueEmpty();
+        // The server processes the section messages before replying with the active job.
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
+        serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
 
-        // Check that the runner has the job in the right state, and it should see it again
-        // This can fail with concurrent DB exception randomly once in a while... Hopefully this helps
-        CiJob? jobToResume = null;
-        for (int i = 0; i < 5; ++i)
-        {
-            try
-            {
-                jobToResume = await db.CiJobs.AsNoTracking()
-                    .Where(j => j.ReservedByRunnerId == listenerMockSetup.GetRunnerData().Id)
-                    .FirstOrDefaultAsync();
-
-                break;
-            }
-            catch (Exception e)
-            {
-                logger.LogInformation(e, "Ignoring intermittent test failure here");
-            }
-        }
-
+        // The connection owns its DbContext while it is running.
+        await using var readDb = listenerMockSetup.CreateNewDbContextForReading();
+        var runnerId = listenerMockSetup.GetRunnerData().Id;
+        var jobToResume = await readDb.CiJobs.AsNoTracking()
+            .SingleOrDefaultAsync(j => j.ReservedByRunnerId == runnerId);
         Assert.NotNull(jobToResume);
-
-        // But the client sadly loses connection here in this test!
-        var newConnection =
-            await RunnerConnectionMockHelper.CreateResume(
-                nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectMode}", logger);
-
-        // Make sure the database is shared
-        var db2 = newConnection.AccessDatabase();
-
-        // Verify some data items directly
-        {
-            var job1 = await db.CiJobs.Include(ciJob => ciJob.ReservedByRunner).FirstOrDefaultAsync();
-            var job2 = await db2.CiJobs.Include(ciJob => ciJob.ReservedByRunner).FirstOrDefaultAsync();
-
-            Assert.NotNull(job1);
-            Assert.NotNull(job2);
-            Assert.Equal(job1.CiJobId, job2.CiJobId);
-            Assert.Equal(job1.CiProjectId, job2.CiProjectId);
-            Assert.Equal(job1.ReservedByRunnerId, job2.ReservedByRunnerId);
-            Assert.Equal(job1.ReservedByRunner?.Id, job2.ReservedByRunner?.Id);
-            Assert.Equal(job1.State, job2.State);
-        }
+        Assert.Equal(sampleJob1.CiJobId, jobToResume.CiJobId);
+        Assert.Equal(CIJobState.Running, jobToResume.State);
 
         if (disconnectMode == 0)
         {
@@ -1052,13 +1017,14 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             }
         }
 
-        // This is basically a new crutch to try to get this test to consistently pass
-        await Task.Delay(10);
-
         // Ensure the job is still reserved
-        Assert.NotNull(sampleJob1.ReservedByRunnerId);
-        var runnerId = sampleJob1.ReservedByRunnerId;
-        Assert.Equal(CIJobState.Running, sampleJob1.State);
+        var reservedJob = await readDb.CiJobs.AsNoTracking().Include(job => job.Build)
+            .ThenInclude(build => build!.CiProject).SingleAsync();
+        Assert.Equal(runnerId, reservedJob.ReservedByRunnerId);
+        Assert.Equal(CIJobState.Running, reservedJob.State);
+
+        var newConnection = await RunnerConnectionMockHelper.CreateResume(
+            nameof(Runner_ReconnectingResumesJobAndSection) + $"{disconnectMode}", logger);
 
         // We should be told that we have an active job
         newConnection.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
@@ -1072,11 +1038,8 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         Assert.NotNull(serverMessage.Output);
         var parsedServer = JsonSerializer.Deserialize<RunningJobDetails>(serverMessage.Output);
         Assert.NotNull(parsedServer);
-        Assert.Equal(JsonSerializer.Serialize(sampleJob1.GetDTO()),
+        Assert.Equal(JsonSerializer.Serialize(reservedJob.GetDTO()),
             JsonSerializer.Serialize(parsedServer.GeneralDetails));
-
-        var jobVerification = await db2.CiJobs.FirstOrDefaultAsync(j => j.ReservedByRunnerId == runnerId);
-        Assert.NotNull(jobVerification);
 
         newConnection.QueueMessage(new RealTimeBuildMessage
         {
@@ -1100,15 +1063,11 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
 
         Assert.False(newConnection.TryDequeueServerMessage(out _, out _));
 
-        // We fetch last database data before closing the listener as it will dispose the DB instance we gave it
-        // Check that the output actually reached the database
-        var sections = await db2.CiJobOutputSections.Where(s =>
+        var sections = await readDb.CiJobOutputSections.AsNoTracking().Where(s =>
             s.CiProjectId == sampleJob1.CiProjectId && s.CiBuildId == sampleJob1.CiBuildId &&
-            s.CiJobId == sampleJob1.CiJobId).ToListAsync();
+            s.CiJobId == sampleJob1.CiJobId).OrderBy(s => s.CiJobOutputSectionId).ToListAsync();
 
-        // sampleJob1 is a different object from db2, so it doesn't directly reflect there
-        var refetched1 = await db2.CiJobs.Include(ciJob => ciJob.ReservedByRunner).FirstOrDefaultAsync();
-        Assert.NotNull(refetched1);
+        var refetched1 = await readDb.CiJobs.AsNoTracking().SingleAsync();
 
         // Close finally
         newConnection.QueueCloseMessage();
