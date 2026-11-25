@@ -5,6 +5,7 @@
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Shared.Notifications
 @using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
 @using System.Net
 @using System.Threading
 @using SharedBase.Utilities
@@ -60,8 +61,8 @@ else
                         Next →
                     </Button>
                     <div>
-                        <TranslationStateFilter Label="Filter previous and next strings by translation state"
-                                                Value="@navigationState" ValueChanged="ChangeNavigationFilter"
+                        <TranslationStateFilter Label="Filter previous and next strings"
+                                                Value="@navigationFilter" ValueChanged="ChangeNavigationFilter"
                                                 Disabled="@(!CanNavigate)"/>
                     </div>
                 </div>
@@ -658,7 +659,7 @@ else
     private string editText = string.Empty;
     private string? editExplanation;
     private TranslationState editState = TranslationState.NeedsTranslation;
-    private TranslationState? navigationState;
+    private TranslationStringFilter navigationFilter;
     private string newComment = string.Empty;
     private string commentScope = "language";
     private TranslationCommentSubscription? commentSubscription;
@@ -687,6 +688,9 @@ else
     [SupplyParameterFromQuery(Name = "state")]
     public string? NavigationStateQuery { get; set; }
 
+    [SupplyParameterFromQuery(Name = "problemsOnly")]
+    public bool ProblemsOnlyQuery { get; set; }
+
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
 
@@ -698,8 +702,6 @@ else
 
     private bool CanNavigate => !saving && processingAction == null;
 
-    private string NavigationStateParam => navigationState.HasValue ? $"state={navigationState.Value}" : string.Empty;
-
     private string TextProgress
     {
         get
@@ -710,7 +712,7 @@ else
             if (data == null)
                 return string.Empty;
 
-            if (navigationState == null)
+            if (navigationFilter == default)
                 return data.TextIndex is { } index ? $"{index} of {data.TotalTexts}" : "Removed";
 
             if (data.TextIndex is { } filteredIndex)
@@ -874,9 +876,7 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        navigationState = Enum.TryParse<TranslationState>(NavigationStateQuery, true, out var state) && Enum.IsDefined(state) ?
-            state :
-            null;
+        navigationFilter = TranslationStringFilter.FromQuery(NavigationStateQuery, ProblemsOnlyQuery);
         translationInputInitialized = false;
         explanationInputInitialized = false;
         focusTranslationInput = true;
@@ -1212,20 +1212,19 @@ else
 
     private string EditorRequestUrl(string suffix)
     {
-        return $"api/v1/translationEditor?{suffix}" +
-            (navigationState.HasValue ? $"&{NavigationStateParam}" : string.Empty);
+        return $"api/v1/translationEditor?{suffix}{navigationFilter.QuerySuffix}";
     }
 
-    private async Task ChangeNavigationFilter(TranslationState? state)
+    private async Task ChangeNavigationFilter(TranslationStringFilter filter)
     {
-        if (project == null || data == null || !CanNavigate || state == navigationState)
+        if (project == null || data == null || !CanNavigate || filter == navigationFilter)
             return;
 
-        var previousState = navigationState;
+        var previousFilter = navigationFilter;
         var key = Key;
         var projectId = project.Id;
         var language = LanguageCode;
-        navigationState = state;
+        navigationFilter = filter;
         processingAction = "navigation-filter";
         message = null;
         await InvokeAsync(StateHasChanged);
@@ -1245,7 +1244,7 @@ else
         {
             if (IsCurrent(projectId, key, language))
             {
-                navigationState = previousState;
+                navigationFilter = previousFilter;
                 message = $"Could not update the translation filter: {e.Message}";
                 messageType = SiteNoticeType.Danger;
             }
@@ -1397,9 +1396,9 @@ else
 
         try
         {
-            var saveUrl = navigationState.HasValue ?
-                $"api/v1/translationEditor?{NavigationStateParam}" :
-                "api/v1/translationEditor";
+            var saveUrl = navigationFilter == default ?
+                "api/v1/translationEditor" :
+                $"api/v1/translationEditor?{navigationFilter.QueryParameter}";
             using var response = await Http.PutAsJsonAsync(saveUrl,
                 new TranslationSaveRequest
                 {
@@ -1486,9 +1485,9 @@ else
             drafts.Remove(Key);
         }
 
-        var stateParam = navigationState.HasValue ? $"&{NavigationStateParam}" : string.Empty;
+        var filterSuffix = navigationFilter.QuerySuffix;
         var url = $"api/v1/translationEditor/neighbor?{QuerySuffix()}" +
-            $"&direction={direction.ToString(CultureInfo.InvariantCulture)}{stateParam}";
+            $"&direction={direction.ToString(CultureInfo.InvariantCulture)}{filterSuffix}";
         processingAction = "move";
         message = null;
         await InvokeAsync(StateHasChanged);
@@ -1498,7 +1497,7 @@ else
 
             if (response.StatusCode == HttpStatusCode.NoContent)
             {
-                if (navigationState.HasValue)
+                if (navigationFilter != default)
                 {
                     message = direction < 0 ?
                         "No previous string matches the current filter." :
@@ -1522,7 +1521,7 @@ else
 
             var next = await response.Content.ReadFromJsonAsync<string>();
             if (next != null)
-                Navigation.NavigateTo($"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(next)}{stateParam}");
+                Navigation.NavigateTo($"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(next)}{filterSuffix}");
         }
         catch (Exception e)
         {

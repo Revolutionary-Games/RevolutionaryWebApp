@@ -3,6 +3,7 @@
 @using RevolutionaryWebApp.Shared.Models
 @using RevolutionaryWebApp.Shared.Models.Enums
 @using RevolutionaryWebApp.Client.Services
+@using RevolutionaryWebApp.Client.Utilities
 @using RevolutionaryWebApp.Shared.Notifications
 @using System.Threading
 @inject HttpClient Http
@@ -75,7 +76,7 @@ else
     <p><NavLink href="@($"translations/{Slug}/{LanguageCode}/recent")">Recent edits and comments</NavLink></p>
     <div class="mb-3">
         <Button ButtonStyle="outline-primary" class="me-2" Enabled="@(!jumping)" Spinner="@jumping"
-                OnPressed="@(() => Jump(null))">First string
+                OnPressed="@(() => Jump(default))">First string
         </Button>
         <Button ButtonStyle="primary" class="me-2"
                 Enabled="@(!jumping)" Spinner="@jumping" OnPressed="JumpNeedsTranslation">
@@ -101,8 +102,8 @@ else
             </Button>
         </div>
         <div>
-            <TranslationStateFilter Label="Filter listed strings by translation state"
-                                    @bind-Value="stateFilter" @bind-Value:after="Search"/>
+            <TranslationStateFilter Label="Filter listed strings"
+                                    @bind-Value="stringFilter" @bind-Value:after="Search"/>
         </div>
     </div>
 
@@ -126,7 +127,7 @@ else
             @foreach (var item in items)
             {
                 <li class="list-group-item" @key="item.Key">
-                    <NavLink href="@(EditorUrl(item.Key, stateFilter))">@item.Key</NavLink>
+                    <NavLink href="@(EditorUrl(item.Key, stringFilter))">@item.Key</NavLink>
                     <span class="badge bg-secondary ms-2">@item.State</span>
                     <div class="small text-muted">@item.SourceText</div>
                     @if (!string.IsNullOrEmpty(item.Text))
@@ -175,7 +176,7 @@ else
     private bool subscribeUpdates;
     private TranslationListItemDTO[]? items;
     private string query = string.Empty;
-    private TranslationState? stateFilter;
+    private TranslationStringFilter stringFilter;
     private string? listRequest;
     private string? message;
     private SiteNoticeType messageType = SiteNoticeType.Danger;
@@ -304,10 +305,9 @@ else
 
         try
         {
-            var stateParam = stateFilter.HasValue ? $"&state={stateFilter.Value}" : string.Empty;
             listRequest = "api/v1/translationEditor/list?" +
                 $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}" +
-                $"&query={Uri.EscapeDataString(query)}{stateParam}";
+                $"&query={Uri.EscapeDataString(query)}{stringFilter.QuerySuffix}";
             var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"{listRequest}&offset=0");
             if (!searchPending)
             {
@@ -395,7 +395,7 @@ else
         }
     }
 
-    private async Task Jump(TranslationState? state, bool problemsOnly = false)
+    private async Task Jump(TranslationStringFilter filter)
     {
         if (project == null || jumping)
             return;
@@ -405,25 +405,24 @@ else
         await InvokeAsync(StateHasChanged);
         try
         {
-            var stateParam = state == null ? string.Empty : $"&state={state}";
             var result = await Http.GetFromJsonAsync<TranslationListItemDTO[]>($"api/v1/translationEditor/list?" +
                 $"projectId={project.Id}&language={Uri.EscapeDataString(LanguageCode)}" +
-                $"&offset=0{stateParam}&problemsOnly={problemsOnly}");
+                $"&offset=0{filter.QuerySuffix}");
             if (result is { Length: > 0 })
             {
-                Navigation.NavigateTo(EditorUrl(result[0].Key, state));
+                Navigation.NavigateTo(EditorUrl(result[0].Key, filter));
             }
-            else if (problemsOnly)
+            else if (filter.ProblemsOnly)
             {
                 message = "No active translation warnings found.";
                 messageType = SiteNoticeType.Info;
             }
-            else if (state == TranslationState.NeedsTranslation)
+            else if (filter.State == TranslationState.NeedsTranslation)
             {
                 message = "Nothing found, everything is already translated!";
                 messageType = SiteNoticeType.Info;
             }
-            else if (state == TranslationState.Translated)
+            else if (filter.State == TranslationState.Translated)
             {
                 message = "Everything is verified already!";
                 messageType = SiteNoticeType.Info;
@@ -443,23 +442,22 @@ else
 
     private Task JumpProblems()
     {
-        return Jump(null, true);
+        return Jump(new TranslationStringFilter(null, true));
     }
 
     private Task JumpNeedsTranslation()
     {
-        return Jump(TranslationState.NeedsTranslation);
+        return Jump(new TranslationStringFilter(TranslationState.NeedsTranslation));
     }
 
     private Task JumpUnverified()
     {
-        return Jump(TranslationState.Translated);
+        return Jump(new TranslationStringFilter(TranslationState.Translated));
     }
 
-    private string EditorUrl(string key, TranslationState? state)
+    private string EditorUrl(string key, TranslationStringFilter filter)
     {
-        return $"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(key)}" +
-            (state.HasValue ? $"&state={state.Value}" : string.Empty);
+        return $"translations/{Slug}/{LanguageCode}/edit?key={Uri.EscapeDataString(key)}{filter.QuerySuffix}";
     }
 
     private async Task SaveSubscription()

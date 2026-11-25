@@ -80,6 +80,54 @@ public class TranslationEditorControllerTests
     }
 
     [Fact]
+    public async Task WarningFilterSkipsIgnoredWarningsAndRemovedStrings()
+    {
+        await using var database = CreateDatabase();
+        await database.TranslationProjects.AddAsync(new TranslationProject { Id = 1, Slug = "test", Name = "Test" });
+        await database.TranslationProjectLanguages.AddAsync(new TranslationProjectLanguage
+        {
+            ProjectId = 1, LanguageCode = "fi",
+        });
+        var keys = new[] { "first", "ignored", "removed", "last" };
+        for (var index = 0; index < keys.Length; ++index)
+        {
+            var key = keys[index];
+            await database.TranslationUnits.AddAsync(new TranslationUnit
+            {
+                ProjectId = 1, Key = key, Position = index, Active = key != "removed",
+            });
+            await database.TranslationValues.AddAsync(new TranslationValue
+            {
+                ProjectId = 1, Key = key, LanguageCode = "fi", State = TranslationState.Verified,
+            });
+            await database.TranslationProblems.AddAsync(new TranslationProblem
+            {
+                ProjectId = 1, Key = key, LanguageCode = "fi", Ignored = key == "ignored",
+            });
+        }
+
+        await database.SaveChangesAsync();
+        var controller = new TranslationEditorController(NullLogger<TranslationEditorController>.Instance, database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+        var list = await controller.List(1, "fi", problemsOnly: true);
+        Assert.Equal(new[] { "first", "last" }, list.Value!.Select(item => item.Key));
+
+        var next = await controller.Neighbor(1, "fi", "first", 1, problemsOnly: true);
+        Assert.Equal("last", Assert.IsType<JsonResult>(next.Result).Value);
+        var previous = await controller.Neighbor(1, "fi", "last", -1, problemsOnly: true);
+        Assert.Equal("first", Assert.IsType<JsonResult>(previous.Result).Value);
+
+        var matching = await controller.Get(1, "last", "fi", CancellationToken.None, problemsOnly: true);
+        Assert.Equal(2, matching.Value!.TextIndex);
+        Assert.Equal(2, matching.Value.TotalTexts);
+        var ignored = await controller.Get(1, "ignored", "fi", CancellationToken.None, problemsOnly: true);
+        Assert.Null(ignored.Value!.TextIndex);
+        Assert.Equal(2, ignored.Value.TotalTexts);
+    }
+
+    [Fact]
     public async Task TextIndexHandlesPositionGapsTiesAndMissingLanguageValues()
     {
         await using var database = CreateDatabase();

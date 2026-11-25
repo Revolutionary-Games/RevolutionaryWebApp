@@ -1,10 +1,12 @@
 @using RevolutionaryWebApp.Shared.Models
+@using RevolutionaryWebApp.Client.Utilities
 
-<select class="form-select" aria-label="@Label" disabled="@Disabled" @bind:get="Value" @bind:set="ValueChanged.InvokeAsync">
+<select class="form-select" aria-label="@Label" disabled="@Disabled" @bind:get="SelectedOption" @bind:set="ChangeOption">
     <option value="">Any</option>
     <option value="@TranslationState.NeedsTranslation">Needing changes</option>
     <option value="@TranslationState.Translated">Needing verification</option>
     <option value="@TranslationState.Verified">Verified</option>
+    <option value="@nameof(TranslationStringFilter.ProblemsOnly)">Strings with warnings</option>
 </select>
 
 @code {
@@ -13,11 +15,20 @@
     public string Label { get; set; } = string.Empty;
 
     [Parameter]
-    public TranslationState? Value { get; set; }
+    public TranslationStringFilter Value { get; set; }
 
     [Parameter]
-    public EventCallback<TranslationState?> ValueChanged { get; set; }
+    public EventCallback<TranslationStringFilter> ValueChanged { get; set; }
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    private string? SelectedOption => Value.ProblemsOnly ? nameof(TranslationStringFilter.ProblemsOnly) :
+        Value.State?.ToString();
+
+    private Task ChangeOption(string? option)
+    {
+        return ValueChanged.InvokeAsync(TranslationStringFilter.FromQuery(option,
+            option == nameof(TranslationStringFilter.ProblemsOnly)));
+    }
 }
