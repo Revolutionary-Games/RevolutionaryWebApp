@@ -3,8 +3,10 @@ namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
+using Server.Models;
 using Server.Models.Pages;
 using Server.Services;
 using Shared.Models.Pages;
@@ -71,6 +73,44 @@ public class PageRendererTests
             renderer.RenderPage(page, "https://example.com/", [], false, new Stopwatch());
 
         Assert.DoesNotContain(notExpected, result.RenderedHtml);
+    }
+
+    [Fact]
+    public async Task PageRenderer_OriginalImageLinkUsesServerBaseUrlAndMediaId()
+    {
+        const string mediaBase = "https://media.example/";
+        const string serverBase = "https://server.example/site/";
+        var imageId = Guid.NewGuid();
+        var pageFitUrl = $"{mediaBase}{imageId}/page-fit.png";
+        var largeUrl = $"{mediaBase}{imageId}/large.png";
+        var configuration = new ConfigurationManager
+        {
+            ["BaseUrl"] = serverBase,
+            ["MediaStorage:Download:URL"] = mediaBase,
+        };
+        var linkConverter = new MediaLinkConverter(configuration);
+        var markdownService = new MarkdownService(sanitizer, new MarkdownBbCodeService(linkConverter));
+        var renderer = new PageRenderer(configuration, markdownService, linkConverter);
+
+        await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        await database.MediaFiles.AddAsync(new MediaFile("screenshot #1.png", imageId, 1, null)
+        {
+            Id = 42,
+            Processed = true,
+            OriginalWidth = 3840,
+            OriginalHeight = 2160,
+        });
+        await database.SaveChangesAsync();
+
+        var rendered = await renderer.PrepareImageViewer($"<img src=\"{pageFitUrl}\">", database);
+
+        Assert.Contains($"data-original-src=\"{serverBase}api/v1/MediaFile/view/42?name=screenshot%20%231.png\"",
+            rendered);
+        Assert.Contains($"data-large-src=\"{largeUrl}\"", rendered);
+        Assert.Contains("data-original-width=\"3840\"", rendered);
+        Assert.Contains("data-original-height=\"2160\"", rendered);
+        Assert.DoesNotContain($"{mediaBase}{imageId}/screenshot", rendered);
     }
 
     private PageRenderer CreateRenderer(IMediaLinkConverter linkConverter)

@@ -222,6 +222,8 @@ public class ProcessUploadedImageJob
 
             // And finally upload the original with the metadata stripped
             await SaveAndUploadImage(image, encoder, originalPath, mimeType, imageDataStream, cancellationToken);
+            mediaFile.OriginalWidth = image.Width;
+            mediaFile.OriginalHeight = image.Height;
             logger.LogInformation("Successfully generated other resolutions for {Name}", mediaFile.Name);
         }
         catch (NotSupportedException e)

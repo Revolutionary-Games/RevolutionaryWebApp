@@ -400,6 +400,71 @@ table.non-fixed {
     max-width: 100%;
 }
 
+#main-outlet .page-image-trigger {
+    cursor: zoom-in;
+}
+
+html:has(#page-image-viewer[open]) {
+    overflow: hidden;
+}
+
+#page-image-viewer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0.75rem;
+    border: 0;
+    background: #141619;
+    color: #fff;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0.5rem;
+}
+
+#page-image-viewer[open] {
+    display: grid;
+}
+
+.page-image-close {
+    justify-self: end;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid #aab1b8;
+    border-radius: 0.25rem;
+    background: #292d32;
+    color: inherit;
+}
+
+.page-image-stage {
+    position: relative;
+    cursor: zoom-out;
+}
+
+.page-image-stage img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.page-image-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 1rem;
+    row-gap: 0.25rem;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.page-image-info a {
+    color: #a8ddff;
+}
+
 .thrive-logo-container {
     width: 100%;
     display: none;

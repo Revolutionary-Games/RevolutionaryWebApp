@@ -352,3 +352,145 @@ function printTwoFactorBackupCodes(account, codes) {
     frame.contentWindow.focus();
     frame.contentWindow.print();
 }
+
+function enablePageImageViewer(content) {
+    const viewer = document.getElementById("page-image-viewer");
+    if (!content || typeof viewer?.showModal !== "function")
+        return;
+
+    const stage = viewer.querySelector(".page-image-stage");
+    const closeButton = viewer.querySelector(".page-image-close");
+    const info = viewer.querySelector(".page-image-info span");
+    const download = viewer.querySelector(".page-image-info a");
+    const largeLimit = Number(viewer.dataset.largeLimit);
+    const interactive = "a, button, label, summary, [role=button], [role=link], [onclick], .youtube-placeholder";
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    closeButton.addEventListener("click", () => viewer.close());
+    stage.addEventListener("click", () => viewer.close());
+    viewer.addEventListener("close", () => {
+        if (!viewer.open)
+            stage.replaceChildren();
+    });
+
+    for (const image of content.querySelectorAll("img:not([usemap])")) {
+        if (image.closest(interactive) || image.getAttribute("src")?.endsWith(viewer.dataset.disabledFragment))
+            continue;
+
+        image.classList.add("page-image-trigger");
+        image.tabIndex = 0;
+        image.setAttribute("role", "button");
+        image.setAttribute("aria-haspopup", "dialog");
+        image.setAttribute("aria-label", image.alt ? `View ${image.alt} at full size` : "View full-size image");
+
+        image.addEventListener("click", () => openImage(image));
+        image.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openImage(image);
+            }
+        });
+    }
+
+    async function openImage(image) {
+        const source = image.currentSrc || image.src;
+        if (!source || viewer.open)
+            return;
+
+        const originalUrl = image.dataset.originalSrc ? new URL(image.dataset.originalSrc, document.baseURI) : null;
+        const largeUrl = image.dataset.largeSrc;
+        const name = originalUrl?.searchParams.get("name") || image.dataset.imageName || image.alt ||
+            getPageImageFileName(source) || "Image";
+        const { originalWidth, originalHeight } = image.dataset;
+        const hasOriginalDimensions = Boolean(originalWidth && originalHeight);
+        const preview = new Image();
+        preview.src = source;
+        preview.alt = image.alt;
+        stage.replaceChildren(preview);
+        download.href = originalUrl?.href || source;
+        download.hidden = Boolean(largeUrl && !originalUrl);
+        info.textContent = hasOriginalDimensions
+            ? `${name} · ${originalWidth} × ${originalHeight} px original`
+            : name;
+
+        // The modal returns focus here when it closes, including after a mouse or touch click.
+        image.focus({preventScroll: true});
+        const sourceBounds = image.getBoundingClientRect();
+        viewer.showModal();
+
+        let opening;
+        if (!reducedMotion.matches)
+            opening = animatePageImageOpening(preview, sourceBounds, image.naturalWidth, image.naturalHeight);
+
+        const current = () => viewer.open && preview.isConnected;
+        let displayed = preview;
+        if (largeUrl && largeUrl !== source) {
+            const large = new Image();
+            large.src = largeUrl;
+            large.alt = image.alt;
+
+            try {
+                await large.decode();
+                await opening?.finished;
+                if (!current())
+                    return;
+
+                displayed = large;
+                preview.setAttribute("aria-hidden", "true");
+                stage.appendChild(large);
+                if (!reducedMotion.matches)
+                    await large.animate([{opacity: 0}, {opacity: 1}], {duration: 160}).finished;
+
+                preview.remove();
+            } catch {
+                // Leave the page-size image in place if the large version can't be loaded.
+            }
+        }
+
+        if (hasOriginalDimensions)
+            return;
+
+        try {
+            await displayed.decode();
+        } catch {
+            return;
+        }
+
+        if (!viewer.open || !displayed.isConnected)
+            return;
+
+        const displayedSize = Math.max(displayed.naturalWidth, displayed.naturalHeight);
+        // The large variant keeps the original dimensions when neither edge reaches the resize limit.
+        const sizeLabel = !largeUrl || (displayed !== preview && displayedSize < largeLimit)
+            ? "original"
+            : "displayed";
+        info.textContent = `${name} · ${displayed.naturalWidth} × ${displayed.naturalHeight} px ${sizeLabel}`;
+    }
+}
+
+function animatePageImageOpening(image, source, width, height) {
+    if (!width || !height || !source.width || !source.height)
+        return;
+
+    const target = image.getBoundingClientRect();
+    const fit = Math.min(target.width / width, target.height / height);
+    if (!fit)
+        return;
+
+    const scale = Math.min(source.width / (width * fit), source.height / (height * fit));
+    const x = source.left + source.width / 2 - (target.left + target.width / 2);
+    const y = source.top + source.height / 2 - (target.top + target.height / 2);
+    return image.animate([
+        {transform: `translate(${x}px, ${y}px) scale(${scale})`},
+        {transform: "none"},
+    ], {duration: 240, easing: "ease-out"});
+}
+
+function getPageImageFileName(source) {
+    try {
+        const url = new URL(source, document.baseURI);
+        return decodeURIComponent(url.pathname.split("/").pop());
+    } catch {
+        return "";
+    }
+}

@@ -109,8 +109,10 @@ public class MediaFileController : Controller
 
     [HttpGet("view/{id:long}")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id, [FromServices] IDownloadQuota quota)
+    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id, [FromServices] IDownloadQuota quota,
+        [FromQuery] string? name = null)
     {
+        // The optional name is a display hint for the image viewer. The stored filename determines the redirect.
         var mediaFile = await database.MediaFiles.FindAsync(id);
 
         if (mediaFile == null)
@@ -143,7 +145,8 @@ public class MediaFileController : Controller
         if (string.IsNullOrEmpty(path))
             return NotFound();
 
-        var downloadUrl = new Uri(new Uri(viewBaseUrl), path).ToString();
+        var escapedPath = path[..(path.LastIndexOf('/') + 1)] + Uri.EscapeDataString(mediaFile.Name);
+        var downloadUrl = new Uri(new Uri(viewBaseUrl), escapedPath).AbsoluteUri;
 
         if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, mediaFile.OriginalFileSize))
             return StatusCode(StatusCodes.Status429TooManyRequests, IDownloadQuota.LimitReachedMessage);
