@@ -35,6 +35,8 @@ public class CrashReportController : Controller
     private readonly NotificationsEnabledDb database;
     private readonly IBackgroundJobClient jobClient;
 
+    // TODO: when readding crash dump uploading, we need to keep them in the DB so that different hosts can run
+    // the stackwalk job
     // These are kept for the eventual reimplementation of the crash upload API
     /*
     private readonly DiscordNotifications discordNotifications;
