@@ -93,6 +93,11 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
     /// </summary>
     public bool Processed { get; set; }
 
+    /// <summary>
+    ///   Allows lossy compression when generating WebP previews of this PNG upload.
+    /// </summary>
+    public bool AllowLossyWebpPreviews { get; set; }
+
     public bool Deleted { get; set; }
 
     public ICollection<SiteLayoutPart> UsedInSiteParts { get; set; } = new HashSet<SiteLayoutPart>();

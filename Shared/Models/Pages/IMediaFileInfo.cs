@@ -107,6 +107,10 @@ public class MediaBrowserEntry : ClientSideTimedModel
 
         var extension = Path.GetExtension(Name);
 
+        // PNGs always use webp previews for more efficient bandwidth usage
+        if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+            extension = ".webp";
+
         // Format requires skipping the leading dot, so remove that
         if (extension.StartsWith('.'))
             extension = extension.Substring(1);

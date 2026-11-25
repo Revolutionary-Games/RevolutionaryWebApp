@@ -158,6 +158,11 @@ public class MaintenanceController : Controller
         yield return ("cleanStaticCDN", "Purge static assets from CDN", CleanStaticCDN);
         yield return ("backfillMediaDimensions", "Read missing original image dimensions from media storage",
             StartBackfillMediaDimensions);
+        yield return ("backfillPngWebpPreviews", "Generate WebP previews for existing PNG uploads",
+            StartBackfillPngWebpPreviews);
+        yield return ("optimizeOldNewsImages",
+            "Update PNG media links in news posts published over six months ago",
+            StartOptimizeOldNewsImages);
 
         yield return ("clearOldCIImages", "Mark all CI images for deletion, and schedule cleanup in 90 days",
             StartClearOldCIImages);
@@ -199,6 +204,18 @@ public class MaintenanceController : Controller
     private static void StartBackfillMediaDimensions(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<BackfillMediaDimensionsJob>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartBackfillPngWebpPreviews(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<BackfillPngWebpPreviewsJob>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartOptimizeOldNewsImages(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<OptimizeOldNewsImagesJob>(x => x.Execute(operationId, CancellationToken.None));
     }
 
     [NonAction]

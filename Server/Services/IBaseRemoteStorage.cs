@@ -355,19 +355,16 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
         catch (AmazonS3Exception e)
         {
             // Convert exceptions to expected return value
-            if (e.ErrorCode == "NotFound")
+            if (e.StatusCode == HttpStatusCode.NotFound)
                 return false;
 
             throw;
         }
 
         if (data.HttpStatusCode != HttpStatusCode.OK && data.HttpStatusCode != HttpStatusCode.NotFound)
-            throw new Exception($"s3 object exit check failed failed: {data.HttpStatusCode}");
+            throw new Exception($"s3 object existence check failed: {data.HttpStatusCode}");
 
-        if (data.HttpStatusCode != HttpStatusCode.NotFound && data.Metadata.Count != 0)
-            return true;
-
-        return false;
+        return data.HttpStatusCode == HttpStatusCode.OK;
     }
 
     public async Task MoveObject(string currentPath, string newPath)

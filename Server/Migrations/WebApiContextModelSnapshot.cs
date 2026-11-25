@@ -2935,6 +2935,10 @@ namespace RevolutionaryWebApp.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<bool>("AllowLossyWebpPreviews")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_lossy_webp_previews");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

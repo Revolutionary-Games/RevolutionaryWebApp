@@ -208,7 +208,8 @@ public static class AppInfo
     public const int MediaResolutionPage = 900;
     public const int MediaResolutionThumbnail = 300;
 
-    // If this is changed, the code in ProcessUploadedImageJob needs also to be updated
+    // If this is changed, the code in ProcessUploadedImageJob needs also to be updated. Do not change for
+    // PNG file handling especially.
     public const string MediaPreviewFileExtension = ".webp";
     public const int PreviewImageQuality = 92;
     public const bool RemovePreviewAnimations = true;
