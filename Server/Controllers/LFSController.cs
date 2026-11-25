@@ -92,7 +92,7 @@ public class LFSController : Controller
     [HttpPost("{slug}/objects/batch")]
     [EnableRateLimiting(RateLimitCategories.UploadLimit)]
     public async Task<ActionResult<LFSResponse>> BatchOperation([Required] string slug,
-        [Required] LFSRequest request)
+        [Required] LFSRequest request, [FromServices] DownloadQuota quota)
     {
         SetContentType();
 
@@ -152,6 +152,20 @@ public class LFSController : Controller
                 StatusCode = StatusCodes.Status422UnprocessableEntity,
                 ContentTypes = new MediaTypeCollection { AppInfo.GitLfsContentType },
             };
+        }
+
+        if (request.Operation == LFSRequest.OperationType.Download)
+        {
+            var user = HttpContext.AuthenticatedUser();
+            var bytes = objects.Where(o => o.Error == null).Sum(o => o.Size);
+
+            if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, bytes))
+            {
+                if (user == null)
+                    return RequestAuthResult(DownloadQuota.PublicLfsLimitReachedMessage);
+
+                return LfsErrorResult(StatusCodes.Status429TooManyRequests, DownloadQuota.LimitReachedMessage);
+            }
         }
 
         var status = StatusCodes.Status200OK;
@@ -341,6 +355,16 @@ public class LFSController : Controller
         };
     }
 
+    [NonAction]
+    private static JsonResult LfsErrorResult(int status, string message)
+    {
+        return new JsonResult(new GitLFSErrorResponse { Message = message })
+        {
+            StatusCode = status,
+            ContentType = AppInfo.GitLfsContentType,
+        };
+    }
+
     // TODO: would there be a way to call this automatically?
     [NonAction]
     private void SetContentType()
@@ -375,11 +399,10 @@ public class LFSController : Controller
     }
 
     [NonAction]
-    private ActionResult RequestAuthResult()
+    private ActionResult RequestAuthResult(string message = "Authentication required")
     {
         SetAuthenticateHeader();
-        return Unauthorized(new GitLFSErrorResponse { Message = "Authentication required" }
-            .ToString());
+        return LfsErrorResult(StatusCodes.Status401Unauthorized, message);
     }
 
     [NonAction]
@@ -429,7 +452,7 @@ public class LFSController : Controller
 
         var createdUrl = downloadUrls.CreateDownloadFor(existingObject, DownloadUrlExpireTime);
 
-        return new LFSResponse.LFSObject(obj.Oid, obj.Size)
+        return new LFSResponse.LFSObject(obj.Oid, existingObject.Size)
         {
             Actions = new Dictionary<string, LFSResponse.LFSObject.Action>
             {

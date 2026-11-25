@@ -100,7 +100,7 @@ public class UserManagementControllerTests
             }
 
             if (!moderator)
-                Assert.IsType<NotFoundResult>((await controller.GetUser(target.Id)).Result);
+                Assert.IsType<NotFoundResult>((await controller.GetUser(target.Id, null!)).Result);
         }
     }
 

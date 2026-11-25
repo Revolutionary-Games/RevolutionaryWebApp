@@ -26,17 +26,20 @@ public class DownloadController : Controller
     private readonly ILogger<DownloadController> logger;
     private readonly ApplicationDbContext database;
     private readonly IGeneralRemoteDownloadUrls remoteDownload;
+    private readonly DownloadQuota quota;
 
     public DownloadController(ILogger<DownloadController> logger, ApplicationDbContext database,
-        IGeneralRemoteDownloadUrls remoteDownload)
+        IGeneralRemoteDownloadUrls remoteDownload, DownloadQuota quota)
     {
         this.logger = logger;
         this.database = database;
         this.remoteDownload = remoteDownload;
+        this.quota = quota;
     }
 
     [HttpGet("{id:long}")]
     [APIKeyScope(APIKeyScope.Storage)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<ActionResult> DownloadStorageItem([Required] long id, int? version)
     {
         if (!remoteDownload.Configured)
@@ -121,8 +124,18 @@ public class DownloadController : Controller
             return NotFound("File version has no associated storage item");
         }
 
-        return Redirect(remoteDownload.CreateDownloadFor(toDownload.StorageFile,
-            AppInfo.RemoteStorageDownloadExpireTime));
+        var file = toDownload.StorageFile;
+        var downloadUrl = remoteDownload.CreateDownloadFor(file, AppInfo.RemoteStorageDownloadExpireTime);
+
+        // Technically we could fall back to counting the remote item size, but we should always have the size for
+        // valid downloads. If we do fallback we might want to actually refresh the DB file size to only look it up
+        // once.
+        var size = file.Size ?? throw new InvalidOperationException("Storage file has no size for download");
+
+        if (!await quota.TryReserveAsync(user, HttpContext.Connection.RemoteIpAddress, size))
+            return StatusCode(StatusCodes.Status429TooManyRequests, DownloadQuota.LimitReachedMessage);
+
+        return Redirect(downloadUrl);
     }
 
     [HttpGet("patreonCredits")]

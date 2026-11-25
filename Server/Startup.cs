@@ -87,6 +87,8 @@ public class Startup
             });
         }
 
+        services.AddSingleton<DownloadQuota>();
+
         // This has to be always created when not needed to make EF tool work
         services.AddDbContextPool<ProtectionKeyContext>(opts =>
         {

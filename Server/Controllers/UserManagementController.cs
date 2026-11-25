@@ -155,7 +155,7 @@ public class UserManagementController : Controller
 
     [HttpGet("{id:long}")]
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.RestrictedUser)]
-    public async Task<ActionResult<UserDTO>> GetUser([Required] long id)
+    public async Task<ActionResult<UserDTO>> GetUser([Required] long id, [FromServices] DownloadQuota quota)
     {
         var user = await database.Users.AsNoTracking().Where(u => u.Id == id).Include(u => u.AssociationMember)
             .Include(u => u.ContributionCount).FirstOrDefaultAsync();
@@ -164,12 +164,17 @@ public class UserManagementController : Controller
             return NotFound();
 
         // Staff can inspect accounts; users can inspect their own data.
-        if (!CanViewUserDetails() && HttpContext.AuthenticatedUser()!.Id != user.Id)
+        var canViewDetails = CanViewUserDetails();
+        if (!canViewDetails && HttpContext.AuthenticatedUser()!.Id != user.Id)
             return NotFound();
 
         await user.ComputeUserGroups(database);
 
-        return user.GetDTO(CanViewUserDetails() ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        var info = user.GetDTO(canViewDetails ? RecordAccessLevel.Admin : RecordAccessLevel.Private);
+        info.DownloadQuotaLimit = DownloadQuota.GetLimit(user);
+        info.DownloadQuotaUsed = await quota.GetUsageAsync(user.Id);
+
+        return info;
     }
 
     [HttpPut("{id:long}/name")]

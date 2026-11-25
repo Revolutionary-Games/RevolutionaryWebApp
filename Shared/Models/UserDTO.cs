@@ -45,4 +45,7 @@ public class UserDTO : ClientSideTimedModel
     public int ContributionLimit { get; set; }
 
     public long UploadQuotaUsed { get; set; } = -1;
+
+    public long? DownloadQuotaLimit { get; set; }
+    public long? DownloadQuotaUsed { get; set; }
 }
