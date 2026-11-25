@@ -24,7 +24,8 @@ public class BackfillMediaDimensionsJobTests
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
         await using var database = new ApplicationDbContext(options);
-        await using var statusDatabase = new NotificationsEnabledDb(options, Substitute.For<IModelUpdateNotificationSender>());
+        await using var statusDatabase = new NotificationsEnabledDb(options,
+            Substitute.For<IModelUpdateNotificationSender>());
 
         var unreadable = new MediaFile("bad.png", Guid.NewGuid(), 1, null) { Id = 1, Processed = true };
         var pending = new MediaFile("image.png", Guid.NewGuid(), 1, null)

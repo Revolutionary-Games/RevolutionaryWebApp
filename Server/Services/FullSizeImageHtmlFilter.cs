@@ -15,7 +15,8 @@ using Shared.Models.Pages;
 using Shared.Services;
 using Utilities;
 
-internal class FullSizeImageHtmlFilter(IConfiguration configuration, IMediaLinkConverter linkConverter) : IPageHtmlFilter
+internal class FullSizeImageHtmlFilter(IConfiguration configuration, IMediaLinkConverter linkConverter)
+    : IPageHtmlFilter
 {
     private static readonly Regex PageFitImagePath = new(@"/([a-f0-9-]{36})/page-fit(\.\w+)$",
         RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));

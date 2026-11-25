@@ -109,8 +109,8 @@ public class MediaFileController : Controller
 
     [HttpGet("view/{id:long}")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id, [FromServices] IDownloadQuota quota,
-        [FromQuery] string? name = null)
+    public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id,
+        [FromServices] IDownloadQuota quota, [FromQuery] string? name = null)
     {
         // The optional name is a display hint for the image viewer. The stored filename determines the redirect.
         var mediaFile = await database.MediaFiles.FindAsync(id);
