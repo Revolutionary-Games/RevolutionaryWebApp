@@ -2973,6 +2973,14 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("original_file_size");
 
+                    b.Property<int>("OriginalHeight")
+                        .HasColumnType("integer")
+                        .HasColumnName("original_height");
+
+                    b.Property<int>("OriginalWidth")
+                        .HasColumnType("integer")
+                        .HasColumnName("original_width");
+
                     b.Property<bool>("Processed")
                         .HasColumnType("boolean")
                         .HasColumnName("processed");

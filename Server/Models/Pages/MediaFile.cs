@@ -57,6 +57,16 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
     public long OriginalFileSize { get; set; }
 
     /// <summary>
+    ///   Original image width in pixels, or zero if unknown.
+    /// </summary>
+    public int OriginalWidth { get; set; }
+
+    /// <summary>
+    ///   Original image height in pixels, or zero if unknown.
+    /// </summary>
+    public int OriginalHeight { get; set; }
+
+    /// <summary>
     ///   Additional groups of users who can see this item in folder listings etc. All media assets are publicly
     ///   downloadable if the name is known
     /// </summary>

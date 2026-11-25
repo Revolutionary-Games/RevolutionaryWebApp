@@ -156,6 +156,8 @@ public class MaintenanceController : Controller
         yield return ("recountFolders", "Recount all folder items (fixes inaccurate counts)", StartFolderRecount);
         yield return ("cleanSessions", "Delete all sessions that are older than one hour", StartCleanSessions);
         yield return ("cleanStaticCDN", "Purge static assets from CDN", CleanStaticCDN);
+        yield return ("backfillMediaDimensions", "Read missing original image dimensions from media storage",
+            StartBackfillMediaDimensions);
 
         yield return ("clearOldCIImages", "Mark all CI images for deletion, and schedule cleanup in 90 days",
             StartClearOldCIImages);
@@ -191,6 +193,12 @@ public class MaintenanceController : Controller
     private static void CleanStaticCDN(IBackgroundJobClient jobClient, long operationId)
     {
         jobClient.Enqueue<CleanStaticCDNJob>(x => x.Execute(operationId, CancellationToken.None));
+    }
+
+    [NonAction]
+    private static void StartBackfillMediaDimensions(IBackgroundJobClient jobClient, long operationId)
+    {
+        jobClient.Enqueue<BackfillMediaDimensionsJob>(x => x.Execute(operationId, CancellationToken.None));
     }
 
     [NonAction]
