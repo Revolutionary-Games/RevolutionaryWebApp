@@ -12,8 +12,7 @@ using Utilities;
 
 public class CleanStaticCDNJob : MaintenanceJobBase
 {
-    private static readonly string[] StaticAssets =
-        ["page.js", "interop.js", "katex.min.js", "katex.min.css", "css/app.css"];
+    private static readonly string[] StaticAssets = ["page.js", "katex.min.js", "katex.min.css", "css/app.css"];
 
     private readonly IHttpClientFactory clientFactory;
     private readonly string? bunnyAPIKey;
