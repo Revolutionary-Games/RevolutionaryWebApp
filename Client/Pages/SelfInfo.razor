@@ -10,9 +10,11 @@
 <h3>Your Profile</h3>
 
 <AccessLimited RequiredAccess="GroupType.User" OrHasOverride="GroupType.RestrictedUser">
-    <SingleResourceDisplayer Error="@profileError" Loading="@loadingProfile" HasData="@true">
-        <UserInfoPageContent User="@(profile ?? CurrentUserInfo.Info!)"/>
-    </SingleResourceDisplayer>
+    <StatusMessageShower Message="@profileError"/>
+    @if (CurrentUserInfo.Info is { } user)
+    {
+        <UserInfoPageContent @key="user.Id" User="@(profile?.Id == user.Id ? profile : user)"/>
+    }
 
     <br/>
     <hr/>
@@ -68,7 +70,6 @@
 
 @code {
     private UserDTO? profile;
-    private bool loadingProfile;
     private string? profileError;
     private int profileRequest;
 
@@ -109,7 +110,6 @@
         if (profile?.Id != user?.Id)
             profile = null;
 
-        loadingProfile = user != null;
         if (user == null)
             return;
 
@@ -123,11 +123,6 @@
         {
             if (request == profileRequest)
                 profileError = $"Could not refresh your profile: {e.Message}";
-        }
-        finally
-        {
-            if (request == profileRequest)
-                loadingProfile = false;
         }
     }
 
