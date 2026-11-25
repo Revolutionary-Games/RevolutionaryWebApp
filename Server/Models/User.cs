@@ -24,6 +24,7 @@ using Utilities;
 
 [Index(nameof(Email), IsUnique = true)]
 [Index(nameof(NormalizedEmail), IsUnique = true)]
+[Index(nameof(UserName))]
 [Index(nameof(DisplayName), IsUnique = true)]
 [Index(nameof(HashedLfsToken), IsUnique = true)]
 [Index(nameof(HashedLauncherLinkCode), IsUnique = true)]

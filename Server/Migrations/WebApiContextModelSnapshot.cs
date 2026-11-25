@@ -5991,6 +5991,9 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_users_normalized_email");
 
+                    b.HasIndex("UserName")
+                        .HasDatabaseName("ix_users_user_name");
+
                     b.ToTable("users", (string)null);
                 });
 
