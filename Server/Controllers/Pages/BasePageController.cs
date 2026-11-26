@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Authorization;
@@ -26,6 +25,7 @@ using Models.Pages;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
+using Shared.Utilities;
 using SharedBase.Utilities;
 using Utilities;
 
@@ -34,13 +34,6 @@ using Utilities;
 /// </summary>
 public abstract class BasePageController : Controller
 {
-    // Note that there are similar regexes in MarkdownBBCodeService that need to be updated if these are
-    public static readonly Regex MediaLinkCountingRegex =
-        new(@"media:[\w\.]+:[a-f0-9\-]+", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
-
-    public static readonly Regex MediaLinkIDExtractingRegex =
-        new(@"media:[\w\.]+:([a-f0-9\-]+)", RegexOptions.Compiled, TimeSpan.FromSeconds(10));
-
     protected readonly NotificationsEnabledDb Database;
     protected readonly IBackgroundJobClient JobClient;
     protected readonly IHubContext<NotificationsHub, INotifications> Notifications;
@@ -70,7 +63,7 @@ public abstract class BasePageController : Controller
     public static bool CheckPageContentRespectsLimits(string content, out ActionResult? failure)
     {
         // Count images and fail if more than 100
-        var imageCount = MediaLinkCountingRegex.Matches(content).Count;
+        var imageCount = MediaLinkParser.CountDestinations(content);
 
         if (imageCount > 100)
         {

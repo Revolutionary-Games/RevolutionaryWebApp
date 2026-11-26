@@ -5,11 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Controllers.Pages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
+using Shared.Utilities;
 
 /// <summary>
 ///   Refreshes <see cref="MediaFileUsage"/> for a page
@@ -27,9 +27,7 @@ public class UpdatePageUsedMediaJob
 
     public static IEnumerable<string> GetUsedResourceGUIDs(string content)
     {
-        var regex = BasePageController.MediaLinkIDExtractingRegex;
-
-        return regex.Matches(content).Select(m => m.Groups[1].Value);
+        return MediaLinkParser.FindDestinations(content).Select(link => link.GlobalId);
     }
 
     public async Task Execute(long pageId, CancellationToken cancellationToken)

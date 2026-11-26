@@ -20,6 +20,7 @@ using Services;
 using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
+using Shared.Utilities;
 using YamlDotNet.Serialization;
 
 /// <summary>
@@ -229,10 +230,9 @@ public class ImportWordPressPosts : MaintenanceJobBase
                     continue;
             }
 
-            var type = typeRaw.Substring(1);
-
             // And then finally we will replace the link with the image
-            editableContent.Replace($"images/{imageName}", $"media:{type}:{databaseImage.GlobalId}");
+            editableContent.Replace($"images/{imageName}",
+                MediaLinkParser.FormatDestination(typeRaw, databaseImage.GlobalId));
             ++imageCount;
         }
 

@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
 using Shared.Models.Pages;
+using Shared.Utilities;
 
 public class OptimizeOldNewsImagesJob : MaintenanceJobBase
 {
@@ -40,7 +41,7 @@ public class OptimizeOldNewsImagesJob : MaintenanceJobBase
         var cutoff = DateTime.UtcNow.AddMonths(-6);
         var eligiblePosts = Database.VersionedPages.Where(page => page.Type == PageType.Post && !page.Deleted &&
             page.Visibility != PageVisibility.HiddenDraft && page.PublishedAt < cutoff &&
-            page.LatestContent.Contains("media:"));
+            page.LatestContent.Contains(MediaLinkParser.Prefix));
 
         long lastId = 0;
         int updatedPages = 0;
@@ -75,27 +76,17 @@ public class OptimizeOldNewsImagesJob : MaintenanceJobBase
         var markdown = Markdown.Parse(content, MarkdownPipeline);
         foreach (var link in markdown.Descendants<LinkInline>())
         {
-            var url = link.Url;
-            if (!link.IsImage || url == null || !url.StartsWith("media:", StringComparison.Ordinal))
+            if (!link.IsImage)
                 continue;
 
-            var start = link.UrlSpan.Start;
-            if (start < link.Span.Start + 2 || link.UrlSpan.End > link.Span.End ||
-                content.AsSpan(start - 2, 2) is not "](" ||
-                !content.AsSpan(start, link.UrlSpan.Length).SequenceEqual(url))
+            var media = MediaLinkParser.ParseMarkdownImageAt(content, link.Span.Start);
+            if (media == null || media.Length != link.Span.Length || media.Extension != ".png" ||
+                !Guid.TryParseExact(media.GlobalId, "D", out var id))
             {
                 continue;
             }
 
-            // The custom media link syntax allows an optional dot and a full-view flag.
-            var parts = url.Split(':');
-            if ((parts.Length != 3 && (parts.Length != 5 || parts[3] != "f" || parts[4] is not ("y" or "n"))) ||
-                parts[1] is not ("png" or ".png") || !Guid.TryParseExact(parts[2], "D", out var id))
-            {
-                continue;
-            }
-
-            yield return (id, start + (parts[1][0] == '.' ? "media:.".Length : "media:".Length));
+            yield return (id, media.ExtensionStart);
         }
     }
 

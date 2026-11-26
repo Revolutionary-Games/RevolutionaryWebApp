@@ -4,18 +4,14 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using Models.Pages;
+using Utilities;
 
 public class MarkdownBbCodeService : IMarkdownBbCodeService
 {
     public const string DisabledImageViewerFragment = "#no-full-view";
 
     private readonly Regex likelyNeedToDoSomething =
-        new(@"(\!\[[^\)\]]*\]\(media:)|([/\w+])|(\]\(page:)|iframe", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
-
-    // Note that there are similar regexes in BasePageController which must be updated if necessary
-    private readonly Regex mediaLinkToConvertRegex = new(
-        @"\!\[([^\)\]]*)\]\(media:([\w\.]+):([a-f0-9\-]+)(?::f:([yn]))?(\s*'[^']*')?\)",
-        RegexOptions.Compiled, TimeSpan.FromMilliseconds(500));
+        new(@"([/\w+])|(\]\(page:)|iframe", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
     // This could sometimes remove a trailing </p> if a forward <p> didn't exist, but hopefully that's rare enough
     // to not need to consider that
@@ -91,35 +87,18 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                 // Handle currently pending text
                 FlushPending(i);
 
-                // Potential special link, check if valid
-                var match = mediaLinkToConvertRegex.Match(rawContent, i);
-
-                if (match.Success && match.Index == i)
+                var image = MediaLinkParser.ParseMarkdownImageAt(rawContent, i);
+                if (image != null)
                 {
-                    // Special handling for this image link content
-                    var altText = match.Groups[1].Value;
-                    var imageId = match.Groups[3].Value;
-                    var imageType = match.Groups[2].Value;
-                    var fullView = match.Groups[4].Value != "n";
-                    var comment = match.Groups[5].Value;
-
-                    if (comment.Length < 1)
-                        comment = null;
-
-                    if (string.IsNullOrWhiteSpace(imageType))
-                        throw new Exception("Logic error in parsing");
-
-                    if (imageType[0] != '.')
-                        imageType = "." + imageType;
-
-                    var url = mediaLinkConverter.TranslateImageLink(imageType, imageId, MediaFileSize.FitPage);
-                    if (!fullView)
+                    var url = mediaLinkConverter.TranslateImageLink(image.Extension, image.GlobalId,
+                        MediaFileSize.FitPage);
+                    if (!image.AllowFullSize)
                         url += DisabledImageViewerFragment;
 
-                    InsertImage(result, url, altText, comment);
+                    InsertImage(result, url, image.AltText!, image.Title);
 
                     // Skip input until the end of the replaced image
-                    i += match.Length - 1;
+                    i += image.Length - 1;
                     continue;
                 }
             }

@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Shared.Services;
 
 using System.Diagnostics.CodeAnalysis;
 using Models.Pages;
+using Utilities;
 
 /// <summary>
 ///   Converts media links from an internal format to one that browsers can use
@@ -43,24 +44,9 @@ public interface IMediaLinkConverter
     public bool TryParseImageLink(string imageLink, [NotNullWhen(true)] out string? imageType,
         [NotNullWhen(true)] out string? imageGlobalId)
     {
-        imageType = null;
-        imageGlobalId = null;
-
-        if (!imageLink.StartsWith("media:"))
-            return false;
-
-        var parts = imageLink.Split(':', 3);
-
-        if (parts.Length != 3)
-            return false;
-
-        // Parts[0] should always be media thanks to the above check so that is skipped
-        imageType = "." + parts[1];
-
-        imageGlobalId = parts[2];
-
-        // Could maybe check if the GUID is a valid format
-
-        return true;
+        var link = MediaLinkParser.ParseDestination(imageLink);
+        imageType = link?.Extension;
+        imageGlobalId = link?.GlobalId;
+        return link != null;
     }
 }

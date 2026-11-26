@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.Json.Serialization;
 using DevCenterCommunication.Models;
 using Enums;
+using Utilities;
 
 public interface IMediaFileInfo
 {
@@ -111,11 +112,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
         if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
             extension = ".webp";
 
-        // Format requires skipping the leading dot, so remove that
-        if (extension.StartsWith('.'))
-            extension = extension.Substring(1);
-
-        var fullSizeSpecifier = allowFullSize ? string.Empty : ":f:n";
-        return $"![{sanitizedName}](media:{extension}:{GlobalId}{fullSizeSpecifier})";
+        var destination = MediaLinkParser.FormatDestination(extension, GlobalId, allowFullSize);
+        return $"![{sanitizedName}]({destination})";
     }
 }
