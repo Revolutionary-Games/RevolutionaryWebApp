@@ -112,7 +112,6 @@ public class MediaFileController : Controller
     public async Task<ActionResult<MediaFileDTO>> RedirectToView([Required] long id,
         [FromServices] IDownloadQuota quota, [FromQuery] string? name = null)
     {
-        // The optional name is a display hint for the image viewer. The stored filename determines the redirect.
         var mediaFile = await database.MediaFiles.FindAsync(id);
 
         if (mediaFile == null)
@@ -123,20 +122,23 @@ public class MediaFileController : Controller
 
         var user = HttpContext.AuthenticatedUser();
 
-        if (user == null)
+        // Full-size links rendered on pages include the exact filename and can be used without metadata access.
+        if (!string.Equals(name, mediaFile.Name, StringComparison.Ordinal))
         {
-            if (mediaFile.MetadataVisibility != GroupType.NotLoggedIn)
-                return NotFound();
-        }
-        else
-        {
-            var groups = user.AccessCachedGroupsOrThrow();
-
-            if (user.Id != mediaFile.UploadedById && user.Id != mediaFile.LastModifiedById &&
-                !groups.HasGroup(mediaFile.MetadataVisibility) && !groups.HasGroup(mediaFile.ModifyAccess))
+            if (user == null)
             {
-                // Can't see this item
-                return NotFound();
+                if (mediaFile.MetadataVisibility != GroupType.NotLoggedIn)
+                    return NotFound();
+            }
+            else
+            {
+                var groups = user.AccessCachedGroupsOrThrow();
+
+                if (user.Id != mediaFile.UploadedById && user.Id != mediaFile.LastModifiedById &&
+                    !groups.HasGroup(mediaFile.MetadataVisibility) && !groups.HasGroup(mediaFile.ModifyAccess))
+                {
+                    return NotFound();
+                }
             }
         }
 

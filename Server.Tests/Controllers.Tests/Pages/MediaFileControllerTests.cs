@@ -3,11 +3,13 @@ namespace RevolutionaryWebApp.Server.Tests.Controllers.Tests.Pages;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Fixtures;
 using Hangfire;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -54,6 +56,65 @@ public sealed class MediaFileControllerTests : IDisposable
         image.SaveAsPng(memoryStream);
 
         return tinyPngBytes = memoryStream.ToArray();
+    }
+
+    [Theory]
+    [InlineData(null, "photo #1.png", true)]
+    [InlineData(null, null, false)]
+    [InlineData(null, "Photo #1.png", false)]
+    [InlineData(GroupType.User, "photo #1.png", true)]
+    [InlineData(GroupType.User, "photo #123.png", true)]
+    [InlineData(GroupType.User, null, false)]
+    [InlineData(GroupType.Developer, null, true)]
+    public async Task MediaFile_RedirectToViewAcceptsExactNameOrMetadataAccess(GroupType? group, string? name,
+        bool expectRedirect)
+    {
+        await using var db = CreateDatabase(nameof(MediaFile_RedirectToViewAcceptsExactNameOrMetadataAccess));
+        var file = new MediaFile("photo #1.png", Guid.NewGuid(), folderId: 1, uploadedById: 2)
+        {
+            Processed = true,
+            MetadataVisibility = GroupType.Developer,
+            OriginalFileSize = 100,
+        };
+        db.MediaFiles.Add(file);
+        await db.SaveChangesAsync();
+
+        var cfg = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["MediaStorage:Download:URL"] = "https://cdn.example/",
+            })
+            .Build();
+        var httpContext = new DefaultHttpContext();
+        User? user = null;
+        if (group is { } userGroup)
+        {
+            user = CreateUser(3, userGroup);
+            httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(user));
+            httpContext.Items[AppInfo.CurrentUserMiddlewareKey] = user;
+        }
+
+        var controller = new MediaFileController(logger, cfg, db, Substitute.For<IUploadFileStorage>(),
+            new EphemeralDataProtectionProvider(), Substitute.For<IBackgroundJobClient>())
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext },
+        };
+        var quota = Substitute.For<IDownloadQuota>();
+        quota.TryReserveAsync(user, null, file.OriginalFileSize).Returns(true);
+
+        var action = await controller.RedirectToView(file.Id, quota, name);
+
+        if (expectRedirect)
+        {
+            var redirect = Assert.IsType<RedirectResult>(action.Result);
+            Assert.Equal($"https://cdn.example/{file.GlobalId}/photo%20%231.png", redirect.Url);
+            await quota.Received(1).TryReserveAsync(user, null, file.OriginalFileSize);
+        }
+        else
+        {
+            Assert.IsType<NotFoundResult>(action.Result);
+            Assert.Empty(quota.ReceivedCalls());
+        }
     }
 
     [Fact]
