@@ -65,18 +65,6 @@ public class ProcessUploadedImageJob
             return;
         }
 
-        ImageEncoder previewEncoder;
-
-        // Guard against changing this and forgetting to update this code
-        if (AppInfo.MediaPreviewFileExtension == ".webp")
-        {
-            previewEncoder = new WebpEncoder
-            {
-                FileFormat = WebpFileFormatType.Lossy,
-                Quality = AppInfo.PreviewImageQuality,
-            };
-        }
-
         var imageType = Path.GetExtension(mediaFile.Name);
 
         ImageEncoder encoder;
@@ -185,7 +173,8 @@ public class ProcessUploadedImageJob
             image.Metadata.XmpProfile = null;
 
             // Large
-            using var large = CreateLargeImage(image, reSampler);
+            var large = CreateLargeImage(image, reSampler);
+            using var resizedLarge = ReferenceEquals(large, image) ? null : large;
 
             // Upload is waited for here, which might hopefully make sure this works correctly
             await SaveAndUploadImage(large, encoder, largePath, mimeType, imageDataStream, cancellationToken);
@@ -208,17 +197,32 @@ public class ProcessUploadedImageJob
             }
 
             // Page
-            using var page = CreatePageImage(image, reSampler);
+            var page = MediaImagePreviews.CreatePageImage(image);
+            using var resizedPage = ReferenceEquals(page, image) ? null : page;
 
             await SaveAndUploadImage(page, encoder, pagePath, mimeType, imageDataStream, cancellationToken);
 
             // Thumbnail
-            using var thumbnail = CreateThumbnailImage(image, reSampler);
+            using var firstFrameOnly = CreateStaticPreviewSource(image);
+            var thumbnailSource = firstFrameOnly ?? image;
+            var thumbnail = MediaImagePreviews.CreateThumbnailImage(thumbnailSource);
+            using var resizedThumbnail = ReferenceEquals(thumbnail, thumbnailSource) ? null : thumbnail;
 
-            await SaveAndUploadImage(thumbnail, previewEncoder, thumbPath, mimeType, imageDataStream,
-                cancellationToken);
-
-            // TODO: should lossless images have jpg variants generated for them for preview purposes?
+            if (imageType == ".png")
+            {
+                await MediaImagePreviews.UploadPngWebpPreviews(mediaStorage, mediaFile, page, thumbnail,
+                    imageDataStream, cancellationToken);
+            }
+            else if (AppInfo.MediaPreviewFileExtension == ".webp")
+            {
+                var previewEncoder = new WebpEncoder
+                {
+                    FileFormat = WebpFileFormatType.Lossy,
+                    Quality = AppInfo.PreviewImageQuality,
+                };
+                await SaveAndUploadImage(thumbnail, previewEncoder, thumbPath, "image/webp", imageDataStream,
+                    cancellationToken);
+            }
 
             // And finally upload the original with the metadata stripped
             await SaveAndUploadImage(image, encoder, originalPath, mimeType, imageDataStream, cancellationToken);
@@ -278,25 +282,17 @@ public class ProcessUploadedImageJob
             AppInfo.MediaResolutionLarge, reSampler);
     }
 
-    private static Image CreatePageImage(Image image, IResampler reSampler)
+    private static Image? CreateStaticPreviewSource(Image image)
     {
-        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionPage, AppInfo.MediaResolutionPage,
-            reSampler);
-    }
+        if (!AppInfo.RemovePreviewAnimations || image.Frames.Count <= 1)
+            return null;
 
-    private static Image CreateThumbnailImage(Image image, IResampler reSampler)
-    {
-        if (AppInfo.RemovePreviewAnimations && image.Frames.Count > 1)
-        {
-            // Need to have a clone with empty lambda here to not modify the original
-            image = image.Clone(i => _ = 0);
+        // Need to have a clone with empty lambda here to not modify the original
+        var copy = image.Clone(i => _ = 0);
+        while (copy.Frames.Count > 1)
+            copy.Frames.RemoveFrame(copy.Frames.Count - 1);
 
-            while (image.Frames.Count > 1)
-                image.Frames.RemoveFrame(image.Frames.Count - 1);
-        }
-
-        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionThumbnail,
-            AppInfo.MediaResolutionThumbnail, reSampler);
+        return copy;
     }
 
     private async Task SaveAndUploadImage(Image image, ImageEncoder encoder, string targetPath, string mime,
