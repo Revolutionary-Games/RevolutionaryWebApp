@@ -1211,6 +1211,7 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         await RunnerConnectionMockHelper.CreateBasicCIImageAsync(db, "test-image:v1");
         await db.SaveChangesAsync();
 
+        var runnerDbId = listenerMockSetup.GetRunnerData().Id;
         Assert.True(await listenerMockSetup.Start());
         await listenerMockSetup.WaitDequeueAuthRequest();
 
@@ -1249,12 +1250,11 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
             Output = pendingText2,
         });
 
-        // Ensure the server consumes what we just queued
-        listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.HeartBeat });
-        await listenerMockSetup.WaitUntilQueueEmpty();
-
-        // Main difference in this test: simulate that another connection for the SAME runner opened
-        var runnerDbId = await db.RemoteRunners.AsNoTracking().Select(r => r.Id).FirstAsync();
+        // The server processes both output messages before replying with the active job.
+        listenerMockSetup.QueueMessage(new RealTimeBuildMessage { Type = BuildSectionMessageType.GetAvailableJobs });
+        serverMessage = await listenerMockSetup.WaitForServerMessage();
+        Assert.NotNull(serverMessage);
+        Assert.Equal(BuildSectionMessageType.ActiveJobDetails, serverMessage.Type);
 
         // Any ID that isn't current will trigger the flush. Theoretically, this fixed value might conflict,
         // but we don't care about that here (1 in 2 billion chance).
@@ -1263,10 +1263,11 @@ public sealed class RunnerCommunicationTests(ITestOutputHelper output) : IDispos
         // Wait for the handler to notice, flush and exit
         await listenerMockSetup.WaitUntilClosed(TimeSpan.FromSeconds(15));
 
+        await listenerMockSetup.CheckServerClosedSocket();
         await listenerMockSetup.CheckOpenNoticeWasSent();
 
         // Create a fresh context for reading because the handler disposed of the scoped one
-        var readDb = listenerMockSetup.CreateNewDbContextForReading();
+        await using var readDb = listenerMockSetup.CreateNewDbContextForReading();
 
         // Test that the connection flushed its output before closing
         var sections = await readDb.CiJobOutputSections
