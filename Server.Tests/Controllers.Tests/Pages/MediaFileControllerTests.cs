@@ -63,9 +63,11 @@ public sealed class MediaFileControllerTests : IDisposable
     [InlineData(null, null, false)]
     [InlineData(null, "Photo #1.png", false)]
     [InlineData(GroupType.User, "photo #1.png", true)]
-    [InlineData(GroupType.User, "photo #123.png", true)]
+    [InlineData(GroupType.User, "photo #123.png", false)]
     [InlineData(GroupType.User, null, false)]
     [InlineData(GroupType.Developer, null, true)]
+    [InlineData(GroupType.Developer, "photo #1.png", true)]
+    [InlineData(GroupType.Developer, "photo #123.png", true)]
     public async Task MediaFile_RedirectToViewAcceptsExactNameOrMetadataAccess(GroupType? group, string? name,
         bool expectRedirect)
     {
