@@ -163,20 +163,35 @@ dotnet run --project Scripts -- ef -m
 
 ### Getting an admin account
 
-To get the first admin account, first setup the DB then run this SQL
-on it (replace the id with a uuid):
-```sql
-INSERT INTO redeemable_codes (id, hashed_id, granted_resource) VALUES ('UUID_GOES_HERE', 'HASH', 'GroupAdmin');
-```
+Migrate the database and sign in with the account that should become an
+admin. On your profile (`/me`), set up two-factor authentication with an
+authenticator app, confirm it with a code from the app, and save your
+backup codes. Admin codes can only be redeemed after two-factor
+authentication is enabled on the account.
 
-The `HASH` value needs to be replaced by the sha256 hash of the `id`
-this is done to protect against timing attacks. To compute that for
-example on Linux, you can use:
+Generate a random UUID and calculate the Base64-encoded SHA-256 hash of
+its lowercase, hyphenated text. The hash is used for the database
+lookup to protect against timing attacks. On Linux, run the following
+commands to print the UUID and its hash in that order.
+
 ```sh
-echo -n VALUEHERE | openssl dgst -binary -sha256 | openssl base64
+code_id="$(uuidgen --random | tr '[:upper:]' '[:lower:]')"
+printf '%s\n' "$code_id"
+printf '%s' "$code_id" | openssl dgst -binary -sha256 | openssl base64
 ```
 
-Then you can redeem the code on your user profile after logging in to become an admin.
+Insert the code into the database used by the running app, substituting the
+two values printed above.
+
+```sql
+INSERT INTO redeemable_codes (id, hashed_id, granted_resource)
+VALUES ('UUID_GOES_HERE', 'HASH_GOES_HERE', 'GroupAdmin');
+```
+
+Enter the same UUID text under **Redeem Code** in your profile. Successful
+redemption grants admin membership and deletes the single-use code. If the
+request returns HTTP 400 asking you to enable two-factor authentication,
+complete the setup and retry with the same code.
 
 ### CI executor
 
