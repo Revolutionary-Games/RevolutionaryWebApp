@@ -2,13 +2,19 @@ namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading.Tasks;
+using AngleSharp.Html.Parser;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
+using Server.Controllers.Pages;
 using Server.Models;
 using Server.Models.Pages;
 using Server.Services;
+using Shared;
 using Shared.Models.Pages;
 using Shared.Services;
 using Xunit;
@@ -47,7 +53,45 @@ public class PageRendererTests
             renderer.RenderPreview(page, "https://example.com/", "https://example.com/somePage", 100);
 
         Assert.Equal(expected, result);
-        Assert.Equal(expectedImage, previewImage);
+        Assert.Equal(expectedImage, previewImage?.Source);
+    }
+
+    [Fact]
+    public async Task PageRenderer_NewsFeedPreservesBannerDimensions()
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+        linkConverter.GetGeneratedAndProxyImagePrefix().Returns("/live");
+
+        await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        await database.VersionedPages.AddAsync(new VersionedPage("Progress Update")
+        {
+            Permalink = "progress-update",
+            PublishedAt = publishedAt,
+            LatestContent = "[puImage]2022-01-01[/puImage]\n\nPost text.",
+            Type = PageType.Post,
+            Visibility = PageVisibility.Public,
+        });
+        await database.SaveChangesAsync();
+
+        var cache = new CustomMemoryCache();
+        using var memoryCache = cache.Cache;
+        var controller = new LiveController(emptyConfiguration, database, CreateRenderer(linkConverter), cache)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+        controller.Request.Scheme = "http";
+        controller.Request.Host = new HostString("localhost:5000");
+
+        var view = Assert.IsType<ViewResult>(await controller.GetNewsFeedPage());
+        var feed = Assert.IsType<RenderedPage>(view.Model);
+        using var document = new HtmlParser().ParseDocument(feed.RenderedHtml);
+        var image = Assert.Single(document.QuerySelectorAll("img"));
+        Assert.Equal("http://localhost:5000/live/generated/puBanner/2022-01-01", image.GetAttribute("src"));
+        Assert.Equal(AppInfo.ProgressUpdateBannerWidth.ToString(CultureInfo.InvariantCulture),
+            image.GetAttribute("width"));
+        Assert.Equal(AppInfo.ProgressUpdateBannerHeight.ToString(CultureInfo.InvariantCulture),
+            image.GetAttribute("height"));
     }
 
     [Theory]

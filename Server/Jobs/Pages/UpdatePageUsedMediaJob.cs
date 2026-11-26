@@ -60,13 +60,23 @@ public class UpdatePageUsedMediaJob
 
         try
         {
+            HashSet<Guid> existingMediaIds = parsedIds.Count == 0 ? [] : await database.MediaFiles
+                .Where(file => parsedIds.Contains(file.GlobalId))
+                .Select(file => file.GlobalId).ToHashSetAsync(cancellationToken);
+
+            foreach (var missingId in parsedIds.Except(existingMediaIds))
+            {
+                logger.LogWarning("Skipping missing media file ({MediaId}) referenced by page ({PageId})",
+                    missingId, pageId);
+            }
+
             var alreadyExistingLinks = await database.MediaFileUsages
                 .AsNoTracking()
                 .Where(u => u.UsedByResource == pageId && u.Usage == MediaFileUsage.UsageType.Page)
                 .Select(u => u.MediaFileGuid).ToHashSetAsync(cancellationToken);
 
-            var toAdd = parsedIds.Except(alreadyExistingLinks).ToList();
-            var toRemove = alreadyExistingLinks.Except(parsedIds).ToList();
+            var toAdd = existingMediaIds.Except(alreadyExistingLinks).ToList();
+            var toRemove = alreadyExistingLinks.Except(existingMediaIds).ToList();
 
             // Batch-add new usage records instead of individual inserts
             if (toAdd.Count > 0)
@@ -93,7 +103,7 @@ public class UpdatePageUsedMediaJob
             await transaction.CommitAsync(cancellationToken);
 
             logger.LogInformation("Updated media used by page ({PageId}), it uses {Count} media resources", pageId,
-                parsedIds.Count);
+                existingMediaIds.Count);
         }
         catch
         {
