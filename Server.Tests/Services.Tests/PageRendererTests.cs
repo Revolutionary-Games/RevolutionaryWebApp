@@ -75,13 +75,16 @@ public class PageRendererTests
         Assert.DoesNotContain(notExpected, result.RenderedHtml);
     }
 
-    [Fact]
-    public async Task PageRenderer_RendersOpenGraphAndFullSizeImageMetadata()
+    [Theory]
+    [InlineData("png", "png")]
+    [InlineData("webp", "png")]
+    [InlineData("webp", "webp")]
+    public async Task PageRenderer_RendersOpenGraphAndFullSizeImageMetadata(string previewType, string originalType)
     {
         const string mediaBase = "https://media.example/";
         const string serverBase = "https://server.example/site/";
         var imageId = Guid.NewGuid();
-        var largeUrl = $"{mediaBase}{imageId}/large.png";
+        var largeUrl = $"{mediaBase}{imageId}/large.{originalType}";
         var configuration = new ConfigurationManager
         {
             ["BaseUrl"] = serverBase,
@@ -93,7 +96,7 @@ public class PageRendererTests
 
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
-        await database.MediaFiles.AddAsync(new MediaFile("screenshot #1.png", imageId, 1, null)
+        await database.MediaFiles.AddAsync(new MediaFile($"screenshot #1.{originalType}", imageId, 1, null)
         {
             Id = 42,
             Processed = true,
@@ -104,15 +107,16 @@ public class PageRendererTests
 
         var page = new VersionedPage("Screenshot")
         {
-            LatestContent = $"A screenshot.\n\n![Cover](cover.png)\n\n![Screenshot](media:png:{imageId})",
+            LatestContent = $"A screenshot.\n\n![Cover](cover.png)\n\n![Screenshot](media:{previewType}:{imageId})",
         };
         var result = await renderer.RenderPage(page, serverBase, [], true, database, new Stopwatch());
         var rendered = result.RenderedHtml;
 
         Assert.Equal("A screenshot.", result.OpenGraphMetaDescription);
         Assert.Equal($"{serverBase}cover.png", result.PreviewImage);
-        Assert.Contains($"data-original-src=\"{serverBase}api/v1/MediaFile/view/42?name=screenshot%20%231.png\"",
-            rendered);
+        Assert.Contains($"src=\"{mediaBase}{imageId}/page-fit.{previewType}\"", rendered);
+        var originalUrl = $"{serverBase}api/v1/MediaFile/view/42?name=screenshot%20%231.{originalType}";
+        Assert.Contains($"data-original-src=\"{originalUrl}\"", rendered);
         Assert.Contains($"data-large-src=\"{largeUrl}\"", rendered);
         Assert.Contains("data-original-width=\"3840\"", rendered);
         Assert.Contains("data-original-height=\"2160\"", rendered);

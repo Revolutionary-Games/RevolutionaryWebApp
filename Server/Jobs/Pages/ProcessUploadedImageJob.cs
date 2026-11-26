@@ -276,13 +276,7 @@ public class ProcessUploadedImageJob
         await database.SaveChangesAsync();
     }
 
-    private static Image CreateLargeImage(Image image, IResampler reSampler)
-    {
-        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionLarge,
-            AppInfo.MediaResolutionLarge, reSampler);
-    }
-
-    private static Image? CreateStaticPreviewSource(Image image)
+    internal static Image? CreateStaticPreviewSource(Image image)
     {
         if (!AppInfo.RemovePreviewAnimations || image.Frames.Count <= 1)
             return null;
@@ -293,6 +287,12 @@ public class ProcessUploadedImageJob
             copy.Frames.RemoveFrame(copy.Frames.Count - 1);
 
         return copy;
+    }
+
+    private static Image CreateLargeImage(Image image, IResampler reSampler)
+    {
+        return ImageHelpers.DownSampleImageIfLargerThan(image, AppInfo.MediaResolutionLarge,
+            AppInfo.MediaResolutionLarge, reSampler);
     }
 
     private async Task SaveAndUploadImage(Image image, ImageEncoder encoder, string targetPath, string mime,

@@ -17,6 +17,8 @@ using RevolutionaryWebApp.Shared.Models.Pages;
 using RevolutionaryWebApp.Shared.Utilities;
 using Shared;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using TestUtilities.Utilities;
 using Xunit;
@@ -94,6 +96,12 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
             }
         }
 
+        using var previewSource = ProcessUploadedImageJob.CreateStaticPreviewSource(testImage);
+        Assert.NotNull(previewSource);
+        Assert.NotSame(testImage, previewSource);
+        Assert.Single(previewSource.Frames);
+        Assert.Equal(4, testImage.Frames.Count);
+
         using var rawGifStream = new MemoryStream();
         await testImage.SaveAsGifAsync(rawGifStream);
         var rawGifBytes = rawGifStream.ToArray();
@@ -136,6 +144,11 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
         var pageBytes = uploadedFiles[pagePath];
         var originalSavedBytes = uploadedFiles[originalPath];
 
+        using var storedOriginal = Image.Load(originalSavedBytes);
+        using var storedThumbnail = Image.Load(uploadedFiles[thumbPath]);
+        Assert.Equal(testImage.Frames.Count, storedOriginal.Frames.Count);
+        Assert.Single(storedThumbnail.Frames);
+
         database.ChangeTracker.Clear();
         var savedFile = await database.MediaFiles.SingleAsync();
         Assert.Equal(originalSavedBytes.LongLength, savedFile.OriginalFileSize);
@@ -143,6 +156,67 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
         Assert.True(pageBytes.Length <= originalSavedBytes.Length,
             $"Downsized page image size ({pageBytes.Length} bytes) should be less than or equal to original " +
             $"image size ({originalSavedBytes.Length} bytes)");
+    }
+
+    [Theory]
+    [InlineData(false, WebpFileFormatType.Lossless)]
+    [InlineData(true, WebpFileFormatType.Lossy)]
+    public async Task PngUploadKeepsPngPathsAndAddsWebpPreviews(bool allowLossy, WebpFileFormatType webpFormat)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var database = new NotificationsEnabledDb(options,
+            Substitute.For<IModelUpdateNotificationSender>());
+        var file = new MediaFile("original.png", Guid.NewGuid(), 1, null) { AllowLossyWebpPreviews = allowLossy };
+        await database.MediaFiles.AddAsync(file);
+        await database.SaveChangesAsync();
+
+        var path = file.GetIntermediateProcessingPath();
+        var uploadStorage = Substitute.For<IUploadFileStorage>();
+        using var source = new Image<Rgba32>(AppInfo.MediaResolutionPage + 100, 128);
+        using var encoded = new MemoryStream();
+        await source.SaveAsPngAsync(encoded);
+        var originalBytes = encoded.ToArray();
+        uploadStorage.GetObjectContent(path).Returns(_ => new MemoryStream(originalBytes, writable: false));
+
+        var storage = Substitute.For<IMediaStorage>();
+        var uploads = new Dictionary<string, (byte[] Data, string Mime)>();
+        storage.UploadFile(Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string>(), false,
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                uploads.Add(call.ArgAt<string>(0), (((MemoryStream)call.Arg<Stream>()).ToArray(),
+                    call.ArgAt<string>(2)));
+                return Task.CompletedTask;
+            });
+
+        var job = new ProcessUploadedImageJob(logger, database, uploadStorage, storage,
+            Substitute.For<IBackgroundJobClient>());
+        await job.Execute(file.Id, path, CancellationToken.None);
+
+        Assert.True(file.Processed);
+        Assert.Equal(5, uploads.Count);
+        foreach (var name in new[] { "original.png", "page-fit.png", "large.png" })
+        {
+            var upload = uploads[$"{file.GlobalId}/{name}"];
+            Assert.Equal("image/png", upload.Mime);
+            Assert.IsType<PngFormat>(Image.DetectFormat(upload.Data));
+        }
+
+        var original = uploads[$"{file.GlobalId}/original.png"].Data;
+        Assert.Equal(source.Width, Image.Identify(original).Width);
+        Assert.Equal(original.Length, file.OriginalFileSize);
+
+        var page = uploads[$"{file.GlobalId}/page-fit.webp"];
+        var thumbnail = uploads[$"{file.GlobalId}/thumb.webp"];
+        Assert.Equal("image/webp", page.Mime);
+        Assert.Equal("image/webp", thumbnail.Mime);
+        var pageInfo = Image.Identify(page.Data);
+        var thumbInfo = Image.Identify(thumbnail.Data);
+        Assert.Equal(AppInfo.MediaResolutionPage, pageInfo.Width);
+        Assert.Equal(AppInfo.MediaResolutionThumbnail, thumbInfo.Width);
+        Assert.Equal(webpFormat, pageInfo.Metadata.GetWebpMetadata().FileFormat);
+        Assert.Equal(webpFormat, thumbInfo.Metadata.GetWebpMetadata().FileFormat);
     }
 
     public void Dispose()
