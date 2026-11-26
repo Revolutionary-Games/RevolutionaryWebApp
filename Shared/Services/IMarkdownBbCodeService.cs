@@ -1,5 +1,7 @@
 namespace RevolutionaryWebApp.Shared.Services;
 
+using Markdig.Syntax;
+
 /// <summary>
 ///   Adds Thrive-customized bbcode parsing to extend Markdown with some important features for pages
 /// </summary>
@@ -10,6 +12,11 @@ public interface IMarkdownBbCodeService
     /// </summary>
     /// <returns>New text with pre-processing applied</returns>
     public string PreParseContent(string rawContent);
+
+    /// <summary>
+    ///   Apply attributes to parsed custom content before rendering it to HTML.
+    /// </summary>
+    public void ProcessParsedContent(MarkdownDocument document);
 
     /// <summary>
     ///   Performs post-processing on the already sanitized HTML to put back in HTML parts that shouldn't be prevented

@@ -1,14 +1,20 @@
 namespace RevolutionaryWebApp.Shared.Services;
 
 using System;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Markdig.Renderers.Html;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 using Models.Pages;
 using Utilities;
 
 public class MarkdownBbCodeService : IMarkdownBbCodeService
 {
     public const string DisabledImageViewerFragment = "#no-full-view";
+
+    private const string ProgressUpdateBannerPath = "/generated/puBanner/";
 
     private readonly Regex likelyNeedToDoSomething =
         new(@"([/\w+])|(\]\(page:)|iframe", RegexOptions.Compiled, TimeSpan.FromSeconds(1));
@@ -134,6 +140,29 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         }
 
         return result.ToString();
+    }
+
+    public void ProcessParsedContent(MarkdownDocument document)
+    {
+        var bannerUrlPrefix = mediaLinkConverter.GetGeneratedAndProxyImagePrefix() + ProgressUpdateBannerPath;
+
+        foreach (var image in document.Descendants<LinkInline>())
+        {
+            if (!image.IsImage || image.Url == null ||
+                !image.Url.StartsWith(bannerUrlPrefix, StringComparison.Ordinal) ||
+                !DateOnly.TryParseExact(image.Url.AsSpan(bannerUrlPrefix.Length), "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            {
+                continue;
+            }
+
+            var attributes = image.GetAttributes();
+            attributes.AddPropertyIfNotExist("width",
+                AppInfo.ProgressUpdateBannerWidth.ToString(CultureInfo.InvariantCulture));
+            attributes.AddPropertyIfNotExist("height",
+                AppInfo.ProgressUpdateBannerHeight.ToString(CultureInfo.InvariantCulture));
+            attributes.AddPropertyIfNotExist("style", "max-width:100%;height:auto");
+        }
     }
 
     public string PostProcessContent(string html)
@@ -367,7 +396,8 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                             return false;
 
                         result.Append($"![Progress Update Banner {date}]" +
-                            $"({mediaLinkConverter.GetGeneratedAndProxyImagePrefix()}/generated/puBanner/{date})");
+                            $"({mediaLinkConverter.GetGeneratedAndProxyImagePrefix()}" +
+                            $"{ProgressUpdateBannerPath}{date})");
                         break;
                     }
 

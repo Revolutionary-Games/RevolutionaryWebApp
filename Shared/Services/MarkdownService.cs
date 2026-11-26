@@ -67,6 +67,8 @@ public class MarkdownService
     private string Render(string markdown, MarkdownPipeline pipeline)
     {
         var document = Markdown.Parse(markdownBbCodeService.PreParseContent(markdown), pipeline);
+        markdownBbCodeService.ProcessParsedContent(document);
+
         foreach (var literal in document.Descendants<LiteralInline>().ToList())
         {
             // Links (including image labels) already have a destination.

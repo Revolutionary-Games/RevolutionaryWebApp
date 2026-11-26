@@ -1,5 +1,7 @@
 namespace RevolutionaryWebApp.Shared.Tests.Services;
 
+using System.Globalization;
+using AngleSharp.Html.Parser;
 using NSubstitute;
 using Shared.Models.Pages;
 using Shared.Services;
@@ -182,6 +184,35 @@ public class MarkdownBbCodeServiceTests
         var converted = bbCodeService.PreParseContent("[puImage]2025-07-05[/puImage]");
 
         Assert.Equal("![Progress Update Banner 2025-07-05](/testPrefix/generated/puBanner/2025-07-05)", converted);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BbCode_ProgressUpdateBannerRendersWithDimensions(bool allFeatures)
+    {
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+        linkConverter.GetGeneratedAndProxyImagePrefix().Returns("https://example.com/live");
+
+        var markdown = new MarkdownService(new HtmlSanitizerService(), new MarkdownBbCodeService(linkConverter));
+        const string content = "[puImage]2025-07-05[/puImage]\n\n![Other image](other.png)";
+        var html = allFeatures
+            ? markdown.MarkdownToHtmlWithAllFeatures(content)
+            : markdown.MarkdownToHtmlLimited(content);
+
+        using var document = new HtmlParser().ParseDocument(html);
+        var images = document.QuerySelectorAll("img");
+        Assert.Equal(2, images.Length);
+        Assert.Equal("https://example.com/live/generated/puBanner/2025-07-05", images[0].GetAttribute("src"));
+        Assert.Equal("Progress Update Banner 2025-07-05", images[0].GetAttribute("alt"));
+        Assert.Equal(AppInfo.ProgressUpdateBannerWidth.ToString(CultureInfo.InvariantCulture),
+            images[0].GetAttribute("width"));
+        Assert.Equal(AppInfo.ProgressUpdateBannerHeight.ToString(CultureInfo.InvariantCulture),
+            images[0].GetAttribute("height"));
+        Assert.Contains("max-width: 100%", images[0].GetAttribute("style"));
+        Assert.Contains("height: auto", images[0].GetAttribute("style"));
+        Assert.Null(images[1].GetAttribute("width"));
+        Assert.Null(images[1].GetAttribute("height"));
     }
 
     [Theory]

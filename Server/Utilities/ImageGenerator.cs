@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Shared;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -20,9 +21,6 @@ using SixLabors.ImageSharp.Processing;
 public sealed class ImageGenerator : IDisposable
 {
     private const int LetterAvatarSize = 256;
-
-    private const int ProgressUpdateBannerWidth = 1200;
-    private const int ProgressUpdateBannerHeight = 630;
 
     private const string JuraFontUrl = "https://dev.revolutionarygamesstudio.com/api/v1/download/179252";
     private const string ThriveFontUrl = "https://dev.revolutionarygamesstudio.com/api/v1/download/179255";
@@ -85,7 +83,7 @@ public sealed class ImageGenerator : IDisposable
 
         // The background is not visible, so it doesn't really matter, but as an example for future code this sets it
         // to black explicitly
-        using var image = new Image<Rgb24>(ProgressUpdateBannerWidth, ProgressUpdateBannerHeight,
+        using var image = new Image<Rgb24>(AppInfo.ProgressUpdateBannerWidth, AppInfo.ProgressUpdateBannerHeight,
             Color.Black.ToPixel<Rgb24>());
 
         var font = juraFont!.Value.CreateFont(96, FontStyle.Regular);
@@ -107,20 +105,20 @@ public sealed class ImageGenerator : IDisposable
                 {
                     TextAlignment = TextAlignment.Center,
                     Font = titleFont,
-                    Origin = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                        ProgressUpdateBannerHeight / 2.0f - ProgressUpdateBannerHeight / 6.0f),
+                    Origin = new PointF(AppInfo.ProgressUpdateBannerWidth / 2.0f,
+                        AppInfo.ProgressUpdateBannerHeight / 2.0f - AppInfo.ProgressUpdateBannerHeight / 6.0f),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                 }, "PROGRESS\nUPDATE", Brushes.Solid(fontColour), null);
 
                 // And the current date
-                var dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                    ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 6.0f);
+                var dateLocation = new PointF(AppInfo.ProgressUpdateBannerWidth / 2.0f,
+                    AppInfo.ProgressUpdateBannerHeight / 2.0f + AppInfo.ProgressUpdateBannerHeight / 6.0f);
 
                 if (version > 1)
                 {
-                    dateLocation = new PointF(ProgressUpdateBannerWidth / 2.0f,
-                        ProgressUpdateBannerHeight / 2.0f + ProgressUpdateBannerHeight / 4.0f);
+                    dateLocation = new PointF(AppInfo.ProgressUpdateBannerWidth / 2.0f,
+                        AppInfo.ProgressUpdateBannerHeight / 2.0f + AppInfo.ProgressUpdateBannerHeight / 4.0f);
                 }
 
                 canvas.DrawText(new RichTextOptions(font)
