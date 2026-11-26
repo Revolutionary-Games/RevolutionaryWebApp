@@ -94,6 +94,33 @@ public class MarkdownBbCodeServiceTests
     }
 
     [Theory]
+    [InlineData(":w:900:h:500", "900", "500")]
+    [InlineData(":w:900", "900", null)]
+    [InlineData(":h:500", null, "500")]
+    [InlineData(":w:0:h:500", null, "500")]
+    [InlineData(":w:900:h:0", "900", null)]
+    [InlineData(":w:0:h:0", null, null)]
+    [InlineData(":w:-1:h:2147483648", null, null)]
+    public void BbCode_MediaDimensionsRenderOnlyWhenPositive(string dimensions, string? width, string? height)
+    {
+        const string imageId = "c815f12d-654c-4e2d-a8ce-6b03992d0046";
+        const string imageUrl = "https://media.example.com/page-fit.webp";
+        var linkConverter = Substitute.For<IMediaLinkConverter>();
+        linkConverter.TranslateImageLink(".webp", imageId, MediaFileSize.FitPage).Returns(imageUrl);
+
+        var markdown = new MarkdownService(new HtmlSanitizerService(), new MarkdownBbCodeService(linkConverter));
+        var html = markdown.MarkdownToHtmlLimited(
+            $"[![Cover](media:webp:{imageId}:f:n{dimensions} 'Caption')](https://example.com)");
+
+        using var document = new HtmlParser().ParseDocument(html);
+        var image = Assert.Single(document.QuerySelectorAll("a img"));
+        Assert.Equal(imageUrl + MarkdownBbCodeService.DisabledImageViewerFragment, image.GetAttribute("src"));
+        Assert.Equal("Caption", image.GetAttribute("title"));
+        Assert.Equal(width, image.GetAttribute("width"));
+        Assert.Equal(height, image.GetAttribute("height"));
+    }
+
+    [Theory]
     [InlineData("![alt](https://img.example.com/stuff.jpg)")]
     [InlineData("![](https://img.example.com/stuff.jpg)")]
     [InlineData("![](https://img.example.com/stuff.png)")]

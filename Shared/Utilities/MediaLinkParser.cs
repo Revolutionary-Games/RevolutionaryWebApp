@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Shared.Utilities;
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -10,7 +11,8 @@ public static class MediaLinkParser
     public const string Prefix = "media:";
 
     private const string DisableFullSize = ":f:n";
-    private const string DestinationPattern = Prefix + @"(?<extension>[\w.]+):(?<id>[a-f0-9-]+)(?::f:(?<fullSize>[yn]))?";
+    private const string DestinationPattern = Prefix + @"(?<extension>[\w.]+):(?<id>[a-f0-9-]+)" +
+        "(?::f:(?<fullSize>[yn]))?(?::w:(?<width>-?[0-9]+))?(?::h:(?<height>-?[0-9]+))?";
 
     private static readonly Regex Destination = new(DestinationPattern, RegexOptions.Compiled,
         TimeSpan.FromSeconds(5));
@@ -41,13 +43,20 @@ public static class MediaLinkParser
         return Destination.Matches(content).Select(ReadMatch);
     }
 
-    public static string FormatDestination(string extension, Guid globalId, bool allowFullSize = true)
+    /// <summary>
+    ///   Formats a media destination with optional width and height in pixels after the full-size flag.
+    /// </summary>
+    public static string FormatDestination(string extension, Guid globalId, bool allowFullSize = true,
+        int width = 0, int height = 0)
     {
         // Format requires skipping the leading dot, so remove that (if present)
         if (extension.StartsWith('.'))
             extension = extension[1..];
 
-        return $"{Prefix}{extension}:{globalId}{(allowFullSize ? string.Empty : DisableFullSize)}";
+        var widthOption = width > 0 ? $":w:{width.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+        var heightOption = height > 0 ? $":h:{height.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+        return $"{Prefix}{extension}:{globalId}{(allowFullSize ? string.Empty : DisableFullSize)}" +
+            widthOption + heightOption;
     }
 
     private static MediaLink ReadMatch(Match match)
@@ -59,7 +68,15 @@ public static class MediaLinkParser
 
         return new MediaLink(hasDot ? extension.Value : "." + extension.Value, match.Groups["id"].Value,
             match.Groups["fullSize"].Value != "n", extension.Index + (hasDot ? 1 : 0), match.Length,
-            alt.Success ? alt.Value : null, title.Success ? title.Value : null);
+            alt.Success ? alt.Value : null, title.Success ? title.Value : null,
+            ParseDimension(match.Groups["width"].ValueSpan), ParseDimension(match.Groups["height"].ValueSpan));
+    }
+
+    private static int ParseDimension(ReadOnlySpan<char> value)
+    {
+        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var dimension)
+            ? dimension
+            : 0;
     }
 }
 
@@ -68,4 +85,4 @@ public static class MediaLinkParser
 ///   ExtensionStart points past any leading dot in the source. Title includes the original quotes and spacing.
 /// </summary>
 public sealed record MediaLink(string Extension, string GlobalId, bool AllowFullSize, int ExtensionStart, int Length,
-    string? AltText, string? Title);
+    string? AltText, string? Title, int Width, int Height);

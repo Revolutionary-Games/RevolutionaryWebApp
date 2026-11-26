@@ -14,9 +14,12 @@ using Server.Controllers.Pages;
 using Server.Models;
 using Server.Models.Pages;
 using Server.Services;
+using Server.Utilities;
 using Shared;
 using Shared.Models.Pages;
 using Shared.Services;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 public class PageRendererTests
@@ -56,11 +59,37 @@ public class PageRendererTests
         Assert.Equal(expectedImage, previewImage?.Source);
     }
 
-    [Fact]
-    public async Task PageRenderer_NewsFeedPreservesBannerDimensions()
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1700, 902)]
+    [InlineData(800, 1600)]
+    public async Task PageRenderer_NewsFeedPreservesBannerDimensions(int originalWidth, int originalHeight)
     {
         var linkConverter = Substitute.For<IMediaLinkConverter>();
         linkConverter.GetGeneratedAndProxyImagePrefix().Returns("/live");
+
+        var banner = "[puImage]2022-01-01[/puImage]";
+        var expectedSource = "http://localhost:5000/live/generated/puBanner/2022-01-01";
+        var expectedWidth = AppInfo.ProgressUpdateBannerWidth;
+        var expectedHeight = AppInfo.ProgressUpdateBannerHeight;
+        if (originalWidth > 0)
+        {
+            var media = new MediaFile("custom.png", Guid.NewGuid(), 1, null)
+            {
+                Processed = true,
+                OriginalWidth = originalWidth,
+                OriginalHeight = originalHeight,
+            };
+            banner = new MediaBrowserEntry(media.GetInfo()).GetMarkdown();
+            expectedSource = $"https://media.example.com/{media.GlobalId}/page-fit.webp";
+            linkConverter.TranslateImageLink(".webp", media.GlobalId.ToString(), MediaFileSize.FitPage)
+                .Returns(expectedSource);
+
+            using var original = new Image<Rgba32>(originalWidth, originalHeight);
+            using var pageFit = MediaImagePreviews.CreatePageImage(original);
+            expectedWidth = pageFit.Width;
+            expectedHeight = pageFit.Height;
+        }
 
         await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
@@ -68,7 +97,7 @@ public class PageRendererTests
         {
             Permalink = "progress-update",
             PublishedAt = publishedAt,
-            LatestContent = "[puImage]2022-01-01[/puImage]\n\nPost text.",
+            LatestContent = banner + "\n\nPost text.",
             Type = PageType.Post,
             Visibility = PageVisibility.Public,
         });
@@ -87,11 +116,9 @@ public class PageRendererTests
         var feed = Assert.IsType<RenderedPage>(view.Model);
         using var document = new HtmlParser().ParseDocument(feed.RenderedHtml);
         var image = Assert.Single(document.QuerySelectorAll("img"));
-        Assert.Equal("http://localhost:5000/live/generated/puBanner/2022-01-01", image.GetAttribute("src"));
-        Assert.Equal(AppInfo.ProgressUpdateBannerWidth.ToString(CultureInfo.InvariantCulture),
-            image.GetAttribute("width"));
-        Assert.Equal(AppInfo.ProgressUpdateBannerHeight.ToString(CultureInfo.InvariantCulture),
-            image.GetAttribute("height"));
+        Assert.Equal(expectedSource, image.GetAttribute("src"));
+        Assert.Equal(expectedWidth.ToString(CultureInfo.InvariantCulture), image.GetAttribute("width"));
+        Assert.Equal(expectedHeight.ToString(CultureInfo.InvariantCulture), image.GetAttribute("height"));
     }
 
     [Theory]

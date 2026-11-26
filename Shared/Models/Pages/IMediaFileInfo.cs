@@ -21,6 +21,9 @@ public class MediaFileInfo : ClientSideTimedModel, IMediaFileInfo
 
     public Guid GlobalId { get; set; }
 
+    public int OriginalWidth { get; set; }
+    public int OriginalHeight { get; set; }
+
     public GroupType MetadataVisibility { get; set; }
     public GroupType ModifyAccess { get; set; }
     public long? UploadedById { get; set; }
@@ -41,6 +44,8 @@ public class MediaBrowserEntry : ClientSideTimedModel
         Folder = false;
         Name = file.Name;
         GlobalId = file.GlobalId;
+        OriginalWidth = file.OriginalWidth;
+        OriginalHeight = file.OriginalHeight;
         MetadataVisibility = file.MetadataVisibility;
         ModifyAccess = file.ModifyAccess;
         UploadedById = file.UploadedById;
@@ -56,6 +61,8 @@ public class MediaBrowserEntry : ClientSideTimedModel
         Folder = false;
         Name = file.Name;
         GlobalId = file.GlobalId;
+        OriginalWidth = file.OriginalWidth;
+        OriginalHeight = file.OriginalHeight;
         MetadataVisibility = file.MetadataVisibility;
         ModifyAccess = file.ModifyAccess;
         UploadedById = file.UploadedById;
@@ -90,6 +97,9 @@ public class MediaBrowserEntry : ClientSideTimedModel
 
     public Guid GlobalId { get; set; }
 
+    public int OriginalWidth { get; set; }
+    public int OriginalHeight { get; set; }
+
     public GroupType MetadataVisibility { get; set; }
     public GroupType ModifyAccess { get; set; }
     public long? UploadedById { get; set; }
@@ -112,7 +122,24 @@ public class MediaBrowserEntry : ClientSideTimedModel
         if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
             extension = ".webp";
 
-        var destination = MediaLinkParser.FormatDestination(extension, GlobalId, allowFullSize);
+        var (width, height) = GetPageFitDimensions();
+        var destination = MediaLinkParser.FormatDestination(extension, GlobalId, allowFullSize, width, height);
         return $"![{sanitizedName}]({destination})";
+    }
+
+    private (int Width, int Height) GetPageFitDimensions()
+    {
+        if (OriginalWidth <= 0 || OriginalHeight <= 0)
+            return (0, 0);
+
+        // Match the preview generator, which constrains width first and otherwise constrains height.
+        const int limit = AppInfo.MediaResolutionPage;
+        if (OriginalWidth > limit)
+            return (limit, Math.Max(1, (int)Math.Round(OriginalHeight * (double)limit / OriginalWidth)));
+
+        if (OriginalHeight > limit)
+            return (Math.Max(1, (int)Math.Round(OriginalWidth * (double)limit / OriginalHeight)), limit);
+
+        return (OriginalWidth, OriginalHeight);
     }
 }

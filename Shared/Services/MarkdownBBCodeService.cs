@@ -96,12 +96,15 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
                 var image = MediaLinkParser.ParseMarkdownImageAt(rawContent, i);
                 if (image != null)
                 {
-                    var url = mediaLinkConverter.TranslateImageLink(image.Extension, image.GlobalId,
-                        MediaFileSize.FitPage);
-                    if (!image.AllowFullSize)
-                        url += DisabledImageViewerFragment;
-
-                    InsertImage(result, url, image.AltText!, image.Title);
+                    if (image.Width > 0 || image.Height > 0)
+                    {
+                        // Keep the dimensions in the destination until Markdig exposes the image node.
+                        result.Append(rawContent, i, image.Length);
+                    }
+                    else
+                    {
+                        InsertImage(result, TranslateMediaImage(image), image.AltText!, image.Title);
+                    }
 
                     // Skip input until the end of the replaced image
                     i += image.Length - 1;
@@ -148,20 +151,21 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
 
         foreach (var image in document.Descendants<LinkInline>())
         {
-            if (!image.IsImage || image.Url == null ||
-                !image.Url.StartsWith(bannerUrlPrefix, StringComparison.Ordinal) ||
-                !DateOnly.TryParseExact(image.Url.AsSpan(bannerUrlPrefix.Length), "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-            {
+            if (!image.IsImage || image.Url == null)
                 continue;
-            }
 
-            var attributes = image.GetAttributes();
-            attributes.AddPropertyIfNotExist("width",
-                AppInfo.ProgressUpdateBannerWidth.ToString(CultureInfo.InvariantCulture));
-            attributes.AddPropertyIfNotExist("height",
-                AppInfo.ProgressUpdateBannerHeight.ToString(CultureInfo.InvariantCulture));
-            attributes.AddPropertyIfNotExist("style", "max-width:100%;height:auto");
+            if (image.Url.StartsWith(MediaLinkParser.Prefix, StringComparison.Ordinal) &&
+                MediaLinkParser.ParseDestination(image.Url) is { } media)
+            {
+                image.Url = TranslateMediaImage(media);
+                ApplyImageDimensions(image, media.Width, media.Height);
+            }
+            else if (image.Url.StartsWith(bannerUrlPrefix, StringComparison.Ordinal) &&
+                     DateOnly.TryParseExact(image.Url.AsSpan(bannerUrlPrefix.Length), "yyyy-MM-dd",
+                         CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            {
+                ApplyImageDimensions(image, AppInfo.ProgressUpdateBannerWidth, AppInfo.ProgressUpdateBannerHeight);
+            }
         }
     }
 
@@ -273,6 +277,28 @@ public class MarkdownBbCodeService : IMarkdownBbCodeService
         }
 
         stringBuilder.Append(')');
+    }
+
+    private static void ApplyImageDimensions(LinkInline image, int width, int height)
+    {
+        if (width <= 0 && height <= 0)
+            return;
+
+        var attributes = image.GetAttributes();
+        if (width > 0)
+            attributes.AddPropertyIfNotExist("width", width.ToString(CultureInfo.InvariantCulture));
+
+        if (height > 0)
+            attributes.AddPropertyIfNotExist("height", height.ToString(CultureInfo.InvariantCulture));
+
+        attributes.AddPropertyIfNotExist("style",
+            width > 0 && height > 0 ? "max-width:100%;height:auto" : "max-width:100%");
+    }
+
+    private string TranslateMediaImage(MediaLink image)
+    {
+        var url = mediaLinkConverter.TranslateImageLink(image.Extension, image.GlobalId, MediaFileSize.FitPage);
+        return image.AllowFullSize ? url : url + DisabledImageViewerFragment;
     }
 
     private string GenerateYoutubeEmbedCode(string videoId)

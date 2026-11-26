@@ -130,7 +130,15 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
                 PageCount = 1,
                 Results =
                 [
-                    new MediaFileInfo { Id = 1, Name = "photo.png", Processed = true, GlobalId = imageId },
+                    new MediaFileInfo
+                    {
+                        Id = 1,
+                        Name = "photo.png",
+                        Processed = true,
+                        GlobalId = imageId,
+                        OriginalWidth = 1800,
+                        OriginalHeight = 1000,
+                    },
                     new MediaFileInfo { Id = 2, Name = "pending.png", Processed = false },
                 ],
             });
@@ -195,7 +203,7 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
 
         var result = await modal.Result;
         var fullSizeSpecifier = allowFullSize ? string.Empty : ":f:n";
-        var markdown = $"![photo.png](media:png:{imageId}{fullSizeSpecifier})";
+        var markdown = $"![photo.png](media:webp:{imageId}{fullSizeSpecifier}:w:900:h:500)";
         Assert.Equal(centered ? $"[center]{markdown}[/center]" : markdown, result.Data);
         Assert.Equal(originalUri, navigation.Uri);
         await host.InvokeAsync(() => Assert.DoesNotContain(JSInterop.Invocations,

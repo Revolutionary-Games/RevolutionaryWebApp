@@ -14,6 +14,8 @@ public class MediaFileDTO : ClientSideTimedModel, IMediaFileInfo
     public string Name { get; set; } = string.Empty;
 
     public Guid GlobalId { get; set; }
+    public int OriginalWidth { get; set; }
+    public int OriginalHeight { get; set; }
     public GroupType MetadataVisibility { get; set; }
     public GroupType ModifyAccess { get; set; }
     public long? UploadedById { get; set; }

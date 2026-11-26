@@ -339,7 +339,9 @@ public class LiveController : Controller
                 if (previewImage.Height is { } height)
                     newsPageHtml.Append(CultureInfo.InvariantCulture, $" height=\"{height}\"");
 
-                newsPageHtml.Append(" style=\"display: block; height: auto;\"/>");
+                newsPageHtml.Append(previewImage is { Width: not null, Height: not null }
+                    ? " style=\"display: block; height: auto;\"/>"
+                    : " style=\"display: block;\"/>");
                 newsPageHtml.Append("</a></div>\n");
                 firstImage = previewImage.Source;
             }
