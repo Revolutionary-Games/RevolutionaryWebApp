@@ -328,9 +328,11 @@ public class LiveController : Controller
             if (previewImage != null)
             {
                 newsPageHtml.Append("<div style=\"display: flex; justify-content: center; margin: 5px;\">");
+                newsPageHtml.Append($"<a href=\"{WebUtility.HtmlEncode(pageLink)}\" style=\"min-width: 0;\">");
                 newsPageHtml.Append(
-                    $"<img src=\"{previewImage}\" alt=\"page preview image for {pageInFeed.Permalink}\"/>\n");
-                newsPageHtml.Append("</div>\n");
+                    $"<img src=\"{WebUtility.HtmlEncode(previewImage)}\" " +
+                    $"alt=\"{WebUtility.HtmlEncode(pageInFeed.Title)}\" style=\"display: block;\"/>");
+                newsPageHtml.Append("</a></div>\n");
             }
 
             newsPageHtml.Append(preview);
