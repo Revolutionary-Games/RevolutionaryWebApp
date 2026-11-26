@@ -20,6 +20,7 @@ using Shared.Models;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
 using Shared.Utilities;
+using Utilities;
 
 public class ModerationService
 {
@@ -539,6 +540,10 @@ public class ModerationService
                 await QueueUploadDeletion(MediaFileExtensions.GetStoragePath(item, size),
                     ModerationUploadStorage.Media);
             }
+
+            // PNGs have the extra webp variant of the page-fit image, so delete that as well here
+            if (item.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                await QueueUploadDeletion(MediaImagePreviews.GetPngWebpPagePath(item), ModerationUploadStorage.Media);
 
             await QueueUploadDeletion(item.GetUploadPath(), ModerationUploadStorage.Temporary);
             await QueueUploadDeletion(item.GetIntermediateProcessingPath(), ModerationUploadStorage.Temporary);

@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -52,17 +53,34 @@ internal class FullSizeImageHtmlFilter(IConfiguration configuration, IMediaLinkC
 
         var ids = images.Select(image => image.Id).Distinct().ToList();
         var files = await context.ImageDatabase!.MediaFiles.AsNoTracking()
-            .Where(file => ids.Contains(file.GlobalId) && file.Processed && !file.Deleted)
-            .Select(file => new { file.GlobalId, file.Id, file.Name, file.OriginalWidth, file.OriginalHeight })
+            .Where(file => ids.Contains(file.GlobalId) && file.Processed)
+            .Select(file => new
+            {
+                file.GlobalId,
+                file.Id,
+                file.Name,
+                file.Deleted,
+                file.OriginalWidth,
+                file.OriginalHeight,
+            })
             .ToDictionaryAsync(file => file.GlobalId);
 
         var serverBaseUrl = configuration.GetBaseUrl();
         foreach (var (image, id, extension) in images)
         {
-            image.SetAttribute("data-large-src", linkConverter.TranslateImageLink(extension, id.ToString(),
+            files.TryGetValue(id, out var file);
+            var largeExtension = extension;
+            if (extension == ".webp" && file != null)
+            {
+                var originalExtension = Path.GetExtension(file.Name);
+                if (originalExtension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+                    largeExtension = originalExtension;
+            }
+
+            image.SetAttribute("data-large-src", linkConverter.TranslateImageLink(largeExtension, id.ToString(),
                 MediaFileSize.Large));
 
-            if (files.TryGetValue(id, out var file))
+            if (file is { Deleted: false })
             {
                 var viewPath = $"api/v1/MediaFile/view/{file.Id.ToString(CultureInfo.InvariantCulture)}";
                 var viewUrl = QueryHelpers.AddQueryString(new Uri(serverBaseUrl, viewPath).AbsoluteUri, "name",
