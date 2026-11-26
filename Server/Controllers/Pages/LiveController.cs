@@ -330,16 +330,22 @@ public class LiveController : Controller
                 newsPageHtml.Append("<div style=\"display: flex; justify-content: center; margin: 5px;\">");
                 newsPageHtml.Append($"<a href=\"{WebUtility.HtmlEncode(pageLink)}\" style=\"min-width: 0;\">");
                 newsPageHtml.Append(
-                    $"<img src=\"{WebUtility.HtmlEncode(previewImage)}\" " +
-                    $"alt=\"{WebUtility.HtmlEncode(pageInFeed.Title)}\" style=\"display: block;\"/>");
+                    $"<img src=\"{WebUtility.HtmlEncode(previewImage.Source)}\" " +
+                    $"alt=\"{WebUtility.HtmlEncode(pageInFeed.Title)}\"");
+
+                if (previewImage.Width is { } width)
+                    newsPageHtml.Append(CultureInfo.InvariantCulture, $" width=\"{width}\"");
+
+                if (previewImage.Height is { } height)
+                    newsPageHtml.Append(CultureInfo.InvariantCulture, $" height=\"{height}\"");
+
+                newsPageHtml.Append(" style=\"display: block; height: auto;\"/>");
                 newsPageHtml.Append("</a></div>\n");
+                firstImage = previewImage.Source;
             }
 
             newsPageHtml.Append(preview);
             newsPageHtml.Append("\n<br/><br/>\n");
-
-            if (previewImage != null)
-                firstImage = previewImage;
         }
 
         newsPageHtml.Append("<br/>\n");

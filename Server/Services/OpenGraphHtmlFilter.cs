@@ -8,29 +8,19 @@ using SharedBase.Utilities;
 
 internal class OpenGraphHtmlFilter : IPageHtmlFilter
 {
-    public static bool LookForPreviewImage(INode node, ref string? previewImage)
+    public static IHtmlImageElement? FindPreviewImage(INode node)
     {
-        switch (node)
-        {
-            case IHtmlImageElement imgImageElement:
-            {
-                if (!string.IsNullOrEmpty(imgImageElement.Source))
-                {
-                    previewImage = imgImageElement.Source;
-                    return true;
-                }
-
-                break;
-            }
-        }
+        if (node is IHtmlImageElement image && !string.IsNullOrEmpty(image.Source))
+            return image;
 
         foreach (var childNode in node.ChildNodes)
         {
-            if (LookForPreviewImage(childNode, ref previewImage))
-                return true;
+            var previewImage = FindPreviewImage(childNode);
+            if (previewImage != null)
+                return previewImage;
         }
 
-        return false;
+        return null;
     }
 
     public bool WantsToProcess(string html, PageHtmlContext context)
@@ -46,8 +36,7 @@ internal class OpenGraphHtmlFilter : IPageHtmlFilter
 
         foreach (var node in body.ChildNodes)
         {
-            if (previewImage == null)
-                LookForPreviewImage(node, ref previewImage);
+            previewImage ??= FindPreviewImage(node)?.Source;
 
             if (!HandleContentForOpenGraph(node, maxLength, description))
                 break;

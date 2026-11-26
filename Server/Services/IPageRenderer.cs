@@ -36,8 +36,7 @@ public interface IPageRenderer
     ///   correctly.
     /// </summary>
     /// <returns>
-    ///   Tuple of rendered HTML and a link to the first image (used as preview banner image) if there is one in the
-    ///   page, otherwise null and site default banner should be used
+    ///   Rendered HTML and metadata for the first image, if the page has one.
     /// </returns>
     /// <remarks>
     ///   <para>
@@ -45,12 +44,14 @@ public interface IPageRenderer
     ///     to have in really short previews.
     ///   </para>
     /// </remarks>
-    public (string Rendered, string? PreviewImage)
+    public (string Rendered, PagePreviewImage? PreviewImage)
         RenderPreview(VersionedPage page, string parsedUrlBase, string? readMoreLink, int targetMaxLength);
 
     public (List<RenderingLayoutPart>? Sidebar, List<RenderingLayoutPart>? TopNavigation, List<RenderingLayoutPart>?
         Socials) ProcessLayoutParts(List<SiteLayoutPart> layoutParts, string activeLink);
 }
+
+public sealed record PagePreviewImage(string Source, int? Width, int? Height);
 
 public class PageRenderer : IPageRenderer
 {
@@ -106,7 +107,7 @@ public class PageRenderer : IPageRenderer
         return result;
     }
 
-    public (string Rendered, string? PreviewImage) RenderPreview(VersionedPage page, string parsedUrlBase,
+    public (string Rendered, PagePreviewImage? PreviewImage) RenderPreview(VersionedPage page, string parsedUrlBase,
         string? readMoreLink, int targetMaxLength)
     {
         // TODO: allow a special bbcode tag that overrides the page summary (needs to be removed in normal page
@@ -121,7 +122,7 @@ public class PageRenderer : IPageRenderer
 
         var fragment = htmlPipeline.ParseBody(rendered, parsedUrlBase).ChildNodes;
 
-        string? previewImage = null;
+        PagePreviewImage? previewImage = null;
 
         var stringBuilder = new StringBuilder();
         int limitLeft = targetMaxLength;
@@ -131,8 +132,12 @@ public class PageRenderer : IPageRenderer
         // Process the fragment nodes to trim them
         foreach (var node in fragment)
         {
-            if (previewImage == null)
-                OpenGraphHtmlFilter.LookForPreviewImage(node, ref previewImage);
+            if (previewImage == null && OpenGraphHtmlFilter.FindPreviewImage(node) is { } image)
+            {
+                previewImage = new PagePreviewImage(image.Source ?? "missing-image-source",
+                    ParseImageDimension(image.GetAttribute("width")),
+                    ParseImageDimension(image.GetAttribute("height")));
+            }
 
             if (HandleContentForPreview(node, ref limitLeft))
             {
@@ -205,6 +210,13 @@ public class PageRenderer : IPageRenderer
         }
 
         return (side, top, socials);
+    }
+
+    private static int? ParseImageDimension(string? value)
+    {
+        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var size) && size > 0 ?
+            size :
+            null;
     }
 
     private bool HandleContentForPreview(INode node, ref int limitLeft)
