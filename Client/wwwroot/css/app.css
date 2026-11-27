@@ -404,6 +404,23 @@ table.non-fixed {
     cursor: zoom-in;
 }
 
+#main-outlet .heading-permalink {
+    margin-inline-start: 0.5em;
+    font-size: 0.65em;
+    text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    #main-outlet .heading-permalink {
+        opacity: 0;
+    }
+
+    #main-outlet :hover > .heading-permalink,
+    #main-outlet .heading-permalink:focus-visible {
+        opacity: 1;
+    }
+}
+
 html:has(#page-image-viewer[open]) {
     overflow: hidden;
 }
@@ -756,6 +773,11 @@ div.main-site-sidebar-item, .main-site.main-site-sidebar-item {
 
     .desktop-top-nav {
         display: none;
+    }
+
+    #main-outlet :has(> .heading-permalink) {
+        /* Leave room for the fixed mobile header. */
+        scroll-margin-top: 70px;
     }
 }
 

@@ -180,7 +180,8 @@ public class LiveController : Controller
 
         var viewBaseUrl = GetViewMetadataBaseUrl();
 
-        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, database, timer);
+        var rendered = await pageRenderer.RenderPage(page, viewBaseUrl, realPageParts, true, database, timer,
+            true);
 
         SetCanonicalUrl(permalink, rendered);
 
@@ -329,8 +330,7 @@ public class LiveController : Controller
             {
                 newsPageHtml.Append("<div style=\"display: flex; justify-content: center; margin: 5px;\">");
                 newsPageHtml.Append($"<a href=\"{WebUtility.HtmlEncode(pageLink)}\" style=\"min-width: 0;\">");
-                newsPageHtml.Append(
-                    $"<img src=\"{WebUtility.HtmlEncode(previewImage.Source)}\" " +
+                newsPageHtml.Append($"<img src=\"{WebUtility.HtmlEncode(previewImage.Source)}\" " +
                     $"alt=\"{WebUtility.HtmlEncode(pageInFeed.Title)}\"");
 
                 if (previewImage.Width is { } width)
@@ -339,9 +339,9 @@ public class LiveController : Controller
                 if (previewImage.Height is { } height)
                     newsPageHtml.Append(CultureInfo.InvariantCulture, $" height=\"{height}\"");
 
-                newsPageHtml.Append(previewImage is { Width: not null, Height: not null }
-                    ? " style=\"display: block; height: auto;\"/>"
-                    : " style=\"display: block;\"/>");
+                newsPageHtml.Append(previewImage is { Width: not null, Height: not null } ?
+                    " style=\"display: block; height: auto;\"/>" :
+                    " style=\"display: block;\"/>");
                 newsPageHtml.Append("</a></div>\n");
                 firstImage = previewImage.Source;
             }

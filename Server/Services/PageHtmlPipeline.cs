@@ -39,10 +39,11 @@ internal class PageHtmlPipeline(params IPageHtmlFilter[] filters)
     }
 }
 
-internal class PageHtmlContext(bool renderOpenGraphMeta, ApplicationDbContext? imageDatabase)
+internal class PageHtmlContext(bool renderOpenGraphMeta, ApplicationDbContext? imageDatabase, bool renderHeadingAnchors)
 {
     public bool RenderOpenGraphMeta { get; } = renderOpenGraphMeta;
     public ApplicationDbContext? ImageDatabase { get; } = imageDatabase;
+    public bool RenderHeadingAnchors { get; } = renderHeadingAnchors;
     public string? OpenGraphDescription { get; set; } = renderOpenGraphMeta ? "(blank page)" : null;
     public string? PreviewImage { get; set; }
 }

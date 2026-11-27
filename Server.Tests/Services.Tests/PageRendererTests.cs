@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Server.Tests.Services.Tests;
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using AngleSharp.Html.Parser;
 using Microsoft.AspNetCore.Http;
@@ -144,6 +145,57 @@ public class PageRendererTests
             renderer.RenderPage(page, "https://example.com/", [], false, null, new Stopwatch());
 
         Assert.DoesNotContain(notExpected, result.RenderedHtml);
+    }
+
+    [Fact]
+    public async Task PageRenderer_AddsUniqueHeadingPermalinksToLivePage()
+    {
+        const string baseUrl = "https://example.com/";
+        var renderer = CreateRenderer(Substitute.For<IMediaLinkConverter>());
+        var page = new VersionedPage("Guide")
+        {
+            Permalink = "guide",
+            Type = PageType.NormalPage,
+            Visibility = PageVisibility.Public,
+            LatestContent = """
+                # Setup
+                ## [Café](https://example.com/) **Guide**
+                ### Setup
+                #### Setup-2
+                ##### Further details
+                """,
+        };
+
+        await using var database = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        await database.VersionedPages.AddAsync(page);
+        await database.SaveChangesAsync();
+
+        var cache = new CustomMemoryCache();
+        using var memoryCache = cache.Cache;
+        var controller = new LiveController(emptyConfiguration, database, renderer, cache)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+        controller.Request.Scheme = "https";
+        controller.Request.Host = new HostString("example.com");
+
+        var view = Assert.IsType<ViewResult>(await controller.GetPage("guide"));
+        var livePage = Assert.IsType<RenderedPage>(view.Model);
+        using var document = new HtmlParser().ParseDocument(livePage.RenderedHtml);
+
+        var headings = document.QuerySelectorAll("h1, h2, h3, h4");
+        Assert.Equal(new[] { "section-setup", "section-café-guide", "section-setup-2", "section-setup-2-2" },
+            headings.Select(heading => heading.Id));
+        Assert.Equal(new[] { "#section-setup", "#section-caf%C3%A9-guide", "#section-setup-2", "#section-setup-2-2" },
+            document.QuerySelectorAll(".heading-permalink").Select(link => link.GetAttribute("href")));
+        Assert.Equal("Link to Café Guide",
+            document.QuerySelector("h2 > a.heading-permalink")?.GetAttribute("aria-label"));
+        Assert.Equal("https://example.com/", document.QuerySelector("h2 > a")?.GetAttribute("href"));
+        Assert.Null(document.QuerySelector("h5")?.GetAttribute("id"));
+
+        var feedContent = await page.GenerateFullSyndicationContent(renderer, new Uri(baseUrl + "guide"));
+        Assert.DoesNotContain("heading-permalink", feedContent.Content.Text);
     }
 
     [Theory]

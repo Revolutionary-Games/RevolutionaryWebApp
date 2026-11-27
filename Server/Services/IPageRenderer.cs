@@ -27,7 +27,7 @@ public interface IPageRenderer
 
     public ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
         List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, ApplicationDbContext? imageDatabase,
-        Stopwatch totalTimer);
+        Stopwatch totalTimer, bool renderHeadingAnchors = false);
 
     public RenderedPage RenderNotFoundPage(List<SiteLayoutPart> layoutParts, Stopwatch totalTimer);
 
@@ -69,15 +69,15 @@ public class PageRenderer : IPageRenderer
         this.linkConverter = linkConverter;
         serverName = configuration["ServerName"];
         htmlPipeline = new PageHtmlPipeline(new OpenGraphHtmlFilter(),
-            new FullSizeImageHtmlFilter(configuration, linkConverter));
+            new FullSizeImageHtmlFilter(configuration, linkConverter), new HeadingAnchorHtmlFilter());
     }
 
     public async ValueTask<RenderedPage> RenderPage(VersionedPage page, string metadataBaseUrl,
         List<SiteLayoutPart> layoutParts, bool renderOpenGraphMeta, ApplicationDbContext? imageDatabase,
-        Stopwatch totalTimer)
+        Stopwatch totalTimer, bool renderHeadingAnchors = false)
     {
         var rendered = markdownService.MarkdownToHtmlLimited(page.LatestContent);
-        var htmlContext = new PageHtmlContext(renderOpenGraphMeta, imageDatabase);
+        var htmlContext = new PageHtmlContext(renderOpenGraphMeta, imageDatabase, renderHeadingAnchors);
         rendered = await htmlPipeline.Process(rendered, metadataBaseUrl, htmlContext);
 
         // Fallback to the title here should only happen when previewing
