@@ -7,6 +7,7 @@
     <option value="@TranslationState.Translated">Needing verification</option>
     <option value="@TranslationState.Verified">Verified</option>
     <option value="@nameof(TranslationStringFilter.ProblemsOnly)">Strings with warnings</option>
+    <option value="@nameof(TranslationStringFilter.PendingSuggestionsOnly)">Strings with pending suggestions</option>
 </select>
 
 @code {
@@ -23,12 +24,17 @@
     [Parameter]
     public bool Disabled { get; set; }
 
-    private string? SelectedOption => Value.ProblemsOnly ? nameof(TranslationStringFilter.ProblemsOnly) :
-        Value.State?.ToString();
+    private string? SelectedOption => Value switch
+    {
+        { ProblemsOnly: true } => nameof(TranslationStringFilter.ProblemsOnly),
+        { PendingSuggestionsOnly: true } => nameof(TranslationStringFilter.PendingSuggestionsOnly),
+        _ => Value.State?.ToString(),
+    };
 
     private Task ChangeOption(string? option)
     {
         return ValueChanged.InvokeAsync(TranslationStringFilter.FromQuery(option,
-            option == nameof(TranslationStringFilter.ProblemsOnly)));
+            option == nameof(TranslationStringFilter.ProblemsOnly),
+            option == nameof(TranslationStringFilter.PendingSuggestionsOnly)));
     }
 }

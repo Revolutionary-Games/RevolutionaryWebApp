@@ -36,7 +36,7 @@ public class TranslationEditorController : Controller
     public async Task<ActionResult<TranslationListItemDTO[]>> List([FromQuery] long projectId,
         [FromQuery] string language, [FromQuery] string? query = null, [FromQuery] string? state = null,
         [FromQuery] int offset = 0, CancellationToken cancellationToken = default,
-        [FromQuery] bool problemsOnly = false)
+        [FromQuery] bool problemsOnly = false, [FromQuery] bool pendingSuggestionsOnly = false)
     {
         if (offset < 0)
             return BadRequest("Offset must be non-negative");
@@ -72,6 +72,12 @@ public class TranslationEditorController : Controller
         if (problemsOnly)
             values = values.Where(item => item.value.Problems.Any(problem => !problem.Ignored));
 
+        if (pendingSuggestionsOnly)
+        {
+            values = values.Where(item => item.value.Suggestions.Any(suggestion =>
+                suggestion.Status == TranslationSuggestionStatus.Open));
+        }
+
         if (Enum.TryParse<TranslationState>(state, true, out var parsedState) && Enum.IsDefined(parsedState))
         {
             values = values.Where(item => item.value.State == parsedState);
@@ -94,7 +100,7 @@ public class TranslationEditorController : Controller
     [HttpGet("neighbor")]
     public async Task<ActionResult<string>> Neighbor([FromQuery] long projectId, [FromQuery] string language,
         [FromQuery] string key, [FromQuery] int direction, [FromQuery] TranslationState? state = null,
-        [FromQuery] bool problemsOnly = false)
+        [FromQuery] bool problemsOnly = false, [FromQuery] bool pendingSuggestionsOnly = false)
     {
         if (direction is not (-1 or 1))
             return BadRequest("Direction must be -1 or 1");
@@ -111,7 +117,7 @@ public class TranslationEditorController : Controller
         if (current == null)
             return NotFound();
 
-        var candidates = NavigableUnits(projectId, language, state, problemsOnly);
+        var candidates = NavigableUnits(projectId, language, state, problemsOnly, pendingSuggestionsOnly);
 
         // We unfortunately didn't have unique positions in the data model initially, so we also need to check for
         // equality of them.
@@ -172,7 +178,7 @@ public class TranslationEditorController : Controller
     [HttpGet]
     public async Task<ActionResult<TranslationEditorDTO>> Get([FromQuery] long projectId, [FromQuery] string key,
         [FromQuery] string language, CancellationToken cancellationToken, [FromQuery] TranslationState? state = null,
-        [FromQuery] bool problemsOnly = false)
+        [FromQuery] bool problemsOnly = false, [FromQuery] bool pendingSuggestionsOnly = false)
     {
         var project = await database.TranslationProjects.AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == projectId && p.Enabled, cancellationToken);
@@ -194,10 +200,14 @@ public class TranslationEditorController : Controller
                 Id = problem.Id, Kind = problem.Kind, Message = problem.Message, Ignored = problem.Ignored,
                 IgnoredByUserId = problem.IgnoredByUserId, IgnoredAt = problem.IgnoredAt,
             }).ToArrayAsync(cancellationToken);
-        var navigableUnits = NavigableUnits(projectId, language, state, problemsOnly);
+        var suggestions = await database.TranslationSuggestions.CountAsync(s => s.ProjectId == projectId &&
+                s.Key == key && s.LanguageCode == language && s.Status == TranslationSuggestionStatus.Open,
+            cancellationToken);
+        var navigableUnits = NavigableUnits(projectId, language, state, problemsOnly, pendingSuggestionsOnly);
         var totalTexts = await navigableUnits.CountAsync(cancellationToken);
         var textIndex = unit.Active && (state == null || value.State == state) &&
-            (!problemsOnly || problems.Any(problem => !problem.Ignored)) ?
+            (!problemsOnly || problems.Any(problem => !problem.Ignored)) &&
+            (!pendingSuggestionsOnly || suggestions > 0) ?
                 await navigableUnits.CountAsync(item => item.Position < unit.Position ||
                     (item.Position == unit.Position && string.Compare(item.Key, key) < 0), cancellationToken) + 1 :
                 (int?)null;
@@ -209,10 +219,6 @@ public class TranslationEditorController : Controller
                     (language != project.SourceLanguage && c.LanguageCode == project.SourceLanguage)) && !c.Deleted &&
                 (groups != null || !c.Reported),
             cancellationToken);
-        var suggestions = await database.TranslationSuggestions.CountAsync(s => s.ProjectId == projectId &&
-                s.Key == key && s.LanguageCode == language && s.Status == TranslationSuggestionStatus.Open,
-            cancellationToken);
-
         return new TranslationEditorDTO
         {
             ProjectId = projectId,
@@ -248,7 +254,8 @@ public class TranslationEditorController : Controller
     [AuthorizeBasicAccessLevelFilter(RequiredAccess = GroupType.User)]
     [RequireTranslatorAgreement]
     public async Task<ActionResult<TranslationEditorDTO>> Save([FromBody] TranslationSaveRequest request,
-        [FromQuery(Name = "state")] TranslationState? navigationState = null, [FromQuery] bool problemsOnly = false)
+        [FromQuery(Name = "state")] TranslationState? navigationState = null, [FromQuery] bool problemsOnly = false,
+        [FromQuery] bool pendingSuggestionsOnly = false)
     {
         var actor = HttpContext.AuthenticatedUserOrThrow();
 
@@ -325,7 +332,7 @@ public class TranslationEditorController : Controller
             TranslationQualityChecks.UpdateProblems(database, project, value);
             await database.SaveChangesAsync();
             return await Get(request.ProjectId, request.Key, request.LanguageCode, HttpContext.RequestAborted,
-                navigationState, problemsOnly);
+                navigationState, problemsOnly, pendingSuggestionsOnly);
         }
 
         if (explanationChanged)
@@ -436,11 +443,11 @@ public class TranslationEditorController : Controller
 
         // This get data is safe to abort as we have saved the changes already and just are returning data to the user
         return await Get(request.ProjectId, request.Key, request.LanguageCode, HttpContext.RequestAborted,
-            navigationState, problemsOnly);
+            navigationState, problemsOnly, pendingSuggestionsOnly);
     }
 
     private IQueryable<TranslationUnit> NavigableUnits(long projectId, string language, TranslationState? state,
-        bool problemsOnly)
+        bool problemsOnly, bool pendingSuggestionsOnly)
     {
         var values = database.TranslationValues.Where(value => value.ProjectId == projectId &&
             value.LanguageCode == language);
@@ -449,6 +456,12 @@ public class TranslationEditorController : Controller
 
         if (problemsOnly)
             values = values.Where(value => value.Problems.Any(problem => !problem.Ignored));
+
+        if (pendingSuggestionsOnly)
+        {
+            values = values.Where(value => value.Suggestions.Any(suggestion =>
+                suggestion.Status == TranslationSuggestionStatus.Open));
+        }
 
         return database.TranslationUnits.AsNoTracking().Where(unit => unit.ProjectId == projectId && unit.Active &&
             values.Any(value => value.Key == unit.Key));

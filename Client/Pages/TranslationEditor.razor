@@ -691,6 +691,9 @@ else
     [SupplyParameterFromQuery(Name = "problemsOnly")]
     public bool ProblemsOnlyQuery { get; set; }
 
+    [SupplyParameterFromQuery(Name = "pendingSuggestionsOnly")]
+    public bool PendingSuggestionsOnlyQuery { get; set; }
+
     [CascadingParameter]
     public IModalService Modal { get; set; } = null!;
 
@@ -876,7 +879,8 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        navigationFilter = TranslationStringFilter.FromQuery(NavigationStateQuery, ProblemsOnlyQuery);
+        navigationFilter = TranslationStringFilter.FromQuery(NavigationStateQuery, ProblemsOnlyQuery,
+            PendingSuggestionsOnlyQuery);
         translationInputInitialized = false;
         explanationInputInitialized = false;
         focusTranslationInput = true;
@@ -1186,13 +1190,25 @@ else
         if (project == null)
             return;
 
+        var currentData = data;
+        var suffix = QuerySuffix();
         try
         {
-            var result = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{QuerySuffix()}");
-            if (result != null)
+            var result = await Http.GetFromJsonAsync<TranslationSuggestionDTO[]>($"api/v1/translationSuggestions?{suffix}");
+            if (result != null && data == currentData)
             {
                 suggestions = result;
                 data?.SuggestionCount = suggestions.Length;
+
+                if (currentData != null && navigationFilter.PendingSuggestionsOnly)
+                {
+                    var editor = await Http.GetFromJsonAsync<TranslationEditorDTO>(EditorRequestUrl(suffix));
+                    if (editor != null && data == currentData && navigationFilter.PendingSuggestionsOnly)
+                    {
+                        currentData.TextIndex = editor.TextIndex;
+                        currentData.TotalTexts = editor.TotalTexts;
+                    }
+                }
             }
         }
         catch (Exception e)

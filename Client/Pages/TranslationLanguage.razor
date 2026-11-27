@@ -89,6 +89,9 @@ else
         <Button ButtonStyle="outline-warning" class="ms-2" Enabled="@(!jumping)" Spinner="@jumping"
                 OnPressed="JumpProblems">First string with warnings
         </Button>
+        <Button ButtonStyle="outline-primary" class="ms-2" Enabled="@(!jumping)" Spinner="@jumping"
+                OnPressed="JumpPendingSuggestions">First string with suggestions
+        </Button>
     </div>
 
     <div class="d-flex flex-wrap gap-2 mb-3">
@@ -412,6 +415,11 @@ else
             {
                 Navigation.NavigateTo(EditorUrl(result[0].Key, filter));
             }
+            else if (filter.PendingSuggestionsOnly)
+            {
+                message = "No strings with pending suggestions found.";
+                messageType = SiteNoticeType.Info;
+            }
             else if (filter.ProblemsOnly)
             {
                 message = "No active translation warnings found.";
@@ -443,6 +451,11 @@ else
     private Task JumpProblems()
     {
         return Jump(new TranslationStringFilter(null, true));
+    }
+
+    private Task JumpPendingSuggestions()
+    {
+        return Jump(new TranslationStringFilter(null, PendingSuggestionsOnly: true));
     }
 
     private Task JumpNeedsTranslation()

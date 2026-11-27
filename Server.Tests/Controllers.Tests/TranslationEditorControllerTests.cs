@@ -128,6 +128,69 @@ public class TranslationEditorControllerTests
     }
 
     [Fact]
+    public async Task SuggestionFilterListsAndNavigatesActiveStringsWithPendingSuggestionsInFileOrder()
+    {
+        await using var database = CreateDatabase();
+        await database.TranslationProjects.AddAsync(new TranslationProject { Id = 1, Slug = "test", Name = "Test" });
+        await database.TranslationProjectLanguages.AddRangeAsync(
+            new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "fi" },
+            new TranslationProjectLanguage { ProjectId = 1, LanguageCode = "sv" });
+        var strings = new[]
+        {
+            (Key: "other-language", Language: "sv", Status: TranslationSuggestionStatus.Open),
+            (Key: "rejected", Language: "fi", Status: TranslationSuggestionStatus.Rejected),
+            (Key: "removed", Language: "fi", Status: TranslationSuggestionStatus.Open),
+            (Key: "accepted", Language: "fi", Status: TranslationSuggestionStatus.Accepted),
+            (Key: "Z-open", Language: "fi", Status: TranslationSuggestionStatus.Open),
+            (Key: "A-open", Language: "fi", Status: TranslationSuggestionStatus.Open),
+        };
+        for (var index = 0; index < strings.Length; ++index)
+        {
+            var (key, language, status) = strings[index];
+            await database.TranslationUnits.AddAsync(new TranslationUnit
+            {
+                ProjectId = 1, Key = key, Position = index, Active = key != "removed",
+            });
+            await database.TranslationValues.AddAsync(new TranslationValue
+            {
+                ProjectId = 1, Key = key, LanguageCode = "fi",
+            });
+            if (language != "fi")
+            {
+                await database.TranslationValues.AddAsync(new TranslationValue
+                {
+                    ProjectId = 1, Key = key, LanguageCode = language,
+                });
+            }
+
+            await database.TranslationSuggestions.AddAsync(new TranslationSuggestion
+            {
+                ProjectId = 1, Key = key, LanguageCode = language, Status = status,
+            });
+        }
+
+        await database.SaveChangesAsync();
+        var controller = new TranslationEditorController(NullLogger<TranslationEditorController>.Instance, database)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+        var list = await controller.List(1, "fi", pendingSuggestionsOnly: true);
+        Assert.Equal(new[] { "Z-open", "A-open" }, list.Value!.Select(item => item.Key));
+
+        var next = await controller.Neighbor(1, "fi", "rejected", 1, pendingSuggestionsOnly: true);
+        Assert.Equal("Z-open", Assert.IsType<JsonResult>(next.Result).Value);
+        var previous = await controller.Neighbor(1, "fi", "Z-open", -1, pendingSuggestionsOnly: true);
+        Assert.IsType<NoContentResult>(previous.Result);
+
+        var matching = await controller.Get(1, "A-open", "fi", CancellationToken.None, pendingSuggestionsOnly: true);
+        Assert.Equal(2, matching.Value!.TextIndex);
+        Assert.Equal(2, matching.Value.TotalTexts);
+        var approved = await controller.Get(1, "accepted", "fi", CancellationToken.None, pendingSuggestionsOnly: true);
+        Assert.Null(approved.Value!.TextIndex);
+        Assert.Equal(2, approved.Value.TotalTexts);
+    }
+
+    [Fact]
     public async Task TextIndexHandlesPositionGapsTiesAndMissingLanguageValues()
     {
         await using var database = CreateDatabase();
