@@ -236,6 +236,21 @@ public class UserReportsController : Controller
             report.Resolution = request.Resolution;
             report.ResolvedAt = DateTime.UtcNow;
             report.ResolvedByUserId = actor.Id;
+
+            // Thank the user who made the report on approving it
+            if (request.Resolution == UserReportResolution.Approved && report.ReporterUserId is { } reporterId)
+            {
+                await database.UserNotifications.AddAsync(new UserNotification
+                {
+                    UserId = reporterId,
+                    DeduplicationKey = $"user-report:{id}:approved",
+                    Type = UserNotificationType.UserReportApproved,
+                    Message = "Site moderation has taken action based on your report. " +
+                        "Thank you for helping keep the site clean!",
+                    TargetPath = "/userNotifications",
+                });
+            }
+
             await database.UserReportNotes.AddAsync(new UserReportNote
             {
                 ReportId = id, AuthorUserId = actor.Id, Text = request.Note.Trim(),

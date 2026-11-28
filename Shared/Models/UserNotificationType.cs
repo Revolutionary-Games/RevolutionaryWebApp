@@ -29,4 +29,5 @@ public enum UserNotificationType
     TranslationImportConflict,
     ModerationReminder,
     ModerationDailyReminder,
+    UserReportApproved,
 }

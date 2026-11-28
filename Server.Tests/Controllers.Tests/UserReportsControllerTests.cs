@@ -73,6 +73,7 @@ public class UserReportsControllerTests
         Assert.Equal(2, await database.AdminActions.CountAsync());
         Assert.Equal(2, await database.UserReportNotes.CountAsync());
         Assert.IsType<ConflictObjectResult>(await moderationController.Resolve(report.Id, dismiss));
+        Assert.Empty(await database.UserNotifications.ToListAsync());
     }
 
     [Theory]
@@ -83,15 +84,26 @@ public class UserReportsControllerTests
         await using var database = CreateDatabase();
         var actor = AddUser(database, 1, GroupType.ContentModerator);
         var target = AddUser(database, 2);
-        var report = new UserReport { TargetUserId = target.Id, TargetUserName = target.UserName };
+        var reporter = AddUser(database, 3);
+        var report = new UserReport
+        {
+            ReporterUserId = reporter.Id, TargetUserId = target.Id, TargetUserName = target.UserName,
+        };
         await database.UserReports.AddAsync(report);
         await database.Sessions.AddAsync(new Session { UserId = target.Id, LastUsedFrom = IPAddress.Loopback });
         await database.SaveChangesAsync();
-        var response = await CreateController(database, actor).Resolve(report.Id, new ResolveUserReportRequest
+        var controller = CreateController(database, actor);
+        var approve = new ResolveUserReportRequest
         {
             Resolution = UserReportResolution.Approved, Action = action, Days = 3, Note = "Spam",
-        });
-        Assert.IsType<OkObjectResult>(response);
+        };
+        Assert.IsType<OkObjectResult>(await controller.Resolve(report.Id, approve));
+        Assert.IsType<ConflictObjectResult>(await controller.Resolve(report.Id, approve));
+        var notification = await database.UserNotifications.AsNoTracking().SingleAsync();
+        Assert.Equal(reporter.Id, notification.UserId);
+        Assert.Equal(UserNotificationType.UserReportApproved, notification.Type);
+        Assert.Null(notification.ReadAt);
+
         Assert.Single(await database.Sessions.ToListAsync());
         Assert.False(target.Suspended);
         Assert.Equal(revoke, target.ModerationPending);
