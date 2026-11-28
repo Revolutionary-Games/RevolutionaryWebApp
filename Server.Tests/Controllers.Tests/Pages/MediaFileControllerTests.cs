@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Fixtures;
 using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using RevolutionaryWebApp.Server.Controllers.Pages;
+using RevolutionaryWebApp.Server.Jobs.Pages;
 using RevolutionaryWebApp.Server.Models;
 using RevolutionaryWebApp.Server.Models.Pages;
 using RevolutionaryWebApp.Server.Services;
@@ -183,6 +186,49 @@ public sealed class MediaFileControllerTests : IDisposable
         Assert.IsType<OkResult>(await controller.RestoreDeleted(file.Id));
         Assert.False(file.Deleted);
         Assert.Null(file.DeletedAt);
+    }
+
+    [Fact]
+    public async Task MediaFile_MakeLosslessRequiresWriteAccessAndOnlyQueuesOnce()
+    {
+        await using var db = CreateDatabase(nameof(MediaFile_MakeLosslessRequiresWriteAccessAndOnlyQueuesOnce));
+        var uploader = CreateUser(4, GroupType.Developer);
+        var otherUser = CreateUser(5, GroupType.User);
+        var file = new MediaFile("example.png", Guid.NewGuid(), folderId: 1, uploadedById: uploader.Id)
+        {
+            MetadataVisibility = GroupType.User,
+            ModifyAccess = GroupType.Developer,
+            Processed = true,
+            AllowLossyWebpPreviews = true,
+        };
+        await db.MediaFiles.AddAsync(file);
+        await db.SaveChangesAsync();
+
+        var jobs = Substitute.For<IBackgroundJobClient>();
+        var controller = new MediaFileController(logger, new ConfigurationBuilder().Build(), db,
+            Substitute.For<IUploadFileStorage>(), new EphemeralDataProtectionProvider(), jobs)
+        {
+            ControllerContext = new ControllerContext
+                { HttpContext = HttpContextMockHelpers.CreateContextWithUser(otherUser) },
+        };
+
+        Assert.IsType<NotFoundObjectResult>(await controller.MakeLossless(file.Id));
+        Assert.True(file.AllowLossyWebpPreviews);
+        Assert.True(file.GetInfo().AllowLossyWebpPreviews);
+        Assert.True(file.GetDTO().AllowLossyWebpPreviews);
+        Assert.Empty(jobs.ReceivedCalls());
+
+        controller.ControllerContext.HttpContext = HttpContextMockHelpers.CreateContextWithUser(uploader);
+        Assert.IsType<AcceptedResult>(await controller.MakeLossless(file.Id));
+        db.ChangeTracker.Clear();
+        var saved = await db.MediaFiles.SingleAsync();
+        Assert.False(saved.AllowLossyWebpPreviews);
+        Assert.False(saved.GetInfo().AllowLossyWebpPreviews);
+        Assert.False(saved.GetDTO().AllowLossyWebpPreviews);
+
+        Assert.IsType<ConflictObjectResult>(await controller.MakeLossless(file.Id));
+        jobs.Received(1).Create(Arg.Is<Job>(job => job.Type == typeof(RegenerateLosslessMediaPreviewsJob) &&
+            (long)job.Args[0] == file.Id), Arg.Any<EnqueuedState>());
     }
 
     [Theory]

@@ -2,6 +2,7 @@ namespace RevolutionaryWebApp.Client.Tests.Shared.Tests;
 
 using System;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -10,6 +11,8 @@ using Blazored.Modal.Services;
 using BlazorPagination;
 using BlazorPro.BlazorSize;
 using Bunit;
+using Client.Pages.CMS;
+using Client.Shared;
 using Client.Shared.Modals;
 using DevCenterCommunication.Models;
 using Microsoft.AspNetCore.Components;
@@ -100,14 +103,7 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
     public async Task ImagePickerNavigatesWithoutChangingPageAndAcceptsSelectedImage(bool centered, bool allowFullSize)
     {
         var http = Services.AddMockHttpClient();
-        Services.AddSingleton<CurrentUserInfo>();
-        Services.AddSingleton(CSRFMockFactory.Create());
-        Services.AddSingleton<NotificationHandler>();
-        Services.AddSingleton<ComponentUrlHelper>();
-        Services.AddSingleton(Substitute.For<IClipboard>());
-        var converter = new ClientMediaLinkConverter();
-        converter.OnReceiveBaseUrl("https://media.example.com/");
-        Services.AddSingleton(converter);
+        RegisterMediaServices();
         var folder = new MediaFolderDTO
         {
             Id = 1,
@@ -230,9 +226,77 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
             invocation => invocation.Identifier == "addToHistory"));
     }
 
+    [Fact]
+    public async Task MediaLosslessConversionRequiresConfirmationAndRemovesActionAfterSuccess()
+    {
+        RegisterMediaServices();
+        ComponentFactories.AddStub<UsernameDisplayer>();
+        var http = Services.AddMockHttpClient();
+        var file = new MediaFileInfo
+        {
+            Id = 42,
+            Name = "photo.png",
+            Processed = true,
+            AllowLossyWebpPreviews = true,
+            UploadedById = 1,
+        };
+        http.When(HttpMethod.Get, "/api/v1/MediaFolder/parsePath").WithQueryString("path", "Images")
+            .RespondJson(new MediaPathParseResult { ParentFolder = new MediaFolderDTO { Id = 1, Name = "Images" } });
+        http.When(HttpMethod.Get, "/api/v1/MediaFolder/folders").WithQueryString("parentFolder", "1")
+            .RespondJson(Array.Empty<MediaFolderInfo>());
+        http.When(HttpMethod.Get, "/api/v1/MediaFolder/items").WithQueryString("parentFolder", "1")
+            .RespondJson(new PagedResult<MediaFileInfo> { CurrentPage = 1, PageCount = 1, Results = [file] });
+        var conversion = http.When(HttpMethod.Post, "/api/v1/MediaFile/42/makeLossless").Respond(_ =>
+        {
+            file.AllowLossyWebpPreviews = false;
+            return new HttpResponseMessage(HttpStatusCode.Accepted);
+        });
+
+        var host = PrepareModalHost();
+        Services.GetRequiredService<CurrentUserInfo>().OnReceivedOurInfo(new UserDTO
+        {
+            Id = 1,
+            Groups = new CachedUserGroups(GroupType.Developer),
+        });
+        var page = Render<MediaQueryList>(parameters => parameters
+            .AddChildContent<CascadingValue<IModalService>>(cascade => cascade
+                .Add(value => value.Value, Services.GetRequiredService<IModalService>())
+                .AddChildContent<Media>(media => media.Add(component => component.FileBrowserPath, "Images"))));
+        page.WaitForAssertion(() => Assert.Contains("Make lossless", page.Markup));
+
+        var cancel = page.InvokeAsync(() => page.FindAll("tbody button")
+            .Single(button => button.TextContent.Trim() == "Make lossless").ClickAsync());
+        host.WaitForAssertion(() => Assert.Contains("This change is permanent.", host.Markup));
+        Assert.Equal(0, http.GetMatchCount(conversion));
+        await host.InvokeAsync(() => host.Find(".modal-footer .btn-secondary").Click());
+        await cancel.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(0, http.GetMatchCount(conversion));
+
+        var confirm = page.InvokeAsync(() => page.FindAll("tbody button")
+            .Single(button => button.TextContent.Trim() == "Make lossless").ClickAsync());
+        host.WaitForAssertion(() => Assert.Contains("Make WebP previews lossless?", host.Markup));
+        await host.InvokeAsync(() => host.Find(".modal-footer .btn-danger").Click());
+        await confirm.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, http.GetMatchCount(conversion));
+        Assert.DoesNotContain("Make lossless", page.Markup);
+        Assert.Contains("Lossless preview regeneration queued for photo.png.", page.Markup);
+    }
+
     Task IAsyncLifetime.DisposeAsync()
     {
         return DisposeAsync().AsTask();
+    }
+
+    private void RegisterMediaServices()
+    {
+        Services.AddSingleton<CurrentUserInfo>();
+        Services.AddSingleton(CSRFMockFactory.Create());
+        Services.AddSingleton<NotificationHandler>();
+        Services.AddSingleton<ComponentUrlHelper>();
+        Services.AddSingleton(Substitute.For<IClipboard>());
+        var converter = new ClientMediaLinkConverter();
+        converter.OnReceiveBaseUrl("https://media.example.com/");
+        Services.AddSingleton(converter);
     }
 
     private IRenderedComponent<CascadingBlazoredModal> PrepareModalHost()
