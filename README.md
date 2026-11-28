@@ -396,20 +396,10 @@ Note that this increases the app download size but should help performance.
 
 ### Backups
 
-TODO: redo this for multi server
-
-Backups can be configured to be stored in S3. They will contain a
-database dump and redis data.
-
-For database dumping `pg_dump` needs to be installed.
-
-For redis, the user running RevolutionaryWebApp needs to be in the redis
-group or some other way read access needs to be arranged to the redis
-state file.
-
-```sh
-usermod -a -G redis revolutionarywebapp
-```
+Backup jobs run on the Ansible control node. Create a `BackupStatus` key in
+**Admin → Access Keys** for the reporter. It sends JSON to
+`POST /api/v1/BackupStatus` with the key in the `X-Access-Code` header.
+Admins can view the run history under **Admin → Backups**.
 
 ### Launcher Signing Keys
 

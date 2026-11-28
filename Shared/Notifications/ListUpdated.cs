@@ -142,7 +142,7 @@ public class SessionListUpdated : ListUpdated<SessionDTO>
 {
 }
 
-public class BackupListUpdated : ListUpdated<BackupDTO>
+public class BackupRunStatusListUpdated : ListUpdated<BackupRunStatusDTO>
 {
 }
 

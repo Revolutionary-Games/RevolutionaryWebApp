@@ -196,8 +196,6 @@ public sealed class SudoModeAuthorizationTests : IDisposable
     [Theory]
     [InlineData(typeof(UserGroupController), nameof(UserGroupController.AddGroup))]
     [InlineData(typeof(UserGroupController), nameof(UserGroupController.RemoveGroup))]
-    [InlineData(typeof(BackupController), nameof(BackupController.Delete))]
-    [InlineData(typeof(BackupController), nameof(BackupController.GetDownloadLink))]
     [InlineData(typeof(ControlledServersController), nameof(ControlledServersController.ForceTerminateServer))]
     [InlineData(typeof(MaintenanceController), nameof(MaintenanceController.StartMaintenanceOperation))]
     [InlineData(typeof(UserManagementController), nameof(UserManagementController.SuspendUser))]

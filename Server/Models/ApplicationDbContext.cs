@@ -73,6 +73,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<StackwalkTask> StackwalkTasks { get; set; } = null!;
     public DbSet<DebugSymbol> DebugSymbols { get; set; } = null!;
     public DbSet<Backup> Backups { get; set; } = null!;
+    public DbSet<BackupRunStatus> BackupRunStatuses { get; set; } = null!;
     public DbSet<AssociationMember> AssociationMembers { get; set; } = null!;
     public DbSet<GlobalDiscordBotCommand> GlobalDiscordBotCommands { get; set; } = null!;
     public DbSet<WatchedKeyword> WatchedKeywords { get; set; } = null!;

@@ -85,7 +85,7 @@ public static class NotificationGroups
 
     public const string SymbolListUpdated = "Symbol";
 
-    public const string BackupListUpdated = "Backup";
+    public const string BackupRunStatusListUpdated = "BackupRunStatus";
 
     public const string AssociationMemberListUpdated = "AsMember";
 

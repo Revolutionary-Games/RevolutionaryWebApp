@@ -363,8 +363,6 @@ public class Startup
         services.AddScoped<ICLAExemptions, CLAExemptions>();
         services.AddScoped<IStackwalk, Stackwalk>();
         services.AddScoped<IStackwalkSymbolPreparer, StackwalkSymbolPreparer>();
-        services.AddScoped<BackupStorage>();
-        services.AddScoped<BackupHandler>();
         services.AddScoped<IFileDownloader, FileDownloader>();
 
         // Prefer the queue sender to not make operations wait for emails to be sent
@@ -648,6 +646,8 @@ public class Startup
 
     private void SetupDefaultJobs(IConfigurationSection configurationSection)
     {
+        RecurringJob.RemoveIfExists("CreateBackupJob.Execute");
+
         AddJobHelper<TwoFactorRecoveryJob>("*/5 * * * *");
         AddJobHelper<SessionCleanupJob>(configurationSection["SessionCleanupJob"]);
         AddJobHelper<RefreshPatronsJob>(configurationSection["RefreshPatrons"]);
@@ -664,7 +664,6 @@ public class Startup
             configurationSection["DeleteAbandonedInProgressCLASignatures"]);
         AddJobHelper<DeleteStackwalkToolResultsJob>(configurationSection["DeleteStackwalkToolResults"]);
         AddJobHelper<DeleteOldDisabledSymbolsJob>(configurationSection["DeleteOldDisabledSymbols"]);
-        AddJobHelper<CreateBackupJob>(configurationSection["CreateBackup"]);
         AddJobHelper<RunMarkedServerMaintenanceJob>(configurationSection["RunMarkedServerMaintenance"]);
         AddJobHelper<RefreshFeedsJob>(configurationSection["RefreshFeeds"]);
         AddJobHelper<CleanOldDevBuildsJob>(configurationSection["CleanOldDevBuilds"]);

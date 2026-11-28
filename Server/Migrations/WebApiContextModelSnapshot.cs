@@ -419,6 +419,46 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.ToTable("backups", (string)null);
                 });
 
+            modelBuilder.Entity("RevolutionaryWebApp.Server.Models.BackupRunStatus", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("ExitCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("exit_code");
+
+                    b.Property<DateTime>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("host");
+
+                    b.Property<int>("Operation")
+                        .HasColumnType("integer")
+                        .HasColumnName("operation");
+
+                    b.HasKey("Id")
+                        .HasName("pk_backup_run_statuses");
+
+                    b.HasIndex("FinishedAt", "Id")
+                        .HasDatabaseName("ix_backup_run_statuses_finished_at_id");
+
+                    b.ToTable("backup_run_statuses", (string)null);
+                });
+
             modelBuilder.Entity("RevolutionaryWebApp.Server.Models.CiBuild", b =>
                 {
                     b.Property<long>("CiProjectId")
