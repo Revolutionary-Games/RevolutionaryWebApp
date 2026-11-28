@@ -21,6 +21,7 @@ public class MediaFileDTO : ClientSideTimedModel, IMediaFileInfo
     public long? UploadedById { get; set; }
     public long? LastModifiedById { get; set; }
     public bool Processed { get; set; }
+    public bool AllowLossyWebpPreviews { get; set; }
     public bool Deleted { get; set; }
     public bool PurgeStarted { get; set; }
 }

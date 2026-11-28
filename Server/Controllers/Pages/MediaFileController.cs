@@ -574,6 +574,38 @@ public class MediaFileController : Controller
         return Accepted();
     }
 
+    [HttpPost("{id:long}/makeLossless")]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
+    [CountContribution(1000)]
+    public async Task<IActionResult> MakeLossless([Required] long id)
+    {
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database);
+        var file = await MediaFileLifecycle.FindForUpdate(database, id);
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        if (file == null || !CanModify(file, user))
+            return NotFound("File does not exist or you don't have write access to it");
+
+        if (file.Deleted || !file.Processed || !file.AllowLossyWebpPreviews ||
+            !string.Equals(Path.GetExtension(file.Name), ".png", StringComparison.OrdinalIgnoreCase))
+        {
+            return Conflict("Only active, processed PNGs with lossy WebP previews can be converted to lossless.");
+        }
+
+        // Enqueue while holding the row lock so a queue failure leaves the choice available for retry.
+        // The job takes the same lock and only proceeds after it sees the committed lossless setting.
+        jobClient.Enqueue<RegenerateLosslessMediaPreviewsJob>(job => job.Execute(id, CancellationToken.None));
+
+        file.AllowLossyWebpPreviews = false;
+        file.BumpUpdatedAt();
+        await database.SaveChangesAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync();
+
+        logger.LogInformation("Lossless WebP previews queued for media file {Id} by user {UserId}", id, user.Id);
+        return Accepted();
+    }
+
     private bool CanModify(MediaFile mediaFile, User user)
     {
         var groups = user.AccessCachedGroupsOrThrow();

@@ -115,7 +115,8 @@
                                 if (allowLossy.HasValue)
                                     continue;
 
-                                <div @key="file" class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-2"
+                                <div @key="file"
+                                     class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-2"
                                      role="group" aria-label="@file.Name">
                                     <span class="text-break">Compress previews for “@file.Name”?</span>
                                     <Button Small="true" OnPressed="@(() => ChoosePngPreviewCompression(file, true))">
@@ -352,6 +353,16 @@
                                     }
                                     else
                                     {
+                                        @if (item.Processed && item.AllowLossyWebpPreviews && CanModifyMedia(item) &&
+                                                 string.Equals(Path.GetExtension(item.Name), ".png", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <Button ButtonStyle="secondary" Small="@true" class="me-1 mb-1"
+                                                    Enabled="@(!mediaActionInProgress)"
+                                                    OnPressed="@(() => ChangeMediaState(item, MediaAction.MakeLossless))">
+                                                Make lossless
+                                            </Button>
+                                        }
+
                                         <Button ButtonStyle="danger" Small="@true"
                                                 Enabled="@(!mediaActionInProgress && CanModifyMedia(item))"
                                                 OnPressed="@(() => ChangeMediaState(item, MediaAction.Delete))">
@@ -598,6 +609,7 @@
         Delete,
         Restore,
         Purge,
+        MakeLossless,
     }
 
     public Media()
@@ -1263,21 +1275,28 @@
 
         try
         {
-            if (action is MediaAction.Delete or MediaAction.Purge)
+            if (action != MediaAction.Restore)
             {
-                var purge = action == MediaAction.Purge;
+                var (title, verb, button, details) = action switch
+                {
+                    MediaAction.Delete => ("Delete media?", "delete", "Delete",
+                        "Existing direct links may still work for up to 90 days. " +
+                        "Images that failed to upload or process are kept for 72 hours."),
+                    MediaAction.Purge => ("Purge media permanently?", "immediately and permanently purge", "Purge permanently",
+                        "All stored sizes and the original will be permanently removed. This cannot be undone."),
+                    MediaAction.MakeLossless => ("Make WebP previews lossless?", "make lossless previews for", "Make lossless",
+                        "The WebP previews will be regenerated from the original PNG. This change is permanent."),
+                    _ => throw new ArgumentOutOfRangeException(nameof(action)),
+                };
                 var parameters = new ModalParameters
                 {
                     { nameof(ConfirmAction.Name), item.Name },
-                    { nameof(ConfirmAction.ActionVerb), purge ? "immediately and permanently purge" : "delete" },
-                    { nameof(ConfirmAction.AcceptButton), purge ? "Purge permanently" : "Delete" },
-                    {
-                        nameof(ConfirmAction.ExtraInfo),
-                        purge ? "All stored sizes and the original will be permanently removed. This cannot be undone." : "Existing direct links may still work for up to 90 days. Images that failed to upload or process are kept for 72 hours."
-                    },
+                    { nameof(ConfirmAction.ActionVerb), verb },
+                    { nameof(ConfirmAction.AcceptButton), button },
+                    { nameof(ConfirmAction.ExtraInfo), details },
                 };
 
-                var modal = Modal.Show<ConfirmAction>(purge ? "Purge media permanently?" : "Delete media?", parameters);
+                var modal = Modal.Show<ConfirmAction>(title, parameters);
                 if ((await modal.Result).Cancelled)
                     return;
             }
@@ -1288,6 +1307,7 @@
                 MediaAction.Delete => await Http.DeleteAsync(url),
                 MediaAction.Restore => await Http.PostAsync($"{url}/restore", null),
                 MediaAction.Purge => await Http.PostAsync($"{url}/purge", null),
+                MediaAction.MakeLossless => await Http.PostAsync($"{url}/makeLossless", null),
                 _ => throw new ArgumentOutOfRangeException(nameof(action)),
             };
 
@@ -1305,6 +1325,7 @@
                 MediaAction.Delete => $"{item.Name} deleted. Existing direct links may still work for up to 90 days.",
                 MediaAction.Restore => $"{item.Name} restored.",
                 MediaAction.Purge => $"Immediate purge queued for {item.Name}.",
+                MediaAction.MakeLossless => $"Lossless preview regeneration queued for {item.Name}.",
                 _ => throw new ArgumentOutOfRangeException(nameof(action)),
             };
             mediaActionMessageType = SiteNoticeType.Success;

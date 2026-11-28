@@ -29,6 +29,7 @@ public class MediaFileInfo : ClientSideTimedModel, IMediaFileInfo
     public long? UploadedById { get; set; }
     public long? LastModifiedById { get; set; }
     public bool Processed { get; set; }
+    public bool AllowLossyWebpPreviews { get; set; }
     public bool Deleted { get; set; }
     public bool PurgeStarted { get; set; }
 }
@@ -53,6 +54,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
         UploadedById = file.UploadedById;
         LastModifiedById = file.LastModifiedById;
         Processed = file.Processed;
+        AllowLossyWebpPreviews = file.AllowLossyWebpPreviews;
         Deleted = file.Deleted;
         PurgeStarted = file.PurgeStarted;
     }
@@ -72,6 +74,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
         UploadedById = file.UploadedById;
         LastModifiedById = file.LastModifiedById;
         Processed = file.Processed;
+        AllowLossyWebpPreviews = file.AllowLossyWebpPreviews;
         Deleted = file.Deleted;
         PurgeStarted = file.PurgeStarted;
     }
@@ -111,6 +114,7 @@ public class MediaBrowserEntry : ClientSideTimedModel
     public long? UploadedById { get; set; }
     public long? LastModifiedById { get; set; }
     public bool Processed { get; set; }
+    public bool AllowLossyWebpPreviews { get; set; }
     public bool Deleted { get; set; }
     public bool PurgeStarted { get; set; }
 

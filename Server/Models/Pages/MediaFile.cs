@@ -156,6 +156,7 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
             UploadedById = UploadedById,
             LastModifiedById = LastModifiedById,
             Processed = Processed,
+            AllowLossyWebpPreviews = AllowLossyWebpPreviews,
             Deleted = Deleted,
             PurgeStarted = PurgeStarted,
         };
@@ -177,6 +178,7 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
             UploadedById = UploadedById,
             LastModifiedById = LastModifiedById,
             Processed = Processed,
+            AllowLossyWebpPreviews = AllowLossyWebpPreviews,
             Deleted = Deleted,
             PurgeStarted = PurgeStarted,
         };
