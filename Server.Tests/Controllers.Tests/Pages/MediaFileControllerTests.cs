@@ -185,11 +185,16 @@ public sealed class MediaFileControllerTests : IDisposable
         Assert.Null(file.DeletedAt);
     }
 
-    [Fact]
-    public async Task MediaFile_StartUploadReturnsUrlAndSchedulesCleanup()
+    [Theory]
+    [InlineData("image.png", false, false)]
+    [InlineData("image.png", true, true)]
+    [InlineData("image.jpg", true, false)]
+    public async Task MediaFile_StartUploadReturnsUrlAndSchedulesCleanup(string fileName, bool allowLossy,
+        bool expectedLossy)
     {
         // Arrange
-        var db = CreateDatabase(nameof(MediaFile_StartUploadReturnsUrlAndSchedulesCleanup));
+        await using var db = CreateDatabase(
+            $"{nameof(MediaFile_StartUploadReturnsUrlAndSchedulesCleanup)}-{fileName}-{allowLossy}");
 
         var storage = Substitute.For<IUploadFileStorage>();
         storage.CreatePresignedUploadURL(Arg.Any<string>(), Arg.Any<TimeSpan>())
@@ -232,9 +237,10 @@ public sealed class MediaFileControllerTests : IDisposable
         var request = new UploadMediaFileRequestForm
         {
             MediaFileId = Guid.NewGuid(),
-            Name = "image.png",
+            Name = fileName,
             Folder = folder.Id,
             Size = TinyPngBytes().Length,
+            AllowLossyWebpPreviews = allowLossy,
             MetadataVisibility = GroupType.User,
             ModifyAccess = GroupType.User,
         };
@@ -251,6 +257,7 @@ public sealed class MediaFileControllerTests : IDisposable
         var created = await db.MediaFiles.SingleAsync(m => m.GlobalId == request.MediaFileId);
         Assert.Equal(request.Name, created.Name);
         Assert.Equal(request.Size, created.OriginalFileSize);
+        Assert.Equal(expectedLossy, created.AllowLossyWebpPreviews);
 
         var updatedUser = await db.Users.FindAsync(user.Id);
         Assert.NotNull(updatedUser);

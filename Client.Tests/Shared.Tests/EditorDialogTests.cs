@@ -3,6 +3,7 @@ namespace RevolutionaryWebApp.Client.Tests.Shared.Tests;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Blazored.Modal;
 using Blazored.Modal.Services;
@@ -142,12 +143,20 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
                     new MediaFileInfo { Id = 2, Name = "pending.png", Processed = false },
                 ],
             });
-        var startUpload = http.When(HttpMethod.Post, "/api/v1/MediaFile/startUpload")
-            .RespondJson(new UploadRequestResponse
-            {
-                UploadUrl = "https://storage.example.com/upload",
-                VerifyToken = "upload-token",
-            });
+        var uploadResponse = new UploadRequestResponse
+        {
+            UploadUrl = "https://storage.example.com/upload",
+            VerifyToken = "upload-token",
+        };
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var compressedUpload = http.When(HttpMethod.Post, "/api/v1/MediaFile/startUpload")
+            .WithJsonContent<UploadMediaFileRequestForm>(
+                request => request.Name == "screenshot.png" && request.AllowLossyWebpPreviews, jsonOptions)
+            .RespondJson(uploadResponse);
+        var exactUpload = http.When(HttpMethod.Post, "/api/v1/MediaFile/startUpload")
+            .WithJsonContent<UploadMediaFileRequestForm>(
+                request => request.Name == "diagram.png" && !request.AllowLossyWebpPreviews, jsonOptions)
+            .RespondJson(uploadResponse);
         var finishUpload = http.When(HttpMethod.Post, "/api/v1/MediaFile/finishUpload").Respond("text/plain", "OK");
         var host = PrepareModalHost();
         Services.GetRequiredService<CurrentUserInfo>().OnReceivedOurInfo(new UserDTO
@@ -178,17 +187,28 @@ public sealed class EditorDialogTests : BunitContext, IAsyncLifetime
         await host.InvokeAsync(() => host.Find("tbody a").Click());
         host.WaitForAssertion(() => Assert.Equal(2, host.FindAll("tbody tr").Count));
 
-        // A dropped file reaches the existing upload and completion flow inside the popup.
+        // All dropped PNGs prompt before the first upload, and each answer goes with its file.
         host.Find(".block-container").DragEnter();
         host.WaitForAssertion(() => Assert.Single(host.FindAll("input[type=file]")));
         await host.InvokeAsync(() => Assert.Contains(JSInterop.Invocations,
             invocation => invocation.Identifier == "registerFileDropArea"));
-        host.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("image data", "uploaded.png"));
-        await host.InvokeAsync(() => host.Find(".block-overlay").Drop());
-        host.WaitForAssertion(() => Assert.Equal(1, http.GetMatchCount(finishUpload)));
-        Assert.Equal(1, http.GetMatchCount(startUpload));
-        await host.InvokeAsync(() => Assert.Contains(JSInterop.Invocations, invocation =>
-            invocation.Identifier == "putFormFile" && (string?)invocation.Arguments[0] == "uploaded.png"));
+        host.FindComponent<InputFile>().UploadFiles(
+            InputFileContent.CreateFromText("image data", "screenshot.png"),
+            InputFileContent.CreateFromText("image data", "diagram.png"));
+        var uploadTask = host.InvokeAsync(() => host.Find(".block-overlay").DropAsync());
+        host.WaitForAssertion(() => Assert.Equal(2, host.FindAll(".block-overlay [role=group]").Count));
+        var keepExact = host.Find("[aria-label='diagram.png'] button.btn-secondary");
+        Assert.Equal("Keep as exact (45s)", keepExact.TextContent.Trim());
+        await host.InvokeAsync(() => keepExact.Click());
+        Assert.Equal(0, http.GetMatchCount(compressedUpload));
+        await host.InvokeAsync(() => host.Find("[aria-label='screenshot.png'] button.btn-primary").Click());
+        await uploadTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(2, http.GetMatchCount(finishUpload));
+        Assert.Equal(1, http.GetMatchCount(compressedUpload));
+        Assert.Equal(1, http.GetMatchCount(exactUpload));
+        await host.InvokeAsync(() => Assert.Equal(new[] { "screenshot.png", "diagram.png" }, JSInterop.Invocations
+            .Where(invocation => invocation.Identifier == "putFormFile")
+            .Select(invocation => (string?)invocation.Arguments[0])));
 
         await host.InvokeAsync(() => host.Find("tbody button").Click());
         host.Find("input[id^=centerImage-]").Change(centered);
