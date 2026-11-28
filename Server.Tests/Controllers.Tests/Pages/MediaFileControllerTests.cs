@@ -120,6 +120,72 @@ public sealed class MediaFileControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task MediaFile_DeleteChecksCurrentReferencesAndBlocksOriginalDownloadUntilRestored()
+    {
+        await using var db =
+            CreateDatabase(nameof(MediaFile_DeleteChecksCurrentReferencesAndBlocksOriginalDownloadUntilRestored));
+        var user = CreateUser(4, GroupType.User);
+        var file = new MediaFile("example.png", Guid.NewGuid(), folderId: 1, uploadedById: user.Id)
+        {
+            Processed = true,
+            OriginalFileSize = 100,
+        };
+        var page = new VersionedPage("Current page")
+        {
+            LatestContent = $"![Example](media:png:{file.GlobalId:N})",
+        };
+
+        await db.MediaFiles.AddAsync(file);
+        await db.VersionedPages.AddAsync(page);
+        await db.SaveChangesAsync();
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["MediaStorage:Download:URL"] = "https://cdn.example/",
+        }).Build();
+        var controller = new MediaFileController(logger, configuration, db, Substitute.For<IUploadFileStorage>(),
+            new EphemeralDataProtectionProvider(), Substitute.For<IBackgroundJobClient>())
+        {
+            ControllerContext = new ControllerContext
+                { HttpContext = HttpContextMockHelpers.CreateContextWithUser(user) },
+        };
+
+        var pageConflict = Assert.IsType<ConflictObjectResult>(await controller.MarkDeleted(file.Id));
+        Assert.Contains(page.Title, Assert.IsType<string>(pageConflict.Value), StringComparison.Ordinal);
+        Assert.False(file.Deleted);
+
+        var part = new SiteLayoutPart(null, "Sidebar image", SiteLayoutPartType.Sidebar) { ImageId = file.GlobalId };
+        await db.SiteLayoutParts.AddAsync(part);
+        await db.MediaFileUsages.AddAsync(new MediaFileUsage
+        {
+            MediaFileGuid = file.GlobalId,
+            UsedByResource = page.Id,
+            Usage = MediaFileUsage.UsageType.Page,
+        });
+        page.LatestContent = "Image removed";
+        await db.SaveChangesAsync();
+
+        var siteConflict = Assert.IsType<ConflictObjectResult>(await controller.MarkDeleted(file.Id));
+        Assert.Contains(part.AltText, Assert.IsType<string>(siteConflict.Value), StringComparison.Ordinal);
+        Assert.False(file.Deleted);
+
+        db.SiteLayoutParts.Remove(part);
+        await db.SaveChangesAsync();
+
+        Assert.IsType<OkResult>(await controller.MarkDeleted(file.Id));
+        Assert.NotNull(file.DeletedAt);
+        var quota = Substitute.For<IDownloadQuota>();
+        var response = await controller.RedirectToView(file.Id, quota, file.Name);
+        var deleted = Assert.IsType<ObjectResult>(response.Result);
+        Assert.Equal(StatusCodes.Status410Gone, deleted.StatusCode);
+        Assert.Empty(quota.ReceivedCalls());
+
+        Assert.IsType<OkResult>(await controller.RestoreDeleted(file.Id));
+        Assert.False(file.Deleted);
+        Assert.Null(file.DeletedAt);
+    }
+
+    [Fact]
     public async Task MediaFile_StartUploadReturnsUrlAndSchedulesCleanup()
     {
         // Arrange

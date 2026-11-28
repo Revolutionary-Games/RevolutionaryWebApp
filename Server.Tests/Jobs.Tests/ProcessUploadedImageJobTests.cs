@@ -12,6 +12,7 @@ using RevolutionaryWebApp.Server.Jobs.Pages;
 using RevolutionaryWebApp.Server.Models;
 using RevolutionaryWebApp.Server.Models.Pages;
 using RevolutionaryWebApp.Server.Services;
+using RevolutionaryWebApp.Shared.Models;
 using RevolutionaryWebApp.Shared.Models.Enums;
 using RevolutionaryWebApp.Shared.Models.Pages;
 using RevolutionaryWebApp.Shared.Utilities;
@@ -217,6 +218,55 @@ public sealed class ProcessUploadedImageJobTests : IDisposable
         Assert.Equal(AppInfo.MediaResolutionThumbnail, thumbInfo.Width);
         Assert.Equal(webpFormat, pageInfo.Metadata.GetWebpMetadata().FileFormat);
         Assert.Equal(webpFormat, thumbInfo.Metadata.GetWebpMetadata().FileFormat);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InvalidImageIsDeletedAndNotifiesItsUploaderOnce(bool hasUploader)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var database = new NotificationsEnabledDb(options,
+            Substitute.For<IModelUpdateNotificationSender>());
+        var uploader = new User("uploader@example.com", "Uploader");
+        await database.Users.AddAsync(uploader);
+
+        var file = new MediaFile("invalid.png", Guid.NewGuid(), 1, hasUploader ? uploader.Id : null);
+        await database.MediaFiles.AddAsync(file);
+        await database.SaveChangesAsync();
+
+        var path = file.GetIntermediateProcessingPath();
+        var uploadStorage = Substitute.For<IUploadFileStorage>();
+        uploadStorage.GetObjectContent(path).Returns(_ => new MemoryStream(new byte[32]));
+        var job = new ProcessUploadedImageJob(logger, database, uploadStorage, Substitute.For<IMediaStorage>(),
+            Substitute.For<IBackgroundJobClient>());
+
+        await job.Execute(file.Id, path, CancellationToken.None);
+        Assert.True(file.Deleted);
+        Assert.NotNull(file.DeletedAt);
+
+        // The same file can fail again if it is restored and processing is retried.
+        file.Deleted = false;
+        file.DeletedAt = null;
+        await database.SaveChangesAsync();
+        await job.Execute(file.Id, path, CancellationToken.None);
+        Assert.True(file.Deleted);
+
+        var notifications = await database.UserNotifications.ToListAsync();
+        if (hasUploader)
+        {
+            var notification = Assert.Single(notifications);
+            Assert.Equal(uploader.Id, notification.UserId);
+            Assert.Equal(UserNotificationType.MediaProcessingFailed, notification.Type);
+            Assert.Contains(file.Name, notification.Message, StringComparison.Ordinal);
+            Assert.Contains("marked as deleted", notification.Message, StringComparison.Ordinal);
+            Assert.Equal("/media", notification.TargetPath);
+        }
+        else
+        {
+            Assert.Empty(notifications);
+        }
     }
 
     public void Dispose()
