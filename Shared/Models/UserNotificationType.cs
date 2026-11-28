@@ -30,4 +30,5 @@ public enum UserNotificationType
     ModerationReminder,
     ModerationDailyReminder,
     UserReportApproved,
+    MediaProcessingFailed,
 }

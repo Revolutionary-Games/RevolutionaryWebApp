@@ -6,11 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using DevCenterCommunication.Models;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
 using Services;
 using Shared;
+using Shared.Models;
 using Shared.Models.Pages;
 using Shared.Utilities;
 using SixLabors.ImageSharp;
@@ -323,12 +325,30 @@ public class ProcessUploadedImageJob
 
     private async Task OnError(MediaFile mediaFile)
     {
-        // TODO: should somehow send an error notification to the person who tried to upload the file to notify of the
-        // problem. Could theoretically send an email here but that could spam quite a lot.
-
         await database.LogEntries.AddAsync(new LogEntry($"Failed to process uploaded media file {mediaFile.Id}")
         {
             Extended = mediaFile.Name,
+        });
+
+        if (mediaFile.UploadedById is not { } uploaderId)
+            return;
+
+        var notificationKey = $"media-processing-failed:{mediaFile.Id}";
+        if (await database.UserNotifications.AnyAsync(notification =>
+                notification.UserId == uploaderId && notification.DeduplicationKey == notificationKey))
+        {
+            return;
+        }
+
+        await database.UserNotifications.AddAsync(new UserNotification
+        {
+            UserId = uploaderId,
+            DeduplicationKey = notificationKey,
+            Type = UserNotificationType.MediaProcessingFailed,
+            Message = $"Your upload \"{mediaFile.Name}\" was marked as deleted because the image could not be " +
+                "processed. The file may be damaged or use an unsupported format. Re-export the image as PNG, " +
+                "JPEG, GIF, or WebP and upload it again.",
+            TargetPath = "/media",
         });
     }
 }
