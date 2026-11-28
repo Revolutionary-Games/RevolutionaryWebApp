@@ -57,7 +57,8 @@ public class BackfillPngWebpPreviewsJob : MaintenanceJobBase
 
                 try
                 {
-                    await using var transaction = await MediaFileLifecycle.BeginTransaction(Database, cancellationToken);
+                    await using var transaction =
+                        await MediaFileLifecycle.BeginTransaction(Database, cancellationToken);
                     var file = await MediaFileLifecycle.GetFilesForReference(Database, [candidate.GlobalId])
                         .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
                     if (file == null || file.Deleted)
