@@ -114,6 +114,9 @@ function registerFileDropArea(dropElement, inputElementId) {
         event.preventDefault();
 
         const inputElement = document.getElementById(inputElementId);
+        if (!inputElement || inputElement.disabled)
+            return;
+
         inputElement.files = event.dataTransfer.files;
 
         // Need to trigger an event to make the C# code notice this

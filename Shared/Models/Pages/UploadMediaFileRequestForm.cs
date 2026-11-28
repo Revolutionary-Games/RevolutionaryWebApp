@@ -21,6 +21,8 @@ public class UploadMediaFileRequestForm
     [Range(80, AppInfo.MaxMediaFileSize)]
     public long Size { get; set; }
 
+    public bool AllowLossyWebpPreviews { get; set; }
+
     [Required]
     public GroupType MetadataVisibility { get; set; }
 

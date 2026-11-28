@@ -7,6 +7,7 @@
 @inject CurrentUserInfo CurrentUserInfo
 @inject ClientMediaLinkConverter ClientMediaLinkConverter
 @inject IClipboard Clipboard
+@using System.Diagnostics
 @using System.IO
 @using System.Net
 @using System.Text.Json
@@ -101,17 +102,37 @@
                         </Button>
                     }
 
+                    @if (pngChoiceSecondsRemaining > 0)
+                    {
+                        <div class="w-100 overflow-auto" style="min-height: 0;">
+                            <p class="mb-2">
+                                Compress WebP previews to save bandwidth on images like screenshots
+                                where some loss of detail is okay. The original PNG stays available either way.
+                                When the countdown ends, unanswered choices default to Keep as exact.
+                            </p>
+                            @foreach (var (file, allowLossy) in pngPreviewChoices)
+                            {
+                                if (allowLossy.HasValue)
+                                    continue;
+
+                                <div @key="file" class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-2"
+                                     role="group" aria-label="@file.Name">
+                                    <span class="text-break">Compress previews for “@file.Name”?</span>
+                                    <Button Small="true" OnPressed="@(() => ChoosePngPreviewCompression(file, true))">
+                                        Compress
+                                    </Button>
+                                    <Button Small="true" ButtonStyle="secondary"
+                                            OnPressed="@(() => ChoosePngPreviewCompression(file, false))">
+                                        Keep as exact (@(pngChoiceSecondsRemaining)s)
+                                    </Button>
+                                </div>
+                            }
+                        </div>
+                    }
+
                     @if (!string.IsNullOrEmpty(uploadStatus))
                     {
                         <p>@uploadStatus</p>
-                    }
-
-                    @if (uploadInProgress)
-                    {
-                        @if (!string.IsNullOrEmpty(currentFileUploadMessage))
-                        {
-                            <div>@currentFileUploadMessage</div>
-                        }
 
                         <div class="my-2 drop-area" style="min-height: 45px;">
                             <span class="spinner-border text-primary" role="status">
@@ -131,6 +152,7 @@
                             </label>
                             <InputFile id="@uploadInputId"
                                        accept="*"
+                                       disabled="@uploadInProgress"
                                        OnChange="OnInputFilesChanged"
                                        @ondragenter="HandleDragEnter"
                                        @ondragleave="HandleDragLeave"
@@ -140,7 +162,7 @@
                         <br class="drop-area"/>
                         <div class="row justify-content-center">
                             <Button class="my-1 me-1" Enabled="@(!uploadInProgress && filesToBeUploaded.Count > 0)"
-                                    OnPressed="@StartFileSelectorUploads" Spinner="@uploadInProgress">
+                                    OnPressed="@StartFileSelectorUploads" Spinner="@(uploadStatus != null)">
                                 Upload
                             </Button>
                             <Button class="my-1" Enabled="@(!uploadInProgress)" ButtonStyle="secondary"
@@ -498,6 +520,8 @@
 
 @code {
 
+    private const int PngChoiceTimeoutSeconds = 45;
+
     private readonly List<TableColumn> columns = new()
     {
         new TableColumn("Name", true),
@@ -511,6 +535,7 @@
 
     private readonly List<string> uploadErrors = new();
     private readonly List<IBrowserFile> filesToBeUploaded = new();
+    private readonly Dictionary<IBrowserFile, bool?> pngPreviewChoices = new();
 
     private readonly List<TableColumn> selectionColumns = new()
     {
@@ -557,13 +582,9 @@
     private bool uploadInProgress;
     private string? uploadStatus;
     private int dragLevel;
-
-    private string? currentFileUploadMessage;
-
-    /// <summary>
-    ///   If true, uploading is in progress, and new uploads can't start
-    /// </summary>
-    private bool uploading;
+    private int pngChoiceSecondsRemaining;
+    private PeriodicTimer? pngChoiceTimer;
+    private bool disposed;
 
     private long markdownCopied = -1;
     private long guidCopied = -1;
@@ -656,6 +677,8 @@
 
     public override async ValueTask DisposeAsync()
     {
+        disposed = true;
+        pngChoiceTimer?.Dispose();
         await base.DisposeAsync();
         await NotificationHandler.Unregister<MediaFolderContentsUpdated>(this);
         await NotificationHandler.Unregister<MediaFolderUpdated>(this);
@@ -968,6 +991,9 @@
 
     private async Task OnDrop()
     {
+        if (uploadInProgress)
+            return;
+
         // Make sure the JS event listener gets in first
         await Task.Delay(1);
 
@@ -980,6 +1006,9 @@
 
     private async Task OnInputFilesChanged(InputFileChangeEventArgs args)
     {
+        if (uploadInProgress)
+            return;
+
         filesToBeUploaded.Clear();
 
         if (args.FileCount < 1)
@@ -1029,83 +1058,103 @@
 
     private async Task StartUploads()
     {
-        if (uploading)
-        {
-            Console.WriteLine("Not starting another upload as one is in progress already");
+        if (disposed || uploadInProgress || filesToBeUploaded.Count == 0)
             return;
-        }
 
-        uploading = true;
-
-        await BeginNextUpload();
-
-        Console.WriteLine("Uploads are now finished");
-        uploading = false;
-    }
-
-    /// <summary>
-    ///   Starts uploading the next file we should upload. Or stops if we have no more files to upload.
-    ///   Should not be called directly, call StartUploads instead
-    /// </summary>
-    private async Task BeginNextUpload()
-    {
-        if (filesToBeUploaded.Count > 100)
-        {
-            uploadErrors.Add("Too many files to upload at once. Maximum is 100");
-            return;
-        }
-
-        IBrowserFile? toUpload = null;
-
-        while (filesToBeUploaded.Count > 0)
-        {
-            toUpload = filesToBeUploaded.First();
-            filesToBeUploaded.Remove(toUpload);
-
-            if (toUpload.Size > AppInfo.MaxMediaFileSize)
-            {
-                uploadErrors.Add($"File \"{toUpload.Name}\" is too large for media upload. Max size is: " +
-                    $"{AppInfo.MaxMediaFileSize.BytesToMiB()}");
-                toUpload = null;
-                continue;
-            }
-
-            break;
-        }
-
-        if (toUpload == null)
-        {
-            uploadInProgress = false;
-            uploadStatus = null;
-            showUploadOverlay = false;
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
-        uploadStatus = $"Uploading: \"{toUpload.Name}\" with size of {toUpload.Size.BytesToMiB()}";
-        currentFileUploadMessage = null;
         uploadInProgress = true;
-        await InvokeAsync(StateHasChanged);
+        var parentFolder = parsedFolderInfo;
+        var batch = filesToBeUploaded.ToArray();
+        filesToBeUploaded.Clear();
 
         try
         {
-            // Fetch URL and permission to upload
-            var uploadResponse = await GetFileUploadUrl(toUpload, parsedFolderInfo ??
-                throw new Exception("Can only upload media files to folders"));
+            if (parentFolder == null)
+            {
+                uploadErrors.Add("Can only upload media files to folders");
+                return;
+            }
 
-            // Then begin the file upload
-            await UploadFile(toUpload, uploadResponse);
+            var validFiles = new List<IBrowserFile>(batch.Length);
+            foreach (var file in batch)
+            {
+                if (file.Size > AppInfo.MaxMediaFileSize)
+                {
+                    uploadErrors.Add($"File \"{file.Name}\" is too large for media upload. Max size is: " +
+                        $"{AppInfo.MaxMediaFileSize.BytesToMiB()}");
+                    continue;
+                }
+
+                validFiles.Add(file);
+                if (Path.GetExtension(file.Name.Trim()) == ".png")
+                    pngPreviewChoices.Add(file, null);
+            }
+
+            if (pngPreviewChoices.Count > 0)
+                await WaitForPngPreviewChoices();
+
+            foreach (var file in validFiles)
+            {
+                if (disposed)
+                    return;
+
+                uploadStatus = $"Uploading: \"{file.Name}\" with size of {file.Size.BytesToMiB()}";
+                await InvokeAsync(StateHasChanged);
+
+                try
+                {
+                    var allowLossy = pngPreviewChoices.GetValueOrDefault(file) == true;
+                    var uploadResponse = await GetFileUploadUrl(file, parentFolder, allowLossy);
+                    await UploadFile(file, uploadResponse);
+                }
+                catch (Exception e)
+                {
+                    uploadErrors.Add($"Exception while uploading \"{file.Name}\": {e.Message}");
+                }
+            }
         }
-        catch (Exception e)
+        finally
         {
-            uploadErrors.Add($"Exception while uploading \"{toUpload.Name}\": {e.Message}");
+            pngPreviewChoices.Clear();
+            uploadInProgress = false;
+            uploadStatus = null;
+            showUploadOverlay = false;
         }
-
-        // And start the next upload if we still have files to upload
-        await BeginNextUpload();
     }
 
-    private async Task<UploadRequestResponse> GetFileUploadUrl(IBrowserFile file, MediaFolderDTO parentFolder)
+    private async Task WaitForPngPreviewChoices()
+    {
+        var startedAt = Stopwatch.GetTimestamp();
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        pngChoiceTimer = timer;
+        pngChoiceSecondsRemaining = PngChoiceTimeoutSeconds;
+        await InvokeAsync(StateHasChanged);
+
+        while (await timer.WaitForNextTickAsync())
+        {
+            pngChoiceSecondsRemaining = PngChoiceTimeoutSeconds -
+                (int)Stopwatch.GetElapsedTime(startedAt).TotalSeconds;
+            if (pngChoiceSecondsRemaining <= 0)
+                break;
+
+            await InvokeAsync(StateHasChanged);
+        }
+
+        pngChoiceSecondsRemaining = 0;
+        pngChoiceTimer = null;
+    }
+
+    private void ChoosePngPreviewCompression(IBrowserFile file, bool allowLossy)
+    {
+        if (pngChoiceSecondsRemaining <= 0 || !pngPreviewChoices.TryGetValue(file, out var choice) || choice.HasValue)
+            return;
+
+        pngPreviewChoices[file] = allowLossy;
+        if (pngPreviewChoices.Values.All(value => value.HasValue))
+            pngChoiceTimer?.Dispose();
+    }
+
+    private async Task<UploadRequestResponse> GetFileUploadUrl(IBrowserFile file, MediaFolderDTO parentFolder,
+        bool allowLossyWebpPreviews)
     {
         var result = await Http.PostAsJsonAsync("api/v1/MediaFile/startUpload",
             new UploadMediaFileRequestForm
@@ -1114,6 +1163,7 @@
                 Name = file.Name,
                 Folder = parentFolder.Id,
                 Size = file.Size,
+                AllowLossyWebpPreviews = allowLossyWebpPreviews,
                 MetadataVisibility = parentFolder.ContentReadAccess,
 
                 // TODO: allow overriding this if wanted

@@ -291,6 +291,7 @@ public class MediaFileController : Controller
         var file = new MediaFile(request.Name, request.MediaFileId, folder.Id, user.Id)
         {
             OriginalFileSize = request.Size,
+            AllowLossyWebpPreviews = type == ".png" && request.AllowLossyWebpPreviews,
             MetadataVisibility = request.MetadataVisibility,
             ModifyAccess = request.ModifyAccess,
         };
