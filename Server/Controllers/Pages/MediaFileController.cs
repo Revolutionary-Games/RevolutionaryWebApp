@@ -29,6 +29,7 @@ using Shared.Models.Pages;
 using SharedBase.Utilities;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
+using Utilities;
 using Path = System.IO.Path;
 
 /// <summary>
@@ -117,9 +118,6 @@ public class MediaFileController : Controller
         if (mediaFile == null)
             return NotFound();
 
-        if (string.IsNullOrEmpty(viewBaseUrl))
-            return Problem("Media view URL is not configured on the server");
-
         var user = HttpContext.AuthenticatedUser();
 
         // Full-size links rendered on pages include the exact filename and can be used without metadata access.
@@ -141,6 +139,12 @@ public class MediaFileController : Controller
                 }
             }
         }
+
+        if (mediaFile.Deleted)
+            return StatusCode(StatusCodes.Status410Gone, "This media file has been deleted");
+
+        if (string.IsNullOrEmpty(viewBaseUrl))
+            return Problem("Media view URL is not configured on the server");
 
         var path = mediaFile.GetStoragePath(MediaFileSize.Original);
 
@@ -339,7 +343,8 @@ public class MediaFileController : Controller
             return BadRequest("Invalid upload token");
         }
 
-        var mediaFile = await database.MediaFiles.FindAsync(verifiedToken.TargetItem);
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database);
+        var mediaFile = await MediaFileLifecycle.FindForUpdate(database, verifiedToken.TargetItem);
 
         if (mediaFile == null)
             return BadRequest("Invalid specified file in verify token");
@@ -435,6 +440,9 @@ public class MediaFileController : Controller
         mediaFile.BumpUpdatedAt();
         await database.SaveChangesAsync();
 
+        if (transaction != null)
+            await transaction.CommitAsync();
+
         // Queue a job to process the file to the final form and make it ready to use
         jobClient.Enqueue<ProcessUploadedImageJob>(x =>
             x.Execute(mediaFile.Id, processingPath, CancellationToken.None));
@@ -449,7 +457,8 @@ public class MediaFileController : Controller
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
     public async Task<IActionResult> MarkDeleted([Required] long id)
     {
-        var mediaFile = await database.MediaFiles.FindAsync(id);
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database);
+        var mediaFile = await MediaFileLifecycle.FindForUpdate(database, id);
 
         if (mediaFile == null)
             return NotFound();
@@ -464,8 +473,11 @@ public class MediaFileController : Controller
             return Ok("File already marked deleted");
         }
 
-        mediaFile.Deleted = true;
-        mediaFile.BumpUpdatedAt();
+        var usage = await MediaFileLifecycle.FindUsage(database, mediaFile);
+        if (usage != null)
+            return Conflict($"Cannot delete this media file because it is used by {usage}.");
+
+        mediaFile.MarkDeleted();
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry(
             $"Media file {mediaFile.Name.Truncate()} ({mediaFile.Id}) marked deleted in " +
@@ -480,14 +492,19 @@ public class MediaFileController : Controller
 
         await database.SaveChangesAsync();
 
+        if (transaction != null)
+            await transaction.CommitAsync();
+
         return Ok();
     }
 
+    [HttpPost("{id:long}/restore")]
     [HttpDelete("{id:long}/restore")]
     [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.User)]
     public async Task<IActionResult> RestoreDeleted([Required] long id)
     {
-        var mediaFile = await database.MediaFiles.FindAsync(id);
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database);
+        var mediaFile = await MediaFileLifecycle.FindForUpdate(database, id);
 
         if (mediaFile == null)
             return NotFound();
@@ -502,7 +519,11 @@ public class MediaFileController : Controller
             return BadRequest("Cannot restore a file not in soft-deleted state");
         }
 
+        if (mediaFile.PurgeStarted)
+            return Conflict("This media file is being permanently purged and can no longer be restored");
+
         mediaFile.Deleted = false;
+        mediaFile.DeletedAt = null;
         mediaFile.BumpUpdatedAt();
 
         await database.ActionLogEntries.AddAsync(new ActionLogEntry(
@@ -518,7 +539,38 @@ public class MediaFileController : Controller
 
         await database.SaveChangesAsync();
 
+        if (transaction != null)
+            await transaction.CommitAsync();
+
         return Ok();
+    }
+
+    [HttpPost("{id:long}/purge")]
+    [AuthorizeGroupMemberFilter(RequiredGroup = GroupType.Admin)]
+    [RequireSudoMode]
+    public async Task<IActionResult> PurgeDeleted([Required] long id)
+    {
+        var file = await database.MediaFiles.FindAsync(id);
+        if (file == null)
+            return NotFound();
+
+        if (!file.Deleted)
+            return Conflict("Delete the media file before purging it");
+
+        var usage = await MediaFileLifecycle.FindUsage(database, file);
+        if (usage != null)
+            return Conflict($"Cannot purge this media file because it is used by {usage}.");
+
+        var user = HttpContext.AuthenticatedUserOrThrow();
+        await database.AdminActions.AddAsync(new AdminAction($"Immediate purge requested for media file {id}")
+        {
+            PerformedById = user.Id,
+        });
+        await database.SaveChangesAsync();
+
+        var deletedAt = file.DeletedAt ?? file.UpdatedAt;
+        jobClient.Enqueue<PurgeMediaFileJob>(job => job.Execute(id, deletedAt, true, CancellationToken.None));
+        return Accepted();
     }
 
     private bool CanModify(MediaFile mediaFile, User user)

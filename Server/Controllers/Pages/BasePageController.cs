@@ -17,7 +17,6 @@ using Jobs.Pages;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -186,11 +185,8 @@ public abstract class BasePageController : Controller
     public virtual async Task<ActionResult> UpdatePage([Required] long id,
         [Required] [FromBody] VersionedPageDTO pageDTO)
     {
-        IDbContextTransaction? transaction = null;
-
-        // Maybe a transaction here helps against unintended duplicate edits
-        if (UsePageUpdateTransaction)
-            transaction = await Database.Database.BeginTransactionAsync();
+        await using var transaction = UsePageUpdateTransaction ?
+            await Database.Database.BeginTransactionAsync() : null;
 
         var page = await Database.VersionedPages.FindAsync(id);
 
@@ -254,7 +250,9 @@ public abstract class BasePageController : Controller
 
         if (pageDTO.LatestContent != page.LatestContent)
         {
-            // Updating page content
+            var mediaError = await CheckReferencedMedia(pageDTO.LatestContent);
+            if (mediaError != null)
+                return mediaError;
 
             if (version != pageDTO.VersionNumber)
             {
@@ -377,6 +375,8 @@ public abstract class BasePageController : Controller
     [HttpPost("{id:long}/restore")]
     public virtual async Task<ActionResult> RestoreResource([Required] long id)
     {
+        await using var transaction = UsePageUpdateTransaction ?
+            await Database.Database.BeginTransactionAsync() : null;
         var page = await Database.VersionedPages.FindAsync(id);
 
         if (page == null || page.Type != HandledPageType)
@@ -395,6 +395,10 @@ public abstract class BasePageController : Controller
             }
         }
 
+        var mediaError = await CheckReferencedMedia(page.LatestContent);
+        if (mediaError != null)
+            return mediaError;
+
         page.Deleted = false;
         page.BumpUpdatedAt();
 
@@ -405,6 +409,9 @@ public abstract class BasePageController : Controller
             });
 
         await Database.SaveChangesAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync();
 
         return Ok();
     }
@@ -496,10 +503,8 @@ public abstract class BasePageController : Controller
     public virtual async Task<ActionResult> RevertResourceVersion([Required] long id,
         [Required] int version)
     {
-        IDbContextTransaction? transaction = null;
-
-        if (UsePageUpdateTransaction)
-            transaction = await Database.Database.BeginTransactionAsync();
+        await using var transaction = UsePageUpdateTransaction ?
+            await Database.Database.BeginTransactionAsync() : null;
 
         var page = await Database.VersionedPages.FindAsync(id);
 
@@ -543,6 +548,10 @@ public abstract class BasePageController : Controller
 
         if (versionDTO.PageContentAtVersion == page.LatestContent)
             return Ok("Current text matches old version (not reverted)");
+
+        var mediaError = await CheckReferencedMedia(versionDTO.PageContentAtVersion);
+        if (mediaError != null)
+            return mediaError;
 
         // Updating page content to revert to the old version
         pageDTO.LatestContent = versionDTO.PageContentAtVersion;
@@ -734,5 +743,18 @@ public abstract class BasePageController : Controller
         // We should have processed everything now
 
         versionDTO.PageContentAtVersion = pageContent;
+    }
+
+    private async Task<ActionResult?> CheckReferencedMedia(string content)
+    {
+        var unavailable = await MediaFileLifecycle.FindUnavailablePageMedia(Database, content);
+        if (unavailable == null)
+            return null;
+
+        var (id, deletedName) = unavailable.Value;
+        if (deletedName != null)
+            return Conflict($"Media file \"{deletedName}\" is deleted. Restore it or remove it from the page.");
+
+        return BadRequest($"Media file {id} does not exist. Remove it from the page.");
     }
 }

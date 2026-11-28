@@ -5,8 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Models;
-using Models.Pages;
 using Services;
+using Utilities;
 
 /// <summary>
 ///   Used to delete failed / not completed uploads to <see cref="IUploadFileStorage"/>
@@ -14,10 +14,10 @@ using Services;
 public class DeleteUploadStorageFileJob
 {
     private readonly ILogger<DeleteUploadStorageFileJob> logger;
-    private readonly ApplicationDbContext database;
+    private readonly NotificationsEnabledDb database;
     private readonly IUploadFileStorage uploadFileStorage;
 
-    public DeleteUploadStorageFileJob(ILogger<DeleteUploadStorageFileJob> logger, ApplicationDbContext database,
+    public DeleteUploadStorageFileJob(ILogger<DeleteUploadStorageFileJob> logger, NotificationsEnabledDb database,
         IUploadFileStorage uploadFileStorage)
     {
         this.logger = logger;
@@ -34,66 +34,33 @@ public class DeleteUploadStorageFileJob
     public async Task Execute(string path, RelatedRecordType otherThingToDelete, long otherId,
         CancellationToken cancellationToken)
     {
-        var exists = await uploadFileStorage.DoesObjectExist(path, cancellationToken);
+        await using var transaction = otherThingToDelete == RelatedRecordType.MediaFile ?
+            await MediaFileLifecycle.BeginTransaction(database, cancellationToken) : null;
 
-        MediaFile? mediaFile = null;
-
-        if (otherThingToDelete == RelatedRecordType.MediaFile)
+        var mediaFile = otherThingToDelete switch
         {
-            mediaFile = await database.MediaFiles.FindAsync(new object[] { otherId }, cancellationToken);
+            RelatedRecordType.None => null,
+            RelatedRecordType.MediaFile => await MediaFileLifecycle.FindForUpdate(database, otherId, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(otherThingToDelete), otherThingToDelete, null),
+        };
 
-            if (mediaFile == null)
-            {
-                logger.LogError("Cannot find related MediaFile in upload success check");
-            }
-            else
-            {
-                if (mediaFile.Processed)
-                {
-                    logger.LogInformation("Not deleting related media file to upload as it is already " +
-                        "processed (will just delete '{Path}')", path);
-                    mediaFile = null;
-                }
-            }
-        }
-
-        if (!exists)
-        {
-            logger.LogInformation("Upload storage doesn't have file that we would have deleted: {Path}", path);
-        }
-        else
+        if (await uploadFileStorage.DoesObjectExist(path, cancellationToken))
         {
             logger.LogInformation("Deleting upload from remote storage content: {Path}", path);
             await uploadFileStorage.DeleteObject(path);
         }
 
-        switch (otherThingToDelete)
+        if (mediaFile == null || mediaFile.Processed || mediaFile.Deleted)
+            return;
+
+        mediaFile.MarkDeleted();
+        await database.LogEntries.AddAsync(new LogEntry($"Marked failed media upload {otherId} as deleted")
         {
-            case RelatedRecordType.None:
-                // No DB changes to save
-                return;
-            case RelatedRecordType.MediaFile:
-            {
-                if (mediaFile == null)
-                    return;
+            Extended = path,
+        }, cancellationToken);
+        await database.SaveChangesAsync(cancellationToken);
 
-                database.MediaFiles.Remove(mediaFile);
-                break;
-            }
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(otherThingToDelete), otherThingToDelete, null);
-        }
-
-        // ReSharper disable once MethodSupportsCancellation
-        await database.LogEntries.AddAsync(
-            new LogEntry($"Deleted failed user upload and associated data with id {otherId}")
-            {
-                Extended = path,
-            });
-
-        // This is not cancelled as the data is already gone
-        // ReSharper disable once MethodSupportsCancellation
-        await database.SaveChangesAsync();
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
     }
 }

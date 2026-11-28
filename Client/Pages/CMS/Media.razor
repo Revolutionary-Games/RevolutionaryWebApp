@@ -152,6 +152,12 @@
                 </div>
             }
 
+            @if (!SelectionMode)
+            {
+                <StatusMessageShower Message="@mediaActionMessage" Type="@mediaActionMessageType"
+                                     OnClosed="@(() => mediaActionMessage = null)"/>
+            }
+
             <PaginatedTable ShowPaginator="@(Data != null)" CurrentPage="@Data?.CurrentPage"
                             PageCount="@Data?.PageCount"
                             OnPageChanged="async e => await ChangePage(e)"
@@ -222,7 +228,7 @@
                                         @item.Name.Truncate(40)
                                     </a>
 
-                                    @if (!SelectionMode)
+                                    @if (!SelectionMode && item.Processed && !item.Deleted)
                                     {
                                         <Button ButtonStyle="primary" class="btn-sm ms-1"
                                                 OnPressed="@(() => CopyMarkdown(item))">
@@ -251,7 +257,7 @@
                                         }
                                     </td>
                                 }
-                                else if (item.Processed)
+                                else if (item.Processed && !item.Deleted)
                                 {
                                     <td class="@itemClass">
                                         @item.Id <Button ButtonStyle="primary" class="btn-sm ms-1"
@@ -270,7 +276,15 @@
                                 else
                                 {
                                     <td class="@itemClass">
-                                        <span class="badge bg-danger">Unprocessed</span>
+                                        @if (item.Deleted)
+                                        {
+                                            <span
+                                                class="badge bg-dark">@(item.PurgeStarted ? "Purging" : "Deleted")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Unprocessed</span>
+                                        }
                                     </td>
                                 }
                             }
@@ -290,20 +304,37 @@
                                 </td>
 
                                 <td class="@itemClass">
-                                    @if (folderContentsAreWritable && (!item.Folder || subfoldersAreModifiable))
+                                    @if (item.Folder)
                                     {
-                                        @if (item.Deleted)
+                                        <Button ButtonStyle="secondary" Small="@true" Enabled="@false">Delete</Button>
+                                    }
+                                    else if (item.Deleted)
+                                    {
+                                        @if (CanModifyMedia(item))
                                         {
-                                            <Button ButtonStyle="success btn-sm" Enabled="@false">Restore</Button>
+                                            <Button ButtonStyle="success" Small="@true"
+                                                    Enabled="@(!mediaActionInProgress && !item.PurgeStarted)"
+                                                    OnPressed="@(() => ChangeMediaState(item, MediaAction.Restore))">
+                                                Restore
+                                            </Button>
                                         }
-                                        else
-                                        {
-                                            <Button ButtonStyle="danger btn-sm" Enabled="@false">Delete</Button>
-                                        }
+
+                                        <AccessLimited RequiredAccess="GroupType.Admin"
+                                                       AutoRedirectIfNotLoggedIn="@false">
+                                            <Button ButtonStyle="danger" Small="@true"
+                                                    Enabled="@(!mediaActionInProgress)"
+                                                    OnPressed="@(() => ChangeMediaState(item, MediaAction.Purge))">
+                                                Purge
+                                            </Button>
+                                        </AccessLimited>
                                     }
                                     else
                                     {
-                                        <Button ButtonStyle="secondary btn-sm" Enabled="@false">Delete</Button>
+                                        <Button ButtonStyle="danger" Small="@true"
+                                                Enabled="@(!mediaActionInProgress && CanModifyMedia(item))"
+                                                OnPressed="@(() => ChangeMediaState(item, MediaAction.Delete))">
+                                            Delete
+                                        </Button>
                                     }
                                 </td>
                             }
@@ -518,6 +549,10 @@
     private string? statusMessage;
     private SiteNoticeType statusMessageType;
 
+    private bool mediaActionInProgress;
+    private string? mediaActionMessage;
+    private SiteNoticeType mediaActionMessageType;
+
     private bool showUploadOverlay;
     private bool uploadInProgress;
     private string? uploadStatus;
@@ -536,6 +571,13 @@
     private bool registered;
 
     private ElementReference dropArea;
+
+    private enum MediaAction
+    {
+        Delete,
+        Restore,
+        Purge,
+    }
 
     public Media()
     {
@@ -739,6 +781,8 @@
 
         VisibleFetchInProgress = true;
         Error = null;
+
+        mediaActionMessage = null;
 
         // When changing paths stop showing the folder move and old item related data
         statusMessage = null;
@@ -1151,6 +1195,80 @@
     private void ClearCreateMessage()
     {
         createMessage = null;
+    }
+
+    private bool CanModifyMedia(MediaBrowserEntry item)
+    {
+        var userId = CurrentUserInfo.CurrentUserIdIfExists;
+        return item.UploadedById == userId || item.LastModifiedById == userId ||
+            (CurrentUserInfo.HasGroup(item.MetadataVisibility) && CurrentUserInfo.HasGroup(item.ModifyAccess));
+    }
+
+    private async Task ChangeMediaState(MediaBrowserEntry item, MediaAction action)
+    {
+        mediaActionInProgress = true;
+        mediaActionMessage = null;
+        mediaActionMessageType = SiteNoticeType.Danger;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            if (action is MediaAction.Delete or MediaAction.Purge)
+            {
+                var purge = action == MediaAction.Purge;
+                var parameters = new ModalParameters
+                {
+                    { nameof(ConfirmAction.Name), item.Name },
+                    { nameof(ConfirmAction.ActionVerb), purge ? "immediately and permanently purge" : "delete" },
+                    { nameof(ConfirmAction.AcceptButton), purge ? "Purge permanently" : "Delete" },
+                    {
+                        nameof(ConfirmAction.ExtraInfo),
+                        purge ? "All stored sizes and the original will be permanently removed. This cannot be undone." : "Existing direct links may still work for up to 90 days. Images that failed to upload or process are kept for 72 hours."
+                    },
+                };
+
+                var modal = Modal.Show<ConfirmAction>(purge ? "Purge media permanently?" : "Delete media?", parameters);
+                if ((await modal.Result).Cancelled)
+                    return;
+            }
+
+            var url = $"api/v1/MediaFile/{item.Id}";
+            using var response = action switch
+            {
+                MediaAction.Delete => await Http.DeleteAsync(url),
+                MediaAction.Restore => await Http.PostAsync($"{url}/restore", null),
+                MediaAction.Purge => await Http.PostAsync($"{url}/purge", null),
+                _ => throw new ArgumentOutOfRangeException(nameof(action)),
+            };
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                mediaActionMessage = string.IsNullOrWhiteSpace(error) ?
+                    $"Media action failed ({response.StatusCode})." :
+                    error;
+                return;
+            }
+
+            mediaActionMessage = action switch
+            {
+                MediaAction.Delete => $"{item.Name} deleted. Existing direct links may still work for up to 90 days.",
+                MediaAction.Restore => $"{item.Name} restored.",
+                MediaAction.Purge => $"Immediate purge queued for {item.Name}.",
+                _ => throw new ArgumentOutOfRangeException(nameof(action)),
+            };
+            mediaActionMessageType = SiteNoticeType.Success;
+            await FetchData(true);
+        }
+        catch (HttpRequestException e)
+        {
+            mediaActionMessage = $"Media request failed. {e.Message}";
+        }
+        finally
+        {
+            mediaActionInProgress = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private string GetMediaItemPreviewUrl(MediaBrowserEntry item)
