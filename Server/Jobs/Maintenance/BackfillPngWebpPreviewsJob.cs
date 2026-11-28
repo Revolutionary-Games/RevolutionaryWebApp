@@ -51,12 +51,18 @@ public class BackfillPngWebpPreviewsJob : MaintenanceJobBase
             if (batch.Count == 0)
                 break;
 
-            foreach (var file in batch)
+            foreach (var candidate in batch)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 try
                 {
+                    await using var transaction = await MediaFileLifecycle.BeginTransaction(Database, cancellationToken);
+                    var file = await MediaFileLifecycle.GetFilesForReference(Database, [candidate.GlobalId])
+                        .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+                    if (file == null || file.Deleted)
+                        continue;
+
                     var pagePath = MediaImagePreviews.GetPngWebpPagePath(file);
                     var thumbnailPath = MediaFileExtensions.GetStoragePath(file, MediaFileSize.Thumbnail);
                     if (await mediaStorage.DoesObjectExist(pagePath, cancellationToken) &&
@@ -80,12 +86,15 @@ public class BackfillPngWebpPreviewsJob : MaintenanceJobBase
                     await MediaImagePreviews.UploadPngWebpPreviews(mediaStorage, file, page, thumbnail, buffer,
                         cancellationToken);
 
+                    if (transaction != null)
+                        await transaction.CommitAsync(cancellationToken);
+
                     ++updated;
                 }
                 catch (Exception e) when (e is AmazonS3Exception or IOException or UnknownImageFormatException or
                                               InvalidImageContentException or NotSupportedException)
                 {
-                    Logger.LogWarning(e, "Could not generate WebP previews for media file {MediaFileId}", file.Id);
+                    Logger.LogWarning(e, "Could not generate WebP previews for media file {MediaFileId}", candidate.Id);
                     ++failed;
                 }
             }

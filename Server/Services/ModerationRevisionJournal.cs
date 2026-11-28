@@ -14,6 +14,7 @@ using Models;
 using Models.Pages;
 using Models.Translations;
 using SharedBase.Utilities;
+using Utilities;
 
 public static class ModerationRevisionJournal
 {
@@ -58,6 +59,13 @@ public static class ModerationRevisionJournal
                 !property.Metadata.IsConcurrencyToken && !property.Metadata.IsPrimaryKey()).ToList();
             if (changed.Count == 0)
                 continue;
+
+            // Deletion and permanent purge transitions belong to the media lifecycle.
+            if (entry.Entity is MediaFile && changed.Any(property => property.Metadata.Name is
+                    nameof(MediaFile.Deleted) or nameof(MediaFile.DeletedAt) or nameof(MediaFile.PurgeStarted)))
+            {
+                continue;
+            }
 
             var before = changed.ToDictionary(property => property.Metadata.Name, property => property.OriginalValue);
             var after = changed.ToDictionary(property => property.Metadata.Name, property => property.CurrentValue);
@@ -142,7 +150,15 @@ public static class ModerationRevisionJournal
                     continue;
                 }
 
-                page.LatestContent = DiffGenerator.Default.ApplyDiff(page.LatestContent, previous.DecodeDiffData());
+                var restoredContent = DiffGenerator.Default.ApplyDiff(page.LatestContent, previous.DecodeDiffData());
+                if (await MediaFileLifecycle.FindUnavailablePageMedia(database, restoredContent) != null)
+                {
+                    if (revision.RevertedAt == null)
+                        ++skipped;
+                    continue;
+                }
+
+                page.LatestContent = restoredContent;
                 before.Remove(PageContentProperty);
             }
 

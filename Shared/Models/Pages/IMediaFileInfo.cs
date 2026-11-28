@@ -27,8 +27,10 @@ public class MediaFileInfo : ClientSideTimedModel, IMediaFileInfo
     public GroupType MetadataVisibility { get; set; }
     public GroupType ModifyAccess { get; set; }
     public long? UploadedById { get; set; }
+    public long? LastModifiedById { get; set; }
     public bool Processed { get; set; }
     public bool Deleted { get; set; }
+    public bool PurgeStarted { get; set; }
 }
 
 /// <summary>
@@ -49,8 +51,10 @@ public class MediaBrowserEntry : ClientSideTimedModel
         MetadataVisibility = file.MetadataVisibility;
         ModifyAccess = file.ModifyAccess;
         UploadedById = file.UploadedById;
+        LastModifiedById = file.LastModifiedById;
         Processed = file.Processed;
         Deleted = file.Deleted;
+        PurgeStarted = file.PurgeStarted;
     }
 
     public MediaBrowserEntry(MediaFileDTO file)
@@ -66,8 +70,10 @@ public class MediaBrowserEntry : ClientSideTimedModel
         MetadataVisibility = file.MetadataVisibility;
         ModifyAccess = file.ModifyAccess;
         UploadedById = file.UploadedById;
+        LastModifiedById = file.LastModifiedById;
         Processed = file.Processed;
         Deleted = file.Deleted;
+        PurgeStarted = file.PurgeStarted;
     }
 
     public MediaBrowserEntry(MediaFolderInfo folder)
@@ -103,8 +109,10 @@ public class MediaBrowserEntry : ClientSideTimedModel
     public GroupType MetadataVisibility { get; set; }
     public GroupType ModifyAccess { get; set; }
     public long? UploadedById { get; set; }
+    public long? LastModifiedById { get; set; }
     public bool Processed { get; set; }
     public bool Deleted { get; set; }
+    public bool PurgeStarted { get; set; }
 
     public bool DeleteQueued { get; set; }
 

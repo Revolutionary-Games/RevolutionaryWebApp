@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Pages;
 using Shared.Utilities;
+using Utilities;
 
 /// <summary>
 ///   Refreshes <see cref="MediaFileUsage"/> for a page
@@ -60,9 +61,11 @@ public class UpdatePageUsedMediaJob
 
         try
         {
-            HashSet<Guid> existingMediaIds = parsedIds.Count == 0 ? [] : await database.MediaFiles
-                .Where(file => parsedIds.Contains(file.GlobalId))
-                .Select(file => file.GlobalId).ToHashSetAsync(cancellationToken);
+            HashSet<Guid> existingMediaIds = parsedIds.Count == 0 ?
+                [] :
+                await MediaFileLifecycle.GetFilesForReference(database, [.. parsedIds]).AsNoTracking()
+                    .Where(file => !file.Deleted)
+                    .Select(file => file.GlobalId).ToHashSetAsync(cancellationToken);
 
             foreach (var missingId in parsedIds.Except(existingMediaIds))
             {

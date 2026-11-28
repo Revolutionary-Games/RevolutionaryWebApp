@@ -2987,6 +2987,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("deleted");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
                     b.Property<long>("FolderId")
                         .HasColumnType("bigint")
                         .HasColumnName("folder_id");
@@ -3028,6 +3032,10 @@ namespace RevolutionaryWebApp.Server.Migrations
                     b.Property<bool>("Processed")
                         .HasColumnType("boolean")
                         .HasColumnName("processed");
+
+                    b.Property<bool>("PurgeStarted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("purge_started");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

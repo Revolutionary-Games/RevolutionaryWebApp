@@ -47,7 +47,8 @@ public class ProcessUploadedImageJob
 
     public async Task Execute(long itemId, string processPath, CancellationToken cancellationToken)
     {
-        var mediaFile = await database.MediaFiles.FindAsync(new object[] { itemId }, cancellationToken);
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database, cancellationToken);
+        var mediaFile = await MediaFileLifecycle.FindForUpdate(database, itemId, cancellationToken);
 
         if (mediaFile == null)
         {
@@ -64,6 +65,9 @@ public class ProcessUploadedImageJob
 
             return;
         }
+
+        if (mediaFile.Deleted || mediaFile.Processed)
+            return;
 
         var imageType = Path.GetExtension(mediaFile.Name);
 
@@ -268,12 +272,16 @@ public class ProcessUploadedImageJob
         else
         {
             logger.LogError("Error media file processing failed for: {Id}", mediaFile.Id);
+            mediaFile.MarkDeleted();
             await OnError(mediaFile);
         }
 
         // This is not cancelled as the data is already handled
         // ReSharper disable once MethodSupportsCancellation
         await database.SaveChangesAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync(CancellationToken.None);
     }
 
     internal static Image? CreateStaticPreviewSource(Image image)

@@ -22,4 +22,5 @@ public class MediaFileDTO : ClientSideTimedModel, IMediaFileInfo
     public long? LastModifiedById { get; set; }
     public bool Processed { get; set; }
     public bool Deleted { get; set; }
+    public bool PurgeStarted { get; set; }
 }

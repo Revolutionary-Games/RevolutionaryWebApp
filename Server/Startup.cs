@@ -690,6 +690,7 @@ public class Startup
         AddJobHelper<RecountTranslationSuggestionScoresJob>(configurationSection["RecountTranslationSuggestionScores"]);
         AddJobHelper<PurgeDeletedTranslationResourcesJob>(configurationSection["PurgeDeletedTranslationResources"]);
         AddJobHelper<PurgeOldTranslationSuggestionsJob>(configurationSection["PurgeOldTranslationSuggestions"]);
+        AddJobHelper<QueueDeletedMediaPurgeJob>(configurationSection["QueueDeletedMediaPurge"]);
         AddJobHelper<PurgeModerationUploadsJob>(configurationSection["PurgeModerationUploads"]);
         AddJobHelper<PurgeOldModerationRevisionsJob>(configurationSection["PurgeOldModerationRevisions"]);
         AddJobHelper<RecoverPendingModerationJob>(configurationSection["RecoverPendingModeration"]);

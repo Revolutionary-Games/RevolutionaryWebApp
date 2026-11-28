@@ -408,16 +408,24 @@ public abstract class BaseRemoteStorage : IBaseRemoteStorage
     {
         ThrowIfNotConfigured();
 
-        var deleteResult = await s3Client!.DeleteObjectAsync(new DeleteObjectRequest
+        try
         {
-            BucketName = bucket,
-            Key = path,
-        });
+            var deleteResult = await s3Client!.DeleteObjectAsync(new DeleteObjectRequest
+            {
+                BucketName = bucket,
+                Key = path,
+            });
 
-        if (deleteResult.HttpStatusCode != HttpStatusCode.NoContent &&
-            deleteResult.HttpStatusCode != HttpStatusCode.OK)
+            if (deleteResult.HttpStatusCode != HttpStatusCode.NoContent &&
+                deleteResult.HttpStatusCode != HttpStatusCode.OK &&
+                deleteResult.HttpStatusCode != HttpStatusCode.NotFound)
+            {
+                throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
+            }
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == HttpStatusCode.NotFound && e.ErrorCode != "NoSuchBucket")
         {
-            throw new Exception($"s3 object delete failed, status: {deleteResult.HttpStatusCode}");
+            // The object has already been removed.
         }
     }
 

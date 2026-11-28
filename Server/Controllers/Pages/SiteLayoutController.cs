@@ -62,6 +62,8 @@ public class SiteLayoutController : Controller
     [HttpPost]
     public async Task<IActionResult> CreateSiteLayoutPart([Required] [FromBody] SiteLayoutPartDTO request)
     {
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database);
+
         if (string.IsNullOrWhiteSpace(request.LinkTarget))
             request.LinkTarget = null;
 
@@ -134,6 +136,9 @@ public class SiteLayoutController : Controller
 
         await database.SaveChangesAsync();
 
+        if (transaction != null)
+            await transaction.CommitAsync();
+
         logger.LogInformation("New Site Layout Part {Id} created by {Email}", siteLayoutPart.Id, user.Email);
 
         return Ok();
@@ -153,6 +158,8 @@ public class SiteLayoutController : Controller
     [HttpPut("{id:long}")]
     public async Task<IActionResult> UpdateSiteLayoutPart([Required] [FromBody] SiteLayoutPartDTO request)
     {
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(database);
+
         var siteLayoutPart = await database.SiteLayoutParts.FindAsync(request.Id);
 
         if (siteLayoutPart == null)
@@ -180,7 +187,17 @@ public class SiteLayoutController : Controller
 
         var (changes, description, _) = ModelUpdateApplyHelper.ApplyUpdateRequestToModel(siteLayoutPart, request);
 
-        if (request.ImageId != null)
+        if (request.ImageId != null && string.IsNullOrWhiteSpace(request.ImageId))
+        {
+            if (oldImage != null)
+            {
+                siteLayoutPart.ImageId = null;
+                siteLayoutPart.ImageType = null;
+                changes = true;
+                description += $", image {oldImage} removed";
+            }
+        }
+        else if (request.ImageId != null)
         {
             if (!Guid.TryParse(request.ImageId, out var parsedGuid))
                 return BadRequest("Invalid image ID format (it must be a GUID)");
@@ -211,6 +228,9 @@ public class SiteLayoutController : Controller
             });
 
         await database.SaveChangesAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync();
 
         logger.LogInformation("Site Layout Part {Id} edited by {Email}, changes: {Description}", siteLayoutPart.Id,
             user.Email, description);
@@ -274,7 +294,7 @@ public class SiteLayoutController : Controller
     [NonAction]
     private async Task<(bool Valid, string? Extension)> VerifyImageIdIsValid(Guid imageId)
     {
-        var image = await database.MediaFiles.FirstOrDefaultAsync(m => m.GlobalId == imageId);
+        var image = await MediaFileLifecycle.GetFilesForReference(database, [imageId]).FirstOrDefaultAsync();
 
         if (image == null)
             return (false, null);

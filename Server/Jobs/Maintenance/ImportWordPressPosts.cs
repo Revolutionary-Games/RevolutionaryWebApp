@@ -21,6 +21,7 @@ using Shared;
 using Shared.Models.Enums;
 using Shared.Models.Pages;
 using Shared.Utilities;
+using Utilities;
 using YamlDotNet.Serialization;
 
 /// <summary>
@@ -346,6 +347,14 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
     private async Task SavePage(string content, string title, DateTime date, string permalink)
     {
+        await using var transaction = await MediaFileLifecycle.BeginTransaction(Database);
+        var unavailable = await MediaFileLifecycle.FindUnavailablePageMedia(Database, content);
+        if (unavailable != null)
+        {
+            throw new InvalidOperationException(
+                $"Cannot import a page that references unavailable media {unavailable.Value.Id}");
+        }
+
         var page = new VersionedPage(title)
         {
             LastEditComment = "Imported from WordPress",
@@ -362,6 +371,9 @@ public class ImportWordPressPosts : MaintenanceJobBase
 
         // We must have the ID here, so I guess we are saving database changes now
         await Database.SaveChangesAsync();
+
+        if (transaction != null)
+            await transaction.CommitAsync();
 
         // We need to run some post-import actions. So queue those long into the future to make sure they will run
         jobClient.Schedule<UpdatePageUsedMediaJob>(x => x.Execute(page.Id, CancellationToken.None),

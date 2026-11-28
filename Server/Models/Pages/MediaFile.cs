@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using DevCenterCommunication.Models;
 using Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -100,6 +101,10 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
 
     public bool Deleted { get; set; }
 
+    public DateTime? DeletedAt { get; set; }
+
+    public bool PurgeStarted { get; set; }
+
     public ICollection<SiteLayoutPart> UsedInSiteParts { get; set; } = new HashSet<SiteLayoutPart>();
 
     /// <summary>
@@ -107,6 +112,13 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
     ///   combined table
     /// </summary>
     public ICollection<MediaFileUsage> Usages { get; set; } = new HashSet<MediaFileUsage>();
+
+    public void MarkDeleted()
+    {
+        Deleted = true;
+        this.BumpUpdatedAt();
+        DeletedAt = UpdatedAt;
+    }
 
     public string? GetStoragePath(MediaFileSize size)
     {
@@ -142,8 +154,10 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
             MetadataVisibility = MetadataVisibility,
             ModifyAccess = ModifyAccess,
             UploadedById = UploadedById,
+            LastModifiedById = LastModifiedById,
             Processed = Processed,
             Deleted = Deleted,
+            PurgeStarted = PurgeStarted,
         };
     }
 
@@ -164,6 +178,7 @@ public class MediaFile : UpdateableModel, IMediaFileInfo, ISoftDeletable, IUpdat
             LastModifiedById = LastModifiedById,
             Processed = Processed,
             Deleted = Deleted,
+            PurgeStarted = PurgeStarted,
         };
     }
 
